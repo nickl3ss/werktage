@@ -13,7 +13,7 @@ kann.
    Namen (Anna, Ben, Clara, David, Emil). Vor jedem Commit:
    `python3 tools/check_publication.py`.
 2. **Spezifikation:** [docs/specification.md](docs/specification.md)
-   (englisch, allgemein, P1–P20, offene Fragen Q1–Q8). Abweichungen werden
+   (englisch, allgemein, Produktentscheidungen P1–P28). Abweichungen werden
    dort nachgetragen. Wie eine bestimmte Installation eingerichtet wird, steht
    **nicht** hier, sondern bei der jeweiligen Installation.
 3. **Englisch im Code**: Bezeichner, Kommentare, Docstrings, Log-Meldungen,

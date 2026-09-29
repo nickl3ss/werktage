@@ -1,6 +1,7 @@
 # Werktags — Specification
 
-**Status:** draft, not implemented · **Version:** 1 (2026-09-29)
+**Status:** draft, not implemented · **Version:** 2 (2026-09-29) — all open
+questions decided (P21–P28)
 
 Werktags tells Home Assistant, **per person**, whether a day is a workday or a
 day off. From that it derives a **morning mode** (*workday* / *day off*) and an
@@ -52,6 +53,14 @@ type.
 | P18 | Checkbox meaning | In the calendar card **checked = day off**; tapping *All* when everybody is off sets **everybody to workday** |
 | P19 | Calendar range | Five weeks starting with the current week, paged week by week |
 | P20 | Date ranges | Own card: `day_off` · `workday` · `default`, people, from–to; applies to **every day** in the range, including weekends and public holidays |
+| P21 | Entities | **Two sensors** per resident, room and house (`morning`, `evening`) plus a read-only calendar per resident; no separate workday binary sensors |
+| P22 | Role key for pupils | `pupil` (displayed *Pupil* / *Schüler*) |
+| P23 | School holidays | **One school holiday calendar per installation**, shared by all pupils; individual school days off are exceptions |
+| P24 | School on Saturdays | Not supported; the weekend is the same for everyone; single school Saturdays are exceptions |
+| P25 | Christmas Eve, New Year's Eve | Workdays unless they are public holidays in the subdivision |
+| P26 | Exceptions on role or room change | **Kept** — exceptions belong to person and day |
+| P27 | Change log | **None** — only the current state is stored |
+| P28 | Editing the past | Single days without confirmation; past role and room steps ask for confirmation |
 
 ## 3. Rules
 
@@ -138,8 +147,8 @@ One config entry per installation (`single_config_entry`).
 
 ### 5.2 Store
 
-Residents with roles, rooms with assignments and rules, exceptions, the school
-holiday cache and a change log (1,000 entries). Keys are the internal ids of
+Residents with roles, rooms with assignments and rules, exceptions and the
+school holiday cache. No change log (P27). Keys are the internal ids of
 persons and areas, stable across renames. Versioned with migrations.
 
 ### 5.3 Devices and entities
@@ -224,13 +233,4 @@ The README provides a ready-made dashboard with the four cards.
 
 ## 9. Open questions
 
-| No. | Question | Proposal |
-|---|---|---|
-| Q1 | Two sensors per resident/room/house instead of separate workday binary sensors? | yes — fewer entities, states read like sentences |
-| Q2 | Technical role key for pupils | `pupil` |
-| Q3 | One school holiday calendar per household (all pupils share it) | yes; individual school days off are exceptions |
-| Q4 | School on Saturdays | not supported; use exceptions |
-| Q5 | Christmas Eve and New Year's Eve | workdays unless they are public holidays in the subdivision |
-| Q6 | Exceptions survive role and room changes | yes |
-| Q7 | Change log size | 1,000 entries |
-| Q8 | Past days in the calendar | editable without confirmation; past role and room steps ask |
+None. The former questions Q1–Q8 are decided as P21–P28.
