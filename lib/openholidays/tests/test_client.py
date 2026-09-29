@@ -11,6 +11,9 @@ from openholidays import InvalidResponse, OpenHolidaysClient, RequestFailed
 
 d = dt.date.fromisoformat
 
+# The Home Assistant test plugin blocks sockets; these tests talk to a local test server only.
+pytestmark = pytest.mark.enable_socket
+
 SCHOOL = [{"id": "s1", "startDate": "2031-06-30", "endDate": "2031-08-08", "type": "School",
            "name": [{"language": "EN", "text": "Summer Holidays"}], "nationwide": False,
            "subdivisions": [{"code": "XX-AA", "shortName": "AA"}]}]
