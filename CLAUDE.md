@@ -38,22 +38,23 @@ jederzeit öffentlich werden kann.
 
 ## Entwickeln und prüfen
 
-    python3 -m venv .venv && .venv/bin/pip install -e lib/openholidays pytest pytest-asyncio aiohttp holidays mypy ruff
-    .venv/bin/python -m pytest -q          # Regeln (tests/) und Bibliothek (lib/openholidays/tests)
+    python3 -m venv .venv && .venv/bin/pip install -e lib/openholidays pytest-homeassistant-custom-component mypy ruff
+    .venv/bin/python -m pytest -q          # Regeln, Integration (tests/) und Bibliothek (lib/openholidays/tests)
+    python3 tools/sync_vendor.py            # nach jeder Aenderung an lib/openholidays
     .venv/bin/ruff check .                  # Lint, 120 Zeichen
     .venv/bin/python -m mypy                # strict, Integration und Bibliothek
     python3 tools/check_publication.py --areas
 
-Alle vier müssen vor einem Commit sauber sein. `custom_components/werktags/__init__.py`
-bleibt ohne Home-Assistant-Import, solange die Integration nicht gebaut ist,
-damit `rules.py` ohne Home Assistant testbar ist.
+Alle müssen vor einem Commit sauber sein. `rules.py`, `sources.py` und
+`storage.py` importieren nichts aus Home Assistant und sind auch ohne das
+HA-Testpaket prüfbar.
 
 ## Ausrollen in die eigene Installation
 
-Noch nicht vorhanden. Geplant ist ein `deploy.sh`, das
-`custom_components/werktags/` samt `lib/openholidays/` in das
-`custom_components/`-Verzeichnis der Installation kopiert; der Zielpfad wird
-als Argument übergeben, nicht im Repository festgeschrieben.
+`./deploy.sh <Konfigurationsverzeichnis>` kopiert `custom_components/werktags/`
+(samt der einkopierten Bibliothek) dorthin; der Zielpfad ist ein Argument und
+steht nicht im Repository. Danach `ha core check` und Neustart; eingerichtet
+wird über *Einstellungen → Integrationen → Werktags*.
 
 ## Veröffentlichung
 

@@ -153,8 +153,12 @@ persons and areas, stable across renames. Versioned with migrations.
 
 ### 5.3 Devices and entities
 
-One service device per resident, per room (in its area) and for the house.
-Names via `translation_key`; entity ids follow the installation language.
+One service device per resident, per room and for the house. Room devices are
+named after their area but **not placed in it**: Home Assistant builds entity
+ids from area, device and entity name by default, and a device named like its
+area would yield `sensor.bedroom_bedroom_morning` instead of
+`sensor.bedroom_morning`. Names via `translation_key`; entity ids follow the
+installation language.
 
 | Entity (English installation) | States | Attributes |
 |---|---|---|

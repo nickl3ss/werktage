@@ -2,6 +2,17 @@
 
 ## 0.1.0 — 2026-09-29 (unreleased)
 
+- Integration: config flow with three steps and options, store with
+  versioned JSON, coordinator (midnight rebuild, monthly school holiday
+  fetch from the OpenHolidays API or a calendar entity, plausibility check,
+  repair issues), morning/evening enum sensors per resident, room and house,
+  a days-off calendar per resident, ten services (six writing, three with
+  response, one refresh), diagnostics, English and German translations,
+  optional card serving (`frontend.py`). Tested against Home Assistant
+  2026.9.4 with `pytest-homeassistant-custom-component` (24 tests).
+- `deploy.sh <config dir>` copies the integration into an installation;
+  `tools/sync_vendor.py` keeps the vendored `openholidays` copy in sync.
+
 - Rules engine `custom_components/werktags/rules.py`: default day by role,
   exceptions in both directions, unknown days count as workdays, morning and
   evening modes, room and house combination rules, histories for roles and

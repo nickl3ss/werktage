@@ -1,0 +1,29 @@
+{
+  "entity": {
+    "sensor": {
+      "morning": {
+        "default": "mdi:weather-sunset-up",
+        "state": { "workday": "mdi:briefcase-clock", "day_off": "mdi:bed" }
+      },
+      "evening": {
+        "default": "mdi:weather-sunset-down",
+        "state": { "before_workday": "mdi:alarm", "before_day_off": "mdi:sleep" }
+      }
+    },
+    "calendar": {
+      "days_off": { "default": "mdi:calendar-star" }
+    }
+  },
+  "services": {
+    "set_days": { "service": "mdi:calendar-edit" },
+    "set_role": { "service": "mdi:account-school" },
+    "remove_role": { "service": "mdi:account-remove" },
+    "set_room": { "service": "mdi:door" },
+    "remove_room_assignment": { "service": "mdi:door-closed" },
+    "set_order": { "service": "mdi:sort" },
+    "get_days": { "service": "mdi:calendar-month" },
+    "preview_days": { "service": "mdi:calendar-search" },
+    "get_overview": { "service": "mdi:account-group" },
+    "refresh_school_holidays": { "service": "mdi:refresh" }
+  }
+}

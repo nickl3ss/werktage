@@ -4,7 +4,7 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 files = ["custom_components/werktags", "lib/openholidays/src"]
 
@@ -14,3 +14,7 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
+"lib/openholidays/tests/**" = ["E501"]

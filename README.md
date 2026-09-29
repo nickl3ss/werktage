@@ -4,9 +4,9 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: in development.** Stage 1 is done: the rules engine and the
-> OpenHolidays client library exist and are tested. The Home Assistant
-> integration itself (setup, entities, services) and the cards follow.
+> **Status: in development.** The integration works (setup dialog,
+> sensors, calendars, services) and is tested against Home Assistant 2026.9.
+> Dashboard cards and a release follow.
 
 ## What it will do
 
@@ -53,6 +53,6 @@ Feiertage frei, für Schüler zusätzlich die Schulferien. Ausnahmen lassen sich
 je Person und Tag setzen. Für Personen, Räume und das Haus gibt es einen
 Morgen- und einen Abendmodus.
 
-> **Stand: in Entwicklung.** Etappe 1 ist fertig: Rechenkern und
-> OpenHolidays-Bibliothek sind vorhanden und getestet. Die Integration
-> selbst (Einrichtung, Entitäten, Dienste) und die Karten folgen.
+> **Stand: in Entwicklung.** Die Integration funktioniert (Einrichtungsdialog,
+> Sensoren, Kalender, Dienste) und ist gegen Home Assistant 2026.9 getestet.
+> Dashboard-Karten und eine erste Version folgen.

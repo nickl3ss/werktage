@@ -56,6 +56,11 @@ def supported_subdivisions(country: str) -> list[str]:
         return []
 
 
+def supported_countries() -> list[str]:
+    """ISO country codes the ``holidays`` library supports."""
+    return sorted(holidays_lib.list_supported_countries())
+
+
 def supports_country(country: str) -> bool:
     return country in holidays_lib.list_supported_countries()
 

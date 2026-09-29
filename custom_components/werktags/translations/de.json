@@ -1,0 +1,358 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Land und Wochenende",
+        "description": "Die gesetzlichen Feiertage kommen aus dem gewählten Land und Bundesland.",
+        "data": {
+          "country": "Land",
+          "subdivision": "Bundesland / Region",
+          "weekend": "Wochenendtage"
+        }
+      },
+      "school_holidays": {
+        "title": "Schulferien",
+        "description": "Schüler haben in den Schulferien frei. Wähle, woher sie kommen. Die Daten der OpenHolidays API stehen unter ODbL 1.0 (openholidaysapi.org).",
+        "data": {
+          "school_holiday_source": "Quelle",
+          "calendar_entity": "Kalender mit Schulferien (Ganztagstermine)"
+        }
+      },
+      "house": {
+        "title": "Haus",
+        "description": "Welche Bewohner für das ganze Haus zählen und wie ihre Tage zusammengefasst werden.",
+        "data": {
+          "house_roles": "Rollen, die für das Haus zählen",
+          "house_morning_rule": "Regel morgens",
+          "house_evening_rule": "Regel abends",
+          "admin_only": "Nur Administratoren dürfen Tage, Rollen und Räume ändern"
+        }
+      }
+    },
+    "error": {
+      "calendar_required": "Wähle für diese Quelle einen Kalender."
+    },
+    "abort": {
+      "single_instance_allowed": "Werktags ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Land und Wochenende",
+        "data": {
+          "country": "Land",
+          "subdivision": "Bundesland / Region",
+          "weekend": "Wochenendtage"
+        }
+      },
+      "school_holidays": {
+        "title": "Schulferien",
+        "data": {
+          "school_holiday_source": "Quelle",
+          "calendar_entity": "Kalender mit Schulferien (Ganztagstermine)"
+        }
+      },
+      "house": {
+        "title": "Haus",
+        "data": {
+          "house_roles": "Rollen, die für das Haus zählen",
+          "house_morning_rule": "Regel morgens",
+          "house_evening_rule": "Regel abends",
+          "admin_only": "Nur Administratoren dürfen Tage, Rollen und Räume ändern"
+        }
+      }
+    },
+    "error": {
+      "calendar_required": "Wähle für diese Quelle einen Kalender."
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "0": "Montag",
+        "1": "Dienstag",
+        "2": "Mittwoch",
+        "3": "Donnerstag",
+        "4": "Freitag",
+        "5": "Samstag",
+        "6": "Sonntag"
+      }
+    },
+    "school_holiday_source": {
+      "options": {
+        "openholidays": "OpenHolidays API (Europa, ohne Schlüssel)",
+        "calendar": "Eine Kalender-Entität",
+        "none": "Keine — Schüler haben keine Schulferien"
+      }
+    },
+    "role": {
+      "options": {
+        "pupil": "Schüler",
+        "adult": "Erwachsen",
+        "none": "Keine (kein Bewohner)"
+      }
+    },
+    "combine_rule": {
+      "options": {
+        "day_off_wins": "Frei gewinnt — ein Bewohner mit freiem Tag genügt",
+        "workday_wins": "Arbeit gewinnt — ein arbeitender Bewohner genügt"
+      }
+    },
+    "day_status": {
+      "options": {
+        "day_off": "Frei",
+        "workday": "Werktag",
+        "default": "Standard (Ausnahmen entfernen)"
+      }
+    }
+  },
+  "device": {
+    "house": {
+      "name": "Haus"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "morning": {
+        "name": "Morgen",
+        "state": {
+          "workday": "Arbeitstag",
+          "day_off": "Ausschlafen"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Grund",
+            "state": {
+              "workday": "Werktag",
+              "weekend": "Wochenende",
+              "public_holiday": "Feiertag",
+              "school_holiday": "Schulferien",
+              "exception_day_off": "Ausnahme: frei",
+              "exception_workday": "Ausnahme: Werktag",
+              "unknown": "Unbekannt (gilt als Werktag)"
+            }
+          }
+        }
+      },
+      "evening": {
+        "name": "Abend",
+        "state": {
+          "before_workday": "Abend vor Werktag",
+          "before_day_off": "Abend vor freiem Tag"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Grund",
+            "state": {
+              "workday": "Werktag",
+              "weekend": "Wochenende",
+              "public_holiday": "Feiertag",
+              "school_holiday": "Schulferien",
+              "exception_day_off": "Ausnahme: frei",
+              "exception_workday": "Ausnahme: Werktag",
+              "unknown": "Unbekannt (gilt als Werktag)"
+            }
+          }
+        }
+      }
+    },
+    "calendar": {
+      "days_off": {
+        "name": "Freie Tage"
+      }
+    }
+  },
+  "services": {
+    "set_days": {
+      "name": "Tage setzen",
+      "description": "Markiert Tage für eine oder mehrere Personen als frei oder Werktag oder entfernt solche Ausnahmen. Gilt für jeden Tag im Zeitraum, auch Wochenenden.",
+      "fields": {
+        "person": {
+          "name": "Personen",
+          "description": "Wessen Tage geändert werden."
+        },
+        "start": {
+          "name": "Erster Tag",
+          "description": "Erster Tag des Zeitraums."
+        },
+        "end": {
+          "name": "Letzter Tag",
+          "description": "Letzter Tag des Zeitraums; ohne Angabe wie der erste Tag."
+        },
+        "status": {
+          "name": "Status",
+          "description": "Frei, Werktag oder Standard zum Entfernen der Ausnahmen."
+        }
+      }
+    },
+    "set_role": {
+      "name": "Rolle setzen",
+      "description": "Macht eine Person zum Bewohner oder ändert die Rolle ab einem Datum. Frühere Tage behalten ihre Rolle.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "Die Person."
+        },
+        "role": {
+          "name": "Rolle",
+          "description": "Schüler, Erwachsen oder Keine zum Beenden."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Erster Tag, an dem die Rolle gilt; ohne Angabe heute."
+        },
+        "short_name": {
+          "name": "Kürzel",
+          "description": "Ein bis zwei Zeichen für die Kalenderkarte."
+        }
+      }
+    },
+    "remove_role": {
+      "name": "Rollenstufe löschen",
+      "description": "Entfernt eine versehentlich eingetragene Rollenstufe.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "Die Person."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Das Datum der zu löschenden Stufe."
+        }
+      }
+    },
+    "set_room": {
+      "name": "Raum zuordnen",
+      "description": "Setzt die Bewohner eines Raums (Bereichs) ab einem Datum und/oder seine Regeln für morgens und abends.",
+      "fields": {
+        "area": {
+          "name": "Raum",
+          "description": "Der Bereich."
+        },
+        "person": {
+          "name": "Bewohner",
+          "description": "Personen, die ab dem Datum in diesem Raum wohnen."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Erster Tag, an dem die Zuordnung gilt; ohne Angabe heute."
+        },
+        "morning_rule": {
+          "name": "Regel morgens",
+          "description": "Wie die Bewohner morgens zusammengefasst werden."
+        },
+        "evening_rule": {
+          "name": "Regel abends",
+          "description": "Wie die Bewohner abends zusammengefasst werden."
+        }
+      }
+    },
+    "remove_room_assignment": {
+      "name": "Zuordnungsstufe löschen",
+      "description": "Entfernt eine versehentlich eingetragene Zuordnungsstufe.",
+      "fields": {
+        "area": {
+          "name": "Raum",
+          "description": "Der Bereich."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Das Datum der zu löschenden Stufe."
+        }
+      }
+    },
+    "set_order": {
+      "name": "Reihenfolge setzen",
+      "description": "Legt die Reihenfolge der Bewohner in der Kalenderkarte fest.",
+      "fields": {
+        "person": {
+          "name": "Personen",
+          "description": "Personen in der gewünschten Reihenfolge."
+        }
+      }
+    },
+    "get_days": {
+      "name": "Tage abfragen",
+      "description": "Liefert den Tag jedes Bewohners für ganze Wochen mit Standard, Ausnahme und Grund.",
+      "fields": {
+        "start": {
+          "name": "Start",
+          "description": "Ein beliebiger Tag der ersten Woche; ohne Angabe heute."
+        },
+        "weeks": {
+          "name": "Wochen",
+          "description": "Anzahl der Wochen."
+        }
+      }
+    },
+    "preview_days": {
+      "name": "Vorschau",
+      "description": "Liefert, wie viele Tage sich je Person ändern würden; schreibt nichts.",
+      "fields": {
+        "person": {
+          "name": "Personen",
+          "description": "Wessen Tage geprüft werden."
+        },
+        "start": {
+          "name": "Erster Tag",
+          "description": "Erster Tag des Zeitraums."
+        },
+        "end": {
+          "name": "Letzter Tag",
+          "description": "Letzter Tag des Zeitraums."
+        },
+        "status": {
+          "name": "Status",
+          "description": "Der Status, der gesetzt würde."
+        }
+      }
+    },
+    "get_overview": {
+      "name": "Übersicht",
+      "description": "Liefert alle Personen und Bereiche mit Rollen, Zuordnungen und dem Stand der Schulferienquelle."
+    },
+    "refresh_school_holidays": {
+      "name": "Schulferien abrufen",
+      "description": "Holt die Schulferien jetzt."
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Werktags ist noch nicht eingerichtet."
+    },
+    "admin_only": {
+      "message": "Nur Administratoren dürfen Werktags-Daten ändern."
+    },
+    "unknown_person": {
+      "message": "{entity_id} ist keine Person."
+    },
+    "end_before_start": {
+      "message": "Der letzte Tag liegt vor dem ersten."
+    },
+    "range_too_long": {
+      "message": "Höchstens {max} Tage je Aufruf."
+    },
+    "invalid": {
+      "message": "{message}"
+    }
+  },
+  "issues": {
+    "school_holidays_unreachable": {
+      "title": "Schulferien konnten nicht abgerufen werden",
+      "description": "Die Quelle „{source}“ ist {failures}-mal in Folge fehlgeschlagen. Die zuletzt bekannten Schulferien werden weiter benutzt. Prüfe die Verbindung oder wähle in den Optionen eine andere Quelle."
+    },
+    "school_holidays_incomplete": {
+      "title": "Schulferien für {year} fehlen",
+      "description": "Schulferien sind bis {known_to} bekannt. Tage ohne Daten gelten für Schüler als Werktag. Die Quelle hat das nächste Jahr vielleicht noch nicht veröffentlicht; später erneut versuchen oder die Termine als Ausnahme eintragen."
+    },
+    "person_missing": {
+      "title": "Bewohner ohne Person",
+      "description": "Diese Bewohner verweisen auf Personen, die es in Home Assistant nicht mehr gibt: {ids}. Ihre Sensoren sind nicht verfügbar. Setze ihre Rolle auf „Keine“ oder lege die Person neu an."
+    },
+    "area_missing": {
+      "title": "Räume ohne Bereich",
+      "description": "Diese Räume verweisen auf Bereiche, die es in Home Assistant nicht mehr gibt: {ids}. Ihre Sensoren sind nicht verfügbar."
+    }
+  }
+}

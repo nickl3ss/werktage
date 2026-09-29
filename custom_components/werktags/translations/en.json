@@ -1,0 +1,358 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Country and weekend",
+        "description": "Public holidays come from the selected country and subdivision.",
+        "data": {
+          "country": "Country",
+          "subdivision": "Subdivision (state, province)",
+          "weekend": "Weekend days"
+        }
+      },
+      "school_holidays": {
+        "title": "School holidays",
+        "description": "Pupils have school holidays off. Choose where they come from. OpenHolidays data is licensed under ODbL 1.0 (openholidaysapi.org).",
+        "data": {
+          "school_holiday_source": "Source",
+          "calendar_entity": "Calendar with school holidays (all-day events)"
+        }
+      },
+      "house": {
+        "title": "House",
+        "description": "Which residents count for the whole house, and how their days are combined.",
+        "data": {
+          "house_roles": "Roles that count for the house",
+          "house_morning_rule": "Morning rule",
+          "house_evening_rule": "Evening rule",
+          "admin_only": "Only administrators may change days, roles and rooms"
+        }
+      }
+    },
+    "error": {
+      "calendar_required": "Select a calendar for this source."
+    },
+    "abort": {
+      "single_instance_allowed": "Werktags is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Country and weekend",
+        "data": {
+          "country": "Country",
+          "subdivision": "Subdivision (state, province)",
+          "weekend": "Weekend days"
+        }
+      },
+      "school_holidays": {
+        "title": "School holidays",
+        "data": {
+          "school_holiday_source": "Source",
+          "calendar_entity": "Calendar with school holidays (all-day events)"
+        }
+      },
+      "house": {
+        "title": "House",
+        "data": {
+          "house_roles": "Roles that count for the house",
+          "house_morning_rule": "Morning rule",
+          "house_evening_rule": "Evening rule",
+          "admin_only": "Only administrators may change days, roles and rooms"
+        }
+      }
+    },
+    "error": {
+      "calendar_required": "Select a calendar for this source."
+    }
+  },
+  "selector": {
+    "weekday": {
+      "options": {
+        "0": "Monday",
+        "1": "Tuesday",
+        "2": "Wednesday",
+        "3": "Thursday",
+        "4": "Friday",
+        "5": "Saturday",
+        "6": "Sunday"
+      }
+    },
+    "school_holiday_source": {
+      "options": {
+        "openholidays": "OpenHolidays API (Europe, no key needed)",
+        "calendar": "A calendar entity",
+        "none": "None — pupils have no school holidays"
+      }
+    },
+    "role": {
+      "options": {
+        "pupil": "Pupil",
+        "adult": "Adult",
+        "none": "None (not a resident)"
+      }
+    },
+    "combine_rule": {
+      "options": {
+        "day_off_wins": "Day off wins — one resident off is enough",
+        "workday_wins": "Workday wins — one resident working is enough"
+      }
+    },
+    "day_status": {
+      "options": {
+        "day_off": "Day off",
+        "workday": "Workday",
+        "default": "Default (remove exceptions)"
+      }
+    }
+  },
+  "device": {
+    "house": {
+      "name": "House"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "morning": {
+        "name": "Morning",
+        "state": {
+          "workday": "Workday",
+          "day_off": "Day off"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Reason",
+            "state": {
+              "workday": "Workday",
+              "weekend": "Weekend",
+              "public_holiday": "Public holiday",
+              "school_holiday": "School holiday",
+              "exception_day_off": "Exception: day off",
+              "exception_workday": "Exception: workday",
+              "unknown": "Unknown (counts as workday)"
+            }
+          }
+        }
+      },
+      "evening": {
+        "name": "Evening",
+        "state": {
+          "before_workday": "Before a workday",
+          "before_day_off": "Before a day off"
+        },
+        "state_attributes": {
+          "reason": {
+            "name": "Reason",
+            "state": {
+              "workday": "Workday",
+              "weekend": "Weekend",
+              "public_holiday": "Public holiday",
+              "school_holiday": "School holiday",
+              "exception_day_off": "Exception: day off",
+              "exception_workday": "Exception: workday",
+              "unknown": "Unknown (counts as workday)"
+            }
+          }
+        }
+      }
+    },
+    "calendar": {
+      "days_off": {
+        "name": "Days off"
+      }
+    }
+  },
+  "services": {
+    "set_days": {
+      "name": "Set days",
+      "description": "Marks days as day off or workday for one or more persons, or removes such exceptions. Applies to every day in the range, weekends included.",
+      "fields": {
+        "person": {
+          "name": "Persons",
+          "description": "Whose days to change."
+        },
+        "start": {
+          "name": "First day",
+          "description": "First day of the range."
+        },
+        "end": {
+          "name": "Last day",
+          "description": "Last day of the range; same as the first day if omitted."
+        },
+        "status": {
+          "name": "Status",
+          "description": "Day off, workday, or default to remove exceptions."
+        }
+      }
+    },
+    "set_role": {
+      "name": "Set role",
+      "description": "Makes a person a resident, or changes the role from a date on. Earlier days keep the role they had.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The person."
+        },
+        "role": {
+          "name": "Role",
+          "description": "Pupil, adult, or none to end residency."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "First day the role applies; today if omitted."
+        },
+        "short_name": {
+          "name": "Short name",
+          "description": "One or two characters shown in the calendar card."
+        }
+      }
+    },
+    "remove_role": {
+      "name": "Remove role step",
+      "description": "Removes a role step that was entered by mistake.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The person."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "The date of the step to remove."
+        }
+      }
+    },
+    "set_room": {
+      "name": "Assign room",
+      "description": "Sets the residents of a room (an area) from a date on, and/or its morning and evening rules.",
+      "fields": {
+        "area": {
+          "name": "Room",
+          "description": "The area."
+        },
+        "person": {
+          "name": "Residents",
+          "description": "Persons living in this room from the date on."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "First day the assignment applies; today if omitted."
+        },
+        "morning_rule": {
+          "name": "Morning rule",
+          "description": "How residents are combined in the morning."
+        },
+        "evening_rule": {
+          "name": "Evening rule",
+          "description": "How residents are combined in the evening."
+        }
+      }
+    },
+    "remove_room_assignment": {
+      "name": "Remove room assignment step",
+      "description": "Removes an assignment step that was entered by mistake.",
+      "fields": {
+        "area": {
+          "name": "Room",
+          "description": "The area."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "The date of the step to remove."
+        }
+      }
+    },
+    "set_order": {
+      "name": "Set order",
+      "description": "Sets the order of residents in the calendar card.",
+      "fields": {
+        "person": {
+          "name": "Persons",
+          "description": "Persons in the wanted order."
+        }
+      }
+    },
+    "get_days": {
+      "name": "Get days",
+      "description": "Returns the day of every resident for whole weeks, with default, exception and reason.",
+      "fields": {
+        "start": {
+          "name": "Start",
+          "description": "Any day of the first week; today if omitted."
+        },
+        "weeks": {
+          "name": "Weeks",
+          "description": "Number of weeks."
+        }
+      }
+    },
+    "preview_days": {
+      "name": "Preview days",
+      "description": "Returns how many days per person would change; writes nothing.",
+      "fields": {
+        "person": {
+          "name": "Persons",
+          "description": "Whose days to check."
+        },
+        "start": {
+          "name": "First day",
+          "description": "First day of the range."
+        },
+        "end": {
+          "name": "Last day",
+          "description": "Last day of the range."
+        },
+        "status": {
+          "name": "Status",
+          "description": "The status that would be set."
+        }
+      }
+    },
+    "get_overview": {
+      "name": "Get overview",
+      "description": "Returns all persons and areas with their roles, assignments and the state of the school holiday source."
+    },
+    "refresh_school_holidays": {
+      "name": "Refresh school holidays",
+      "description": "Fetches the school holidays now."
+    }
+  },
+  "exceptions": {
+    "not_loaded": {
+      "message": "Werktags is not set up yet."
+    },
+    "admin_only": {
+      "message": "Only administrators may change Werktags data."
+    },
+    "unknown_person": {
+      "message": "{entity_id} is not a person."
+    },
+    "end_before_start": {
+      "message": "The last day lies before the first day."
+    },
+    "range_too_long": {
+      "message": "At most {max} days per call."
+    },
+    "invalid": {
+      "message": "{message}"
+    }
+  },
+  "issues": {
+    "school_holidays_unreachable": {
+      "title": "School holidays could not be fetched",
+      "description": "The source \"{source}\" failed {failures} times in a row. The last known school holidays are still used. Check the connection or choose another source in the options."
+    },
+    "school_holidays_incomplete": {
+      "title": "School holidays for {year} are missing",
+      "description": "School holidays are known until {known_to}. Days without data count as workdays for pupils. The source may not have published next year yet; try again later or add the dates as exceptions."
+    },
+    "person_missing": {
+      "title": "Residents without a person",
+      "description": "These residents refer to persons that no longer exist in Home Assistant: {ids}. Their sensors are unavailable. Set their role to \"none\" or recreate the person."
+    },
+    "area_missing": {
+      "title": "Rooms without an area",
+      "description": "These rooms refer to areas that no longer exist in Home Assistant: {ids}. Their sensors are unavailable."
+    }
+  }
+}

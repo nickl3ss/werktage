@@ -1,0 +1,152 @@
+set_days:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    start:
+      required: true
+      selector:
+        date:
+    end:
+      selector:
+        date:
+    status:
+      required: true
+      default: day_off
+      selector:
+        select:
+          translation_key: day_status
+          options:
+            - day_off
+            - workday
+            - default
+
+set_role:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+    role:
+      required: true
+      selector:
+        select:
+          translation_key: role
+          options:
+            - pupil
+            - adult
+            - none
+    valid_from:
+      selector:
+        date:
+    short_name:
+      selector:
+        text:
+
+remove_role:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+    valid_from:
+      required: true
+      selector:
+        date:
+
+set_room:
+  fields:
+    area:
+      required: true
+      selector:
+        area:
+    person:
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    valid_from:
+      selector:
+        date:
+    morning_rule:
+      selector:
+        select:
+          translation_key: combine_rule
+          options:
+            - day_off_wins
+            - workday_wins
+    evening_rule:
+      selector:
+        select:
+          translation_key: combine_rule
+          options:
+            - workday_wins
+            - day_off_wins
+
+remove_room_assignment:
+  fields:
+    area:
+      required: true
+      selector:
+        area:
+    valid_from:
+      required: true
+      selector:
+        date:
+
+set_order:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+          multiple: true
+
+get_days:
+  fields:
+    start:
+      selector:
+        date:
+    weeks:
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 26
+          mode: box
+
+preview_days:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    start:
+      required: true
+      selector:
+        date:
+    end:
+      selector:
+        date:
+    status:
+      required: true
+      default: day_off
+      selector:
+        select:
+          translation_key: day_status
+          options:
+            - day_off
+            - workday
+            - default
+
+get_overview: {}
+
+refresh_school_holidays: {}
