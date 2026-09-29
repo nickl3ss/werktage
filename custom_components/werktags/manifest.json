@@ -1,0 +1,22 @@
+{
+  "domain": "werktags",
+  "name": "Werktags",
+  "after_dependencies": [
+    "lovelace"
+  ],
+  "codeowners": [
+    "@nickl3ss"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http",
+    "person"
+  ],
+  "documentation": "https://github.com/nickl3ss/werktags",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/nickl3ss/werktags/issues",
+  "requirements": [],
+  "version": "0.0.1"
+}
