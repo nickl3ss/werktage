@@ -1,9 +1,9 @@
 # Werktags — Hinweise für die Arbeit in diesem Repository
 
 Custom Integration für Home Assistant: Werktage je Person mit Schulferien,
-Ausnahmen, Raum- und Hausmodi. Lizenz MIT. Das Repository ist **nur lokal**
-(kein Remote), wird aber so gehalten, dass es jederzeit veröffentlicht werden
-kann.
+Ausnahmen, Raum- und Hausmodi. Lizenz MIT. Das Repository liegt **privat** auf
+GitHub (`github.com/nickl3ss/werktags`) und wird so gehalten, dass es
+jederzeit öffentlich werden kann.
 
 ## Verbindliche Regeln
 
@@ -45,7 +45,8 @@ als Argument übergeben, nicht im Repository festgeschrieben.
 
 ## Veröffentlichung
 
-Ziel ist `github.com/nickl3ss/werktags` (noch nicht angelegt). Commits laufen
+Remote `origin` = `github.com/nickl3ss/werktags` (privat), Zugriff über einen
+Deploy-Key nur für dieses Repository. Commits laufen
 unter der anonymen GitHub-Adresse (`git config user.email`), damit keine
 private E-Mail-Adresse in der Historie steht; `tools/check_publication.py`
 prüft das mit.
