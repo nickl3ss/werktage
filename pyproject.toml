@@ -1,0 +1,16 @@
+[tool.pytest.ini_options]
+testpaths = ["tests", "lib/openholidays/tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["custom_components/werktags", "lib/openholidays/src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

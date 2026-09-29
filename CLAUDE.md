@@ -36,6 +36,18 @@ jederzeit öffentlich werden kann.
 7. **Fehlende Daten** gelten wie ein Werktag, mit `reason: unknown` — nie
    stillschweigend frei.
 
+## Entwickeln und prüfen
+
+    python3 -m venv .venv && .venv/bin/pip install -e lib/openholidays pytest pytest-asyncio aiohttp holidays mypy ruff
+    .venv/bin/python -m pytest -q          # Regeln (tests/) und Bibliothek (lib/openholidays/tests)
+    .venv/bin/ruff check .                  # Lint, 120 Zeichen
+    .venv/bin/python -m mypy                # strict, Integration und Bibliothek
+    python3 tools/check_publication.py --areas
+
+Alle vier müssen vor einem Commit sauber sein. `custom_components/werktags/__init__.py`
+bleibt ohne Home-Assistant-Import, solange die Integration nicht gebaut ist,
+damit `rules.py` ohne Home Assistant testbar ist.
+
 ## Ausrollen in die eigene Installation
 
 Noch nicht vorhanden. Geplant ist ein `deploy.sh`, das

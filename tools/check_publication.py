@@ -29,7 +29,8 @@ ALLOWED_NAMES = {"anna", "ben", "clara", "david", "emil"}
 ALLOWED_EMAILS = {"noreply@anthropic.com", "noreply@github.com"}
 
 PATTERNS = {
-    "private IPv4 address": re.compile(r"\b(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}(?:\.\d{1,3})?\b"),
+    "private IPv4 address": re.compile(
+        r"\b(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}(?:\.\d{1,3})?\b"),
     "MAC address": re.compile(r"\b[0-9a-f]{2}(?::[0-9a-f]{2}){5}\b", re.IGNORECASE),
     "e-mail address": re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b"),
 }
@@ -78,7 +79,8 @@ def main() -> int:
     names = private_names(args.storage, args.areas)
     if not names:
         print(f"warning: no names found in {args.storage}; only generic patterns are checked")
-    name_pattern = re.compile(r"\b(" + "|".join(map(re.escape, sorted(names))) + r")\b", re.IGNORECASE) if names else None
+    name_pattern = (re.compile(r"\b(" + "|".join(map(re.escape, sorted(names))) + r")\b", re.IGNORECASE)
+                    if names else None)
 
     findings = []
     for path in published_files():

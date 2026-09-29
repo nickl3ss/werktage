@@ -1,0 +1,3 @@
+The JSON fixtures in these tests are made up: fictitious country "XX",
+subdivision "XX-AA" and years in the 2030s. They only mimic the structure of
+the OpenHolidays API and contain none of its data (which is ODbL licensed).

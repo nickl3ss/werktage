@@ -4,8 +4,9 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: in development.** This repository contains the layout and
-> metadata only. There is no working integration yet.
+> **Status: in development.** Stage 1 is done: the rules engine and the
+> OpenHolidays client library exist and are tested. The Home Assistant
+> integration itself (setup, entities, services) and the cards follow.
 
 ## What it will do
 
@@ -52,5 +53,6 @@ Feiertage frei, für Schüler zusätzlich die Schulferien. Ausnahmen lassen sich
 je Person und Tag setzen. Für Personen, Räume und das Haus gibt es einen
 Morgen- und einen Abendmodus.
 
-> **Stand: in Entwicklung.** Bisher gibt es nur Aufbau und Metadaten, noch
-> keine lauffähige Integration.
+> **Stand: in Entwicklung.** Etappe 1 ist fertig: Rechenkern und
+> OpenHolidays-Bibliothek sind vorhanden und getestet. Die Integration
+> selbst (Einrichtung, Entitäten, Dienste) und die Karten folgen.
