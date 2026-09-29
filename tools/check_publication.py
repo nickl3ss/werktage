@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_NAMES = {"anna", "ben", "clara", "david", "emil"}
 
 # Public addresses that may appear in files and commits.
-ALLOWED_EMAILS = {"noreply@anthropic.com"}
+ALLOWED_EMAILS = {"noreply@anthropic.com", "noreply@github.com"}
 
 PATTERNS = {
     "private IPv4 address": re.compile(r"\b(?:10|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}(?:\.\d{1,3})?\b"),
