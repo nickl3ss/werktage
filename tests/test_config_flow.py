@@ -181,6 +181,30 @@ async def test_options_menu_adds_a_resident_a_room_and_the_house(hass: HomeAssis
     assert coordinator.household.house_residents_on(d("2026-10-01")) == ["p_anna"]
 
 
+async def test_options_menu_rejects_bad_input_and_resets_the_weekly_pattern(hass: HomeAssistant,
+                                                                            setup_integration: MockConfigEntry, persons):
+    result = await _options(hass, setup_integration, "resident")
+    await hass.config_entries.options.async_configure(
+        result["flow_id"], {"person": persons["p_anna"], "role": "adult", "off_weekdays": ["0"]})
+    coordinator = setup_integration.runtime_data
+    assert coordinator.data.residents["p_anna"].weekend_on(d("2026-10-01")) == frozenset({0})
+    result = await _options(hass, setup_integration, "resident")                 # saved again without weekdays
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"person": persons["p_anna"], "role": "adult"})
+    assert result["reason"] == "resident_saved"
+    assert coordinator.data.residents["p_anna"].weekend_on(d("2026-10-01")) is None   # household weekend again
+
+    result = await _options(hass, setup_integration, "room")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"area": "nowhere", "person": [persons["p_anna"]],
+                            "morning_rule": "day_off_wins", "evening_rule": "workday_wins"})
+    assert result["type"] is FlowResultType.FORM and result["errors"] == {"area": "unknown_area"}
+
+    result = await _options(hass, setup_integration, "house")
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"person": [persons["p_clara"]]})
+    assert result["type"] is FlowResultType.FORM and result["errors"] == {"person": "not_resident"}
+
+
 async def test_options_flow_drops_the_region_when_the_country_changes(hass: HomeAssistant, setup_integration: MockConfigEntry):
     result = await _options(hass, setup_integration, "settings")
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"country": "AT"})

@@ -13,6 +13,12 @@
 - Cards: weekday chips per resident with a reset to the household weekend;
   the house row on the rooms card is editable (empty = by role). 17 card
   tests, 84 Python tests.
+- Quality scale Bronze complete except the brands pull request (needs a
+  public repository): `quality_scale.yaml`, manifest key order and
+  `CONFIG_SCHEMA` as hassfest requires (hassfest passes locally), config flow
+  tested to 100 %, README with installation parameters, options, removal
+  and every action, CI workflow (hassfest, HACS, ruff, mypy, pytest with
+  coverage, card tests). 100 Python tests.
 
 - Integration: config flow with three steps and options, store with
   versioned JSON, coordinator (midnight rebuild, monthly school holiday

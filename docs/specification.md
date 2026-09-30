@@ -237,8 +237,14 @@ The README provides a ready-made dashboard with the four cards.
 
 - Tests with `pytest-homeassistant-custom-component`; the rules as pure
   functions with one test per rule; browserless tests for the cards.
-- `hassfest`, HACS validation and tests in CI; `mypy --strict`.
-- Target: Integration Quality Scale **Silver**.
+- `hassfest`, HACS validation and tests in `.github/workflows/ci.yml`;
+  `mypy --strict`. hassfest runs locally from a sparse checkout of
+  `home-assistant/core` (`script/hassfest`, `script/translations`,
+  `script/util`) with the venv's Python and ruff on the path.
+- `custom_components/werktags/quality_scale.yaml` records every rule.
+  Bronze is complete except `brands` (the pull request to
+  `home-assistant/brands` waits for the repository to go public); target is
+  **Silver** (test coverage ≥ 95 %), then Gold.
 - `tools/check_publication.py` before every commit: no private household data.
 
 ## 8. Path to Home Assistant core

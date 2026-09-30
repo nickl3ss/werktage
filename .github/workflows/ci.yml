@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          ignore: brands
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - run: pip install -e lib/openholidays pytest-homeassistant-custom-component==0.13.367 pytest-cov mypy ruff
+      - run: ruff check .
+      - run: python -m mypy
+      - run: python tools/check_publication.py --areas
+      - run: python -m pytest -q --cov=custom_components/werktags --cov-report=term-missing --cov-fail-under=90
+
+  cards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktags/www
+      - run: node --test frontend/test/*.test.mjs

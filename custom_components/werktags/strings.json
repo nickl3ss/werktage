@@ -67,7 +67,6 @@
     "error": {
       "calendar_required": "Select a calendar for this source.",
       "calendar_missing": "This calendar does not exist.",
-      "invalid_subdivision": "This region does not belong to the selected country.",
       "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
       "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”.",
       "holiday_format": "Use YYYY-MM-DD, optionally followed by a name."
@@ -197,7 +196,6 @@
     "error": {
       "calendar_required": "Select a calendar for this source.",
       "calendar_missing": "This calendar does not exist.",
-      "invalid_subdivision": "This region does not belong to the selected country.",
       "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
       "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”.",
       "holiday_format": "Use YYYY-MM-DD, optionally followed by a name.",

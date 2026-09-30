@@ -175,10 +175,7 @@ class _Steps:
 
     async def _step_region(self, user_input: dict[str, Any] | None, next_step: NextStep) -> ConfigFlowResult:
         if user_input is not None:
-            subdivision = user_input.get(CONF_SUBDIVISION) or ""
-            if subdivision and subdivision not in sources.supported_subdivision_codes(self._country()):
-                return self._show(STEP_REGION, region_schema(self._data, self._country()),
-                                  {CONF_SUBDIVISION: "invalid_subdivision"})
+            subdivision = user_input.get(CONF_SUBDIVISION) or ""      # the selector only offers this country's
             if not holiday_lines_valid(user_input.get(CONF_ADD_HOLIDAYS) or []):
                 return self._show(STEP_REGION, region_schema(self._data, self._country()),
                                   {CONF_ADD_HOLIDAYS: "holiday_format"})

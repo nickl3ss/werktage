@@ -1,0 +1,82 @@
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling:
+    status: done
+    comment: School holidays are fetched once a month; everything else is computed locally at midnight.
+  brands:
+    status: todo
+    comment: The icon is in brand/; the pull request to home-assistant/brands follows once the repository is public.
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done
+  dependency-transparency: done
+  docs-actions: done
+  docs-conditions:
+    status: exempt
+    comment: The integration provides no custom conditions.
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  docs-triggers:
+    status: exempt
+    comment: The integration provides no custom triggers.
+  entity-event-setup:
+    status: exempt
+    comment: Entities subscribe to the coordinator only, through CoordinatorEntity.
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow:
+    status: exempt
+    comment: No account and no credentials; the OpenHolidays API is public.
+  test-coverage: todo
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: Nothing to discover; the integration works on persons and areas of this Home Assistant.
+  discovery-update-info:
+    status: exempt
+    comment: No discovery.
+  docs-data-update: todo
+  docs-examples: todo
+  docs-known-limitations: todo
+  docs-supported-devices:
+    status: exempt
+    comment: No devices; persons and areas are the subjects.
+  docs-supported-functions: todo
+  docs-troubleshooting: todo
+  docs-use-cases: todo
+  dynamic-devices: done
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations: todo
+  icon-translations: done
+  reconfiguration-flow:
+    status: exempt
+    comment: The options flow covers every setting; nothing is fixed at setup.
+  repair-issues: done
+  stale-devices: done
+
+  # Platinum
+  async-dependency: todo
+  inject-websession: done
+  strict-typing: done

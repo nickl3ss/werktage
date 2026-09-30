@@ -67,7 +67,6 @@
     "error": {
       "calendar_required": "Wähle für diese Quelle einen Kalender.",
       "calendar_missing": "Diesen Kalender gibt es nicht.",
-      "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
       "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
       "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“.",
       "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen."
@@ -197,7 +196,6 @@
     "error": {
       "calendar_required": "Wähle für diese Quelle einen Kalender.",
       "calendar_missing": "Diesen Kalender gibt es nicht.",
-      "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
       "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
       "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“.",
       "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen.",

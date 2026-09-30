@@ -56,11 +56,6 @@ def supported_subdivisions(country: str) -> list[str]:
         return []
 
 
-def supported_subdivision_codes(country: str) -> set[str]:
-    """ISO-style codes (``"DE-NW"``) accepted for a country."""
-    return {f"{country}-{code}" for code in supported_subdivisions(country)}
-
-
 def subdivision_names(country: str) -> dict[str, str]:
     """Bare code → display name, as the ``workday`` integration shows them; code if no name is known."""
     try:

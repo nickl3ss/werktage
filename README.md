@@ -36,13 +36,39 @@ modes for people, rooms and the whole house.
    restart Home Assistant. HACS: add this repository as a custom repository
    of type *Integration*.
 2. *Settings → Devices & services → Add integration → Werktags*. Five short
-   steps: country, region and weekend, school holiday source (tested before
-   the entry is created), house rules, who may edit.
-3. Add residents: either with the dashboard cards below or via
-   *Werktags → Configure*, which offers a menu — settings, add or change a
-   resident, assign a room, residents of the house.
+   steps; every field can be changed later under *Configure → Settings*.
 
-Removing the integration deletes its store; the persons and areas stay.
+   | Step | Field | Meaning | Default |
+   |---|---|---|---|
+   | Country | Country | Public holidays and, with OpenHolidays, school holidays of this country | the Home Assistant country |
+   | Region | Subdivision | Regional public holidays and school holidays; empty = nationwide holidays only | — |
+   | Region | Weekend days | Days off for everyone, every week | Saturday, Sunday |
+   | Region | Additional holidays | One per line: `YYYY-MM-DD` optionally followed by a name (bridge days, company holidays) | — |
+   | Region | Holidays that do not apply | One per line: a date or part of a holiday name | — |
+   | School holidays | Source | *OpenHolidays API* (tested before the entry is created), a *calendar* entity, or *none* | OpenHolidays if the country is covered |
+   | School holidays | Calendar | The calendar whose events are school holidays (source *calendar*) | — |
+   | House | Roles that count for the house | Whose days make the house modes unless residents are chosen explicitly | adult |
+   | House | Morning rule, evening rule | *Day off wins* or *workday wins* when residents disagree | day off wins, workday wins |
+   | Access | Only administrators may change data | Cards and services refuse writes from other users | off |
+
+3. Add residents: either with the dashboard cards below or via
+   *Werktags → Configure*, which offers a menu:
+
+   | Menu item | Fields |
+   |---|---|
+   | Settings | the five steps above, prefilled; the integration reloads afterwards |
+   | Add or change a resident | person, role (*pupil*, *adult*, *none* ends residency), short name, personal days off every week, valid from |
+   | Assign a room | area, residents, morning rule, evening rule, valid from |
+   | Residents of the house | residents whose days count for the house (empty = everyone with a house role), valid from |
+
+### Removal
+
+*Settings → Devices & services → Werktags → ⋮ → Delete*. This removes the
+entities and devices and deletes the integration's store
+(`.storage/werktags.data`: residents, rooms, exceptions, cached school
+holidays). Persons, areas, automations and dashboards stay; automations that
+use Werktags entities then need a new condition. To remove the files as well,
+delete `custom_components/werktags/` and restart Home Assistant.
 
 See the [specification](docs/specification.md) for rules, entities and
 services.
@@ -118,13 +144,30 @@ without any template — import them under *Settings → Automations → Bluepri
 | *Werktags: open a cover in the morning* | a morning sensor, a cover, the time on workdays and on days off (never before sunrise) |
 | *Werktags: switch off in the evening* | an evening sensor, lights or switches, the time before a workday and before a day off |
 
-### Services
+### Actions
 
-Everything the cards do is a service (`werktags.set_days`, `set_role`,
-`set_weekly`, `set_room`, `set_house`, `set_order`, `remove_role`,
-`remove_room_assignment`, `refresh_school_holidays`), and three services
-answer with data (`get_days`, `preview_days`, `get_overview`). The
-*Developer tools → Actions* page documents every field.
+Everything the cards do is an action of the `werktags` domain; the
+*Developer tools → Actions* page offers a form for each. Dates are
+`YYYY-MM-DD`; persons are `person.*` entities, areas are area ids.
+
+| Action | Fields | Effect |
+|---|---|---|
+| `set_days` | `person` (one or more), `start`, `end` (default: `start`), `status` (`day_off`, `workday`, `default`) | exceptions for a day or range, weekends included; `default` removes exceptions |
+| `set_role` | `person`, `role` (`pupil`, `adult`, `none`), `valid_from` (default: today), `short_name` | makes a person a resident or changes the role from a date on |
+| `remove_role` | `person`, `valid_from` | removes one role entry (not the last) |
+| `set_weekly` | `person`, `weekdays` (0 = Monday … 6 = Sunday), `valid_from`, `household` | personal days off every week; `household: true` returns to the household weekend |
+| `set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | residents of a room from a date on and/or its rules |
+| `remove_room_assignment` | `area`, `valid_from` | removes one assignment entry |
+| `set_house` | `person` (several), `valid_from`, `by_role` | residents whose days count for the house; `by_role: true` or no persons returns to the roles |
+| `set_order` | `person` (in the wanted order) | order of residents in the calendar card |
+| `refresh_school_holidays` | — | fetches the school holidays now |
+| `get_days` | `start` (any day of the first week), `weeks` (1–8) | **returns** every day with weekend, holidays and, per resident, the effective and default day, exception, reason, role |
+| `preview_days` | as `set_days` | **returns** how many days per person would change; writes nothing |
+| `get_overview` | — | **returns** all persons and areas with roles, weekly patterns, assignments, the house and the source status |
+
+Writes raise an error when a person is not a resident, a range is longer
+than 366 days or ends before it starts, a short name is taken, or the user
+may not edit (see *Access*); the fetch raises when the source is down.
 
 ## Repository layout
 

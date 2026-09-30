@@ -1,4 +1,6 @@
 {
+  "domain": "werktags",
+  "name": "Werktags",
   "after_dependencies": [
     "calendar",
     "frontend",
@@ -13,11 +15,9 @@
     "person"
   ],
   "documentation": "https://github.com/nickl3ss/werktags",
-  "domain": "werktags",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/nickl3ss/werktags/issues",
-  "name": "Werktags",
   "requirements": [
     "holidays>=0.60"
   ],
