@@ -1,7 +1,7 @@
 # Werktags — Specification
 
 **Status:** draft, not implemented · **Version:** 2 (2026-09-29) — all open
-questions decided (P21–P28)
+questions decided (P21–P32)
 
 Werktags tells Home Assistant, **per person**, whether a day is a workday or a
 day off. From that it derives a **morning mode** (*workday* / *day off*) and an
@@ -61,6 +61,10 @@ type.
 | P26 | Exceptions on role or room change | **Kept** — exceptions belong to person and day |
 | P27 | Change log | **None** — only the current state is stored |
 | P28 | Editing the past | Single days without confirmation; past role and room steps ask for confirmation |
+| P29 | Weekly pattern per person | A resident may have personal days off every week (history, `valid_from`); they **replace** the household weekend for that person. Exceptions still win. |
+| P30 | Residents of the house | Explicitly chosen residents (history); empty means everyone with a house role as before |
+| P31 | Holiday corrections | Settings: added holidays (`YYYY-MM-DD [name]`) and removed ones (date or part of the name); an added holiday counts as a public holiday, a removed one as an ordinary day |
+| P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
 
 ## 3. Rules
 
@@ -68,8 +72,8 @@ type.
 
 | | role `adult` | role `pupil` |
 |---|---|---|
-| weekend | day off | day off |
-| public holiday of the configured subdivision | day off | day off |
+| weekend (household, or the person's weekly pattern, P29) | day off | day off |
+| public holiday of the configured subdivision, corrected per P31 | day off | day off |
 | school holiday | workday | **day off** |
 | otherwise | workday | workday |
 
@@ -139,11 +143,16 @@ holiday.
 |---|---|---|
 | 1 | country, subdivision | from `hass.config.country` |
 | 1 | weekend days | Sat, Sun |
+| 1 | added holidays, removed holidays | none |
 | 2 | school holiday source, calendar entity | OpenHolidays if the country is covered, otherwise none |
 | 3 | house roles, house rules | `adult`, `day_off_wins`, `workday_wins` |
 | 3 | who may edit | all users |
 
-One config entry per installation (`single_config_entry`).
+One config entry per installation (`single_config_entry`). The options flow
+opens a menu: the settings steps above (the entry reloads afterwards) or a
+form for a resident (role, short name, weekly days off, valid from), a room
+(area, residents, rules) or the residents of the house — written straight
+into the store so no dashboard card is needed.
 
 ### 5.2 Store
 
@@ -165,6 +174,7 @@ installation language.
 | `sensor.anna_morning` | `workday` · `day_off` | `reason` (`weekend`, `public_holiday`, `school_holiday`, `exception_day_off`, `exception_workday`, `workday`, `unknown`), `holiday_name`, `role`, `next_workday`, `next_day_off` |
 | `sensor.anna_evening` | `before_workday` · `before_day_off` | as above, for tomorrow |
 | `calendar.anna_days_off` | on when today is a day off | read-only, days off as all-day events |
+| `binary_sensor.anna_workday` | `on` on a workday | `reason`, `holiday_name`; also per room and for the house |
 | `sensor.<room>_morning`, `sensor.<room>_evening` | as above | `residents`, `rule` |
 | `sensor.house_morning`, `sensor.house_evening` | as above | `residents`, `rule` |
 
@@ -184,6 +194,8 @@ installation language.
 | `werktags.remove_role` | `person`, `valid_from` | removes a role step |
 | `werktags.set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | adds an assignment step or sets rules |
 | `werktags.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |
+| `werktags.set_weekly` | `person`, `weekdays` (0 = Monday), `valid_from`, `household` | personal days off every week; `household` returns to the household weekend |
+| `werktags.set_house` | `person` (several), `valid_from`, `by_role` | residents that count for the house; `by_role` or no persons returns to the roles |
 | `werktags.get_days` | `start`, `weeks` | **returns** per day and resident: effective, default, exception, reason, holiday names, role |
 | `werktags.preview_days` | as `set_days` | **returns** the days that would change |
 | `werktags.get_overview` | — | **returns** all persons, areas, roles, assignments and source status |
@@ -213,9 +225,11 @@ versioned URL); later they move to their own repository.
   exceptions highlighted. Below 600 px one row per day.
 - **Period:** status, people, from–to, preview, apply; at most 366 days.
 - **Residents:** all persons, short name, role today, new role from date,
-  history, order.
-- **Rooms:** all areas, residents as chips, rules, change from date, history,
-  house row.
+  weekday chips for personal days off (with a reset to the household
+  weekend), history, order. Changes are applied with one button and ask
+  before touching the past.
+- **Rooms:** all areas, residents as chips, rules, change from date, history;
+  the house row is edited the same way (empty = by role).
 
 The README provides a ready-made dashboard with the four cards.
 

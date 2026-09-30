@@ -99,6 +99,42 @@ remove_room_assignment:
       selector:
         date:
 
+set_weekly:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+    weekdays:
+      selector:
+        select:
+          translation_key: weekday
+          multiple: true
+          options: ["0", "1", "2", "3", "4", "5", "6"]
+    valid_from:
+      selector:
+        date:
+    household:
+      default: false
+      selector:
+        boolean:
+
+set_house:
+  fields:
+    person:
+      selector:
+        entity:
+          domain: person
+          multiple: true
+    valid_from:
+      selector:
+        date:
+    by_role:
+      default: false
+      selector:
+        boolean:
+
 set_order:
   fields:
     person:

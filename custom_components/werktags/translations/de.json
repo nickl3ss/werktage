@@ -16,11 +16,15 @@
         "description": "Einstellungen für {country}.",
         "data": {
           "subdivision": "Bundesland, Provinz oder Region",
-          "weekend": "Wochenendtage"
+          "weekend": "Wochenendtage",
+          "add_holidays": "Zusätzliche Feiertage",
+          "remove_holidays": "Feiertage, die nicht gelten"
         },
         "data_description": {
           "subdivision": "Regionale Feiertage und Schulferien gelten nur hier. Leer lassen für nur bundesweite Feiertage.",
-          "weekend": "Freie Tage für alle, jede Woche."
+          "weekend": "Freie Tage für alle, jede Woche.",
+          "add_holidays": "Je Zeile ein Datum (JJJJ-MM-TT), optional gefolgt von einem Namen, z. B. „2026-12-24 Heiligabend“.",
+          "remove_holidays": "Je Zeile ein Datum (JJJJ-MM-TT) oder ein Teil des Feiertagsnamens, z. B. „Fronleichnam“."
         }
       },
       "school_holidays": {
@@ -65,7 +69,8 @@
       "calendar_missing": "Diesen Kalender gibt es nicht.",
       "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
       "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
-      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“."
+      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“.",
+      "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen."
     },
     "abort": {
       "already_configured": "Werktags ist bereits eingerichtet. Ändere die Einstellungen in den Optionen."
@@ -74,6 +79,15 @@
   "options": {
     "step": {
       "init": {
+        "title": "Werktags",
+        "menu_options": {
+          "settings": "Einstellungen (Land, Schulferien, Haus, Zugriff)",
+          "resident": "Bewohner anlegen oder ändern",
+          "room": "Raum zuordnen",
+          "house": "Bewohner des Hauses"
+        }
+      },
+      "settings": {
         "title": "Land",
         "data": {
           "country": "Land"
@@ -87,11 +101,15 @@
         "description": "Einstellungen für {country}.",
         "data": {
           "subdivision": "Bundesland, Provinz oder Region",
-          "weekend": "Wochenendtage"
+          "weekend": "Wochenendtage",
+          "add_holidays": "Zusätzliche Feiertage",
+          "remove_holidays": "Feiertage, die nicht gelten"
         },
         "data_description": {
           "subdivision": "Regionale Feiertage und Schulferien gelten nur hier. Leer lassen für nur bundesweite Feiertage.",
-          "weekend": "Freie Tage für alle, jede Woche."
+          "weekend": "Freie Tage für alle, jede Woche.",
+          "add_holidays": "Je Zeile ein Datum (JJJJ-MM-TT), optional gefolgt von einem Namen, z. B. „2026-12-24 Heiligabend“.",
+          "remove_holidays": "Je Zeile ein Datum (JJJJ-MM-TT) oder ein Teil des Feiertagsnamens, z. B. „Fronleichnam“."
         }
       },
       "school_holidays": {
@@ -105,8 +123,9 @@
           "calendar_entity": "Nur für die Quelle „Kalender“: jeder Ganztagstermin zählt als Schulferien."
         }
       },
-      "house": {
-        "title": "Haus",
+      "house_rules": {
+        "title": "Regeln des Hauses",
+        "description": "Neben jedem Bewohner und Raum bekommt das ganze Haus einen Morgen- und einen Abendmodus. Wähle, wessen Tage dafür zählen und wie sie zusammengefasst werden.",
         "data": {
           "house_roles": "Rollen, die für das Haus zählen",
           "house_morning_rule": "Regel morgens",
@@ -126,6 +145,53 @@
         "data_description": {
           "admin_only": "Aus: jeder Nutzer dieses Home Assistant darf ändern. An: nur Nutzer mit Administratorrechten."
         }
+      },
+      "resident": {
+        "title": "Bewohner",
+        "description": "Eine Person wird mit einer Rolle zum Bewohner. Schüler haben in den Schulferien frei. Persönliche freie Wochentage ersetzen für diese Person das Wochenende des Haushalts (Teilzeit).",
+        "data": {
+          "person": "Person",
+          "role": "Rolle",
+          "short_name": "Kürzel",
+          "off_weekdays": "Persönliche freie Wochentage",
+          "valid_from": "Gültig ab"
+        },
+        "data_description": {
+          "person": "Jede Person dieses Home Assistant.",
+          "role": "„Keine“ beendet die Bewohnerschaft ab dem Datum.",
+          "short_name": "Ein oder zwei Zeichen für die Kalenderkarte; leer: aus dem Namen vorgeschlagen.",
+          "off_weekdays": "Leer lassen für das Wochenende des Haushalts.",
+          "valid_from": "Frühere Tage behalten, was sie hatten; leer: heute."
+        }
+      },
+      "room": {
+        "title": "Raum",
+        "description": "Ein Raum ist ein Bereich mit Bewohnern. Sein Morgen- und Abendmodus kombiniert deren Tage.",
+        "data": {
+          "area": "Bereich",
+          "person": "Bewohner",
+          "morning_rule": "Regel morgens",
+          "evening_rule": "Regel abends",
+          "valid_from": "Gültig ab"
+        },
+        "data_description": {
+          "person": "Nur Bewohner (Personen mit Rolle) zählen.",
+          "morning_rule": "„Frei gewinnt“: der Raum schläft aus, sobald ein Bewohner frei hat.",
+          "evening_rule": "Bezieht sich auf morgen.",
+          "valid_from": "Leer: heute."
+        }
+      },
+      "house": {
+        "title": "Bewohner des Hauses",
+        "description": "Wessen Tage für das ganze Haus zählen. Liste leer lassen, damit alle mit einer Haus-Rolle zählen.",
+        "data": {
+          "person": "Bewohner des Hauses",
+          "valid_from": "Gültig ab"
+        },
+        "data_description": {
+          "person": "Leer: alle mit einer Haus-Rolle (siehe Einstellungen).",
+          "valid_from": "Leer: heute."
+        }
       }
     },
     "error": {
@@ -133,7 +199,16 @@
       "calendar_missing": "Diesen Kalender gibt es nicht.",
       "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
       "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
-      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“."
+      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“.",
+      "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen.",
+      "not_resident": "Diese Person ist noch kein Bewohner. Zuerst den Bewohner anlegen.",
+      "short_name_taken": "Dieses Kürzel ist bereits vergeben.",
+      "unknown_area": "Diesen Bereich gibt es nicht."
+    },
+    "abort": {
+      "resident_saved": "Bewohner gespeichert.",
+      "room_saved": "Raum gespeichert.",
+      "house_saved": "Bewohner des Hauses gespeichert."
     }
   },
   "selector": {
@@ -229,6 +304,11 @@
     "calendar": {
       "days_off": {
         "name": "Freie Tage"
+      }
+    },
+    "binary_sensor": {
+      "workday": {
+        "name": "Werktag"
       }
     }
   },
@@ -384,6 +464,46 @@
     "refresh_school_holidays": {
       "name": "Schulferien abrufen",
       "description": "Holt die Schulferien jetzt."
+    },
+    "set_weekly": {
+      "name": "Freie Wochentage setzen",
+      "description": "Persönliche freie Wochentage einer Person ab einem Datum; ersetzen das Wochenende des Haushalts (Teilzeit, Vier-Tage-Woche).",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "Die Person."
+        },
+        "weekdays": {
+          "name": "Freie Tage",
+          "description": "Wochentage, die jede Woche frei sind."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Erster Tag, ab dem das Muster gilt; leer: heute."
+        },
+        "household": {
+          "name": "Zurück zum Haushalts-Wochenende",
+          "description": "Entfernt das persönliche Muster; das Wochenende des Haushalts gilt wieder."
+        }
+      }
+    },
+    "set_house": {
+      "name": "Bewohner des Hauses setzen",
+      "description": "Welche Bewohner ab einem Datum für das Haus zählen. Ohne Personen (oder mit „nach Rolle“) zählen wieder alle mit einer Haus-Rolle.",
+      "fields": {
+        "person": {
+          "name": "Bewohner",
+          "description": "Bewohner, die für das Haus zählen."
+        },
+        "valid_from": {
+          "name": "Gültig ab",
+          "description": "Erster Tag, ab dem die Zuordnung gilt; leer: heute."
+        },
+        "by_role": {
+          "name": "Nach Rolle",
+          "description": "Zurück zum Standard: alle mit einer Haus-Rolle."
+        }
+      }
     }
   },
   "exceptions": {

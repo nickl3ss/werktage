@@ -27,12 +27,14 @@ from homeassistant.util import dt as dt_util
 from . import sources, storage
 from .const import (
     ATTRIBUTION_OPENHOLIDAYS,
+    CONF_ADD_HOLIDAYS,
     CONF_ADMIN_ONLY,
     CONF_CALENDAR_ENTITY,
     CONF_COUNTRY,
     CONF_HOUSE_EVENING_RULE,
     CONF_HOUSE_MORNING_RULE,
     CONF_HOUSE_ROLES,
+    CONF_REMOVE_HOLIDAYS,
     CONF_SCHOOL_HOLIDAY_SOURCE,
     CONF_SUBDIVISION,
     CONF_WEEKEND,
@@ -133,7 +135,26 @@ class WerktagsCoordinator:
             roles=frozenset(Role(r) for r in self._conf(CONF_HOUSE_ROLES, [r.value for r in DEFAULT_HOUSE_ROLES])),
             morning_rule=CombineRule(self._conf(CONF_HOUSE_MORNING_RULE, DEFAULT_MORNING_RULE.value)),
             evening_rule=CombineRule(self._conf(CONF_HOUSE_EVENING_RULE, DEFAULT_EVENING_RULE.value)),
+            residents=self.data.house_residents,
         )
+
+    def holiday_corrections(self) -> tuple[dict[dt.date, str], frozenset[dt.date]]:
+        """Options → (added holidays by date, removed dates). Removal by date or by part of the name."""
+        added: dict[dt.date, str] = {}
+        for item in self._conf(CONF_ADD_HOLIDAYS, []) or []:
+            day, _, name = str(item).strip().partition(" ")
+            try:
+                added[dt.date.fromisoformat(day)] = name.strip() or "Holiday"
+            except ValueError:
+                _LOGGER.warning("Ignoring added holiday %r: expected YYYY-MM-DD [name]", item)
+        removed: set[dt.date] = set()
+        for item in self._conf(CONF_REMOVE_HOLIDAYS, []) or []:
+            text = str(item).strip()
+            try:
+                removed.add(dt.date.fromisoformat(text))
+            except ValueError:
+                removed.update(day for day, name in self._public_holidays.items() if text.lower() in name.lower())
+        return added, frozenset(removed)
 
     @property
     def attribution(self) -> str | None:
@@ -222,7 +243,8 @@ class WerktagsCoordinator:
 
     @callback
     def _rebuild(self) -> None:
-        calendar = Calendar(self._public_holidays, self._school_holidays(), self.weekend)
+        extra, removed = self.holiday_corrections()
+        calendar = Calendar(self._public_holidays, self._school_holidays(), self.weekend, extra, removed)
         self.household = Household(calendar, self.data.residents, self.data.rooms, self.house, self.data.exceptions)
         self._check_registry_issues()
         self._notify()
@@ -332,6 +354,30 @@ class WerktagsCoordinator:
         residents = dict(self.data.residents)
         residents[person_id] = replace(resident, roles=resident.roles.without_step(valid_from))
         await self._async_commit(replace(self.data, residents=residents))
+
+    async def async_set_weekly(self, person_id: str, weekdays: frozenset[int] | None, valid_from: dt.date) -> None:
+        """Personal days off every week from a date on; ``None`` returns the person to the household weekend."""
+        resident = self.data.residents.get(person_id)
+        if resident is None:
+            raise ValueError("not a resident; set a role first")
+        if weekdays is not None and not all(0 <= d <= 6 for d in weekdays):
+            raise ValueError("weekdays must be 0 (Monday) to 6 (Sunday)")
+        history = History() if weekdays is None else resident.off_weekdays.with_step(valid_from, frozenset(weekdays))
+        residents = {**self.data.residents, person_id: replace(resident, off_weekdays=history)}
+        await self._async_commit(replace(self.data, residents=residents))
+
+    async def async_set_house(self, person_ids: Iterable[str] | None, valid_from: dt.date) -> None:
+        """Residents that count for the house from a date on; ``None`` returns to the role-based default."""
+        history: History[frozenset[str]]
+        if person_ids is None:
+            history = History()
+        else:
+            ids = frozenset(person_ids)
+            unknown = [pid for pid in ids if pid not in self.data.residents]
+            if unknown:
+                raise ValueError(f"not residents: {', '.join(unknown)}")
+            history = self.data.house_residents.with_step(valid_from, ids)
+        await self._async_commit(replace(self.data, house_residents=history))
 
     async def async_set_order(self, person_ids: list[str]) -> None:
         residents = dict(self.data.residents)

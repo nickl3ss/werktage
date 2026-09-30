@@ -16,7 +16,7 @@ from .const import DOMAIN
 from .coordinator import WerktagsConfigEntry, WerktagsCoordinator
 from .services import async_setup_services
 
-PLATFORMS = [Platform.SENSOR, Platform.CALENDAR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.CALENDAR]
 
 __all__ = ["DOMAIN"]
 

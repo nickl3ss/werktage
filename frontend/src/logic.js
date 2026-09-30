@@ -60,6 +60,18 @@ export function longDate(iso, language) {
     .format(parseDate(iso));
 }
 
+/** Short weekday names Monday..Sunday in the user's language (e.g. "Mo", "Tue"). */
+export function weekdayNames(language) {
+  const fmt = new Intl.DateTimeFormat(language || "en", { weekday: "short", timeZone: "UTC" });
+  return Array.from({ length: 7 }, (_, i) => fmt.format(new Date(Date.UTC(2024, 0, 1 + i))));   // 2024-01-01 is a Monday
+}
+
+/** True if two lists hold the same members regardless of order. */
+export function sameMembers(a, b) {
+  const x = [...a].sort().join(","), y = [...b].sort().join(",");
+  return x === y;
+}
+
 export function monthName(iso, language) {
   return new Intl.DateTimeFormat(language || "en", { month: "long", timeZone: "UTC" }).format(parseDate(iso));
 }
@@ -182,6 +194,9 @@ const TEXTS = {
     history: "History", remove: "Remove", retro: (n) => `Changes ${n} day${n === 1 ? "" : "s"} retroactively — apply?`,
     yes: "Yes", room: "Room", residents: "Residents", morning: "Morning", evening: "Evening", change_from: "Change from",
     add: "Add", no_residents: "no residents", house: "House", house_hint: "House roles and rules are set in the integration options.",
+    house_by_role: "by role — remove everyone to return to it", house_chosen: "chosen residents",
+    weekly: "Days off every week", weekly_household: "household weekend", weekly_personal: "personal",
+    weekly_reset: "Household weekend",
     loading: "Loading…", not_set_up: "Werktags is not set up.", school_holidays: "School holidays",
     known_to: "known until", fetched: "fetched", never: "never", no_role: "No role", order: "Order",
   },
@@ -208,6 +223,9 @@ const TEXTS = {
     history: "Verlauf", remove: "Löschen", retro: (n) => `Ändert ${n} Tag${n === 1 ? "" : "e"} rückwirkend — übernehmen?`,
     yes: "Ja", room: "Raum", residents: "Bewohner", morning: "Morgens", evening: "Abends", change_from: "Ändern ab",
     add: "Hinzufügen", no_residents: "keine Bewohner", house: "Haus", house_hint: "Rollen und Regeln des Hauses werden in den Optionen der Integration eingestellt.",
+    house_by_role: "nach Rolle — alle entfernen, um dorthin zurückzukehren", house_chosen: "gewählte Bewohner",
+    weekly: "Freie Wochentage", weekly_household: "Wochenende des Haushalts", weekly_personal: "persönlich",
+    weekly_reset: "Wochenende des Haushalts",
     loading: "Lade…", not_set_up: "Werktags ist nicht eingerichtet.", school_holidays: "Schulferien",
     known_to: "bekannt bis", fetched: "abgerufen", never: "nie", no_role: "Keine Rolle", order: "Reihenfolge",
   },

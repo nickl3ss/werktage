@@ -23,9 +23,11 @@ from .const import (
     SERVICE_REMOVE_ROLE,
     SERVICE_REMOVE_ROOM_ASSIGNMENT,
     SERVICE_SET_DAYS,
+    SERVICE_SET_HOUSE,
     SERVICE_SET_ORDER,
     SERVICE_SET_ROLE,
     SERVICE_SET_ROOM,
+    SERVICE_SET_WEEKLY,
     SOURCE_NONE,
     STATUS_DEFAULT,
 )
@@ -56,6 +58,15 @@ SET_ROOM_SCHEMA = vol.Schema({
 })
 REMOVE_ROOM_SCHEMA = vol.Schema({vol.Required("area"): cv.string, vol.Required("valid_from"): cv.date})
 SET_ORDER_SCHEMA = vol.Schema({vol.Required("person"): PERSONS})
+WEEKDAY = vol.All(vol.Coerce(int), vol.Range(0, 6))
+SET_WEEKLY_SCHEMA = vol.Schema({
+    vol.Required("person"): cv.entity_domain("person"), vol.Optional("weekdays"): vol.All(cv.ensure_list, [WEEKDAY]),
+    vol.Optional("valid_from"): cv.date, vol.Optional("household", default=False): cv.boolean,
+})
+SET_HOUSE_SCHEMA = vol.Schema({
+    vol.Optional("person"): PERSONS, vol.Optional("valid_from"): cv.date,
+    vol.Optional("by_role", default=False): cv.boolean,
+})
 GET_DAYS_SCHEMA = vol.Schema({
     vol.Optional("start"): cv.date,
     vol.Optional("weeks", default=5): vol.All(vol.Coerce(int), vol.Range(1, MAX_WEEKS)),
@@ -155,6 +166,23 @@ async def _remove_room(hass: HomeAssistant, c: WerktagsCoordinator, call: Servic
     return None
 
 
+async def _set_weekly(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
+    person_id = _person_ids(c, [call.data["person"]])[0]
+    if call.data.get("household") or "weekdays" not in call.data:
+        await c.async_set_weekly(person_id, None, c.today())
+    else:
+        await c.async_set_weekly(person_id, frozenset(call.data["weekdays"]), call.data.get("valid_from", c.today()))
+    return None
+
+
+async def _set_house(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
+    if call.data.get("by_role") or "person" not in call.data:
+        await c.async_set_house(None, c.today())
+    else:
+        await c.async_set_house(_person_ids(c, call.data["person"]), call.data.get("valid_from", c.today()))
+    return None
+
+
 async def _set_order(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
     await c.async_set_order(_person_ids(c, call.data["person"]))
     return None
@@ -195,7 +223,7 @@ async def _get_days(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCa
                 "exception": exception.value if exception else None, "reason": info.reason.value,
                 "holiday_name": info.holiday_name, "role": info.role.value if info.role else None,
             }
-        public = household.calendar.public_holidays.get(day)
+        public = household.calendar.public_holiday_on(day)
         days.append({"date": day.isoformat(), "weekend": day.weekday() in household.calendar.weekend,
                      "public_holiday": public, "school_holiday": household.calendar.school_holidays.name_on(day),
                      "persons": per_person})
@@ -221,12 +249,16 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
     persons = []
     for person_id, entity_id, name in c.all_persons():
         resident = c.data.residents.get(person_id)
+        weekend = resident.weekend_on(today) if resident else None
         persons.append({
             "id": person_id, "entity_id": entity_id, "name": name,
             "short_name": resident.short_name if resident else None, "order": resident.order if resident else None,
             "role_today": (resident.role_on(today) or Role.NONE).value if resident else None,
             "roles": [{"valid_from": s.valid_from.isoformat(), "role": s.value.value} for s in resident.roles.steps]
             if resident else [],
+            "off_weekdays": sorted(weekend) if weekend is not None else None,
+            "off_weekdays_history": [{"valid_from": s.valid_from.isoformat(), "weekdays": sorted(s.value)}
+                                     for s in resident.off_weekdays.steps] if resident else [],
         })
     rooms = []
     for area_id, name in c.all_areas():
@@ -239,9 +271,12 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
             "assignments": [{"valid_from": s.valid_from.isoformat(), "residents": sorted(s.value)}
                             for s in room.residents.steps] if room else [],
         })
-    return {"today": today.isoformat(), "persons": persons, "rooms": rooms,
+    return {"today": today.isoformat(), "weekend": sorted(c.weekend), "persons": persons, "rooms": rooms,
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
+                      "by_role": c.house.assigned_on(today) is None,
+                      "assignments": [{"valid_from": s.valid_from.isoformat(), "residents": sorted(s.value)}
+                                      for s in c.house.residents.steps],
                       "morning_rule": c.house.morning_rule.value, "evening_rule": c.house.evening_rule.value},
             "status": c.status()}
 
@@ -253,6 +288,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_REMOVE_ROLE, _remove_role, REMOVE_ROLE_SCHEMA), (SERVICE_SET_ROOM, _set_room, SET_ROOM_SCHEMA),
         (SERVICE_REMOVE_ROOM_ASSIGNMENT, _remove_room, REMOVE_ROOM_SCHEMA),
         (SERVICE_SET_ORDER, _set_order, SET_ORDER_SCHEMA),
+        (SERVICE_SET_WEEKLY, _set_weekly, SET_WEEKLY_SCHEMA), (SERVICE_SET_HOUSE, _set_house, SET_HOUSE_SCHEMA),
         (SERVICE_REFRESH_SCHOOL_HOLIDAYS, _refresh, EMPTY_SCHEMA),
     ]
     for name, func, schema in writes:

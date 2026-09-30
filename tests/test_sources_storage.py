@@ -66,7 +66,8 @@ def test_year_span_and_build_calendar():
 def data() -> storage.StoredData:
     return storage.StoredData(
         residents={
-            "p_anna": Resident("p_anna", "A", History((Step(d("2010-01-01"), Role.ADULT),)), 0),
+            "p_anna": Resident("p_anna", "A", History((Step(d("2010-01-01"), Role.ADULT),)), 0,
+                               History((Step(d("2026-10-01"), frozenset({4, 5, 6})),))),
             "p_clara": Resident("p_clara", "C", History((Step(d("2010-01-01"), Role.PUPIL),
                                                           Step(d("2027-08-01"), Role.ADULT))), 1),
         },
@@ -74,6 +75,7 @@ def data() -> storage.StoredData:
                                                         Step(d("2027-03-01"), frozenset({"p_anna", "p_clara"})))),
                                  CombineRule.WORKDAY_WINS, CombineRule.WORKDAY_WINS)},
         exceptions={d("2026-10-10"): {"p_anna": DayType.WORKDAY}, d("2026-10-20"): {"p_clara": DayType.DAY_OFF}},
+        house_residents=History((Step(d("2026-10-01"), frozenset({"p_anna"})),)),
         school_holidays=storage.SchoolHolidayCache(
             "openholidays", (SchoolHolidayPeriod(d("2026-10-05"), d("2026-10-16"), "Autumn"),),
             d("2026-01-01"), d("2027-12-31"), dt.datetime(2026, 9, 29, 21, 0, tzinfo=dt.UTC), 0),
@@ -95,6 +97,8 @@ def test_serialized_form_is_readable_and_sorted(data):
         {"valid_from": "2010-01-01", "value": "pupil"}, {"valid_from": "2027-08-01", "value": "adult"}]
     assert raw["rooms"]["a_bedroom"]["residents"][1]["value"] == ["p_anna", "p_clara"]
     assert raw["exceptions"] == {"2026-10-10": {"p_anna": "workday"}, "2026-10-20": {"p_clara": "day_off"}}
+    assert raw["residents"]["p_anna"]["off_weekdays"] == [{"valid_from": "2026-10-01", "value": [4, 5, 6]}]
+    assert raw["house"] == {"residents": [{"valid_from": "2026-10-01", "value": ["p_anna"]}]}
     assert raw["school_holidays"]["fetched_at"] == "2026-09-29T21:00:00+00:00"
 
 
@@ -104,6 +108,13 @@ def test_empty_and_missing_data():
     minimal = storage.from_dict({"version": 1, "residents": {"p": {"roles": []}}})
     assert minimal.residents["p"].short_name == "" and minimal.residents["p"].role_on(d("2026-01-01")) is None
     assert storage.from_dict({"version": 1, "exceptions": {"2026-01-01": {}}}).exceptions == {}
+
+
+def test_version_1_data_reads_as_version_2():
+    old = {"version": 1, "residents": {"p": {"short_name": "P", "order": 0, "roles": [{"valid_from": "2010-01-01", "value": "adult"}]}}}
+    data = storage.from_dict(old)
+    assert data.residents["p"].weekend_on(d("2026-01-01")) is None and data.house_residents.steps == ()
+    assert storage.to_dict(data)["version"] == 2
 
 
 def test_newer_version_is_refused():

@@ -50,9 +50,9 @@ const days = Array.from({ length: 35 }, (_, i) => {
 });
 const getDays = { start: "2026-09-28", end: "2026-11-01", today: "2026-10-01", residents, days };
 const overview = {
-  today: "2026-10-01",
+  today: "2026-10-01", weekend: [5, 6],
   persons: [
-    { id: "p_a", entity_id: "person.anna", name: "Anna", short_name: "A", order: 0, role_today: "adult", roles: [{ valid_from: "2010-01-01", role: "adult" }] },
+    { id: "p_a", entity_id: "person.anna", name: "Anna", short_name: "A", order: 0, role_today: "adult", roles: [{ valid_from: "2010-01-01", role: "adult" }], off_weekdays: null, off_weekdays_history: [] },
     { id: "p_c", entity_id: "person.clara", name: "Clara", short_name: "C", order: 1, role_today: "pupil", roles: [{ valid_from: "2010-01-01", role: "pupil" }, { valid_from: "2027-08-01", role: "adult" }] },
     { id: "p_g", entity_id: "person.guest", name: "Guest", short_name: null, order: null, role_today: null, roles: [] },
   ],
@@ -60,7 +60,7 @@ const overview = {
     { id: "bedroom", name: "Bedroom", residents_today: ["p_a"], morning_rule: "day_off_wins", evening_rule: "workday_wins", assignments: [{ valid_from: "2010-01-01", residents: ["p_a"] }] },
     { id: "kitchen", name: "Kitchen", residents_today: [], morning_rule: null, evening_rule: null, assignments: [] },
   ],
-  house: { roles: ["adult"], residents_today: ["p_a"], morning_rule: "day_off_wins", evening_rule: "workday_wins" },
+  house: { roles: ["adult"], residents_today: ["p_a"], by_role: true, assignments: [], morning_rule: "day_off_wins", evening_rule: "workday_wins" },
   status: {},
 };
 
@@ -171,6 +171,51 @@ test("residents card lists everyone and asks before a retroactive role change", 
   await card.on_set_role({ dataset: { id: "p_c" } });
   const write = calls.find((c) => c.type === "write");
   assert.deepEqual(write.service_data, { person: "person.clara", role: "adult", valid_from: "2026-09-01" });
+});
+
+test("residents card sets personal days off every week and returns to the household weekend", async () => {
+  const calls = [];
+  const card = new defined["werktags-residents"]();
+  card.setConfig({});
+  card.hass = fakeHass("en", calls);
+  await tick(); await tick();
+  assert.match(card.shadowRoot.innerHTML, /household weekend/);
+  card.on_form_day({ dataset: { id: "p_a", day: "4" } });                          // Friday off too
+  assert.match(card.shadowRoot.innerHTML, /\(personal\)/);
+  await card.on_set_role({ dataset: { id: "p_a" } });
+  let write = calls.filter((c) => c.type === "write").pop();
+  assert.equal(write.service, "set_weekly");
+  assert.deepEqual(write.service_data, { person: "person.anna", valid_from: card.today, weekdays: [4, 5, 6] });
+  card.on_form_day({ dataset: { id: "p_a", day: "4" } });
+  card.on_form_day({ dataset: { id: "p_a", day: "4" } });                          // back to Saturday+Sunday
+  card.on_form_weekly_reset({ dataset: { id: "p_a" } });
+  card.on_form_day({ dataset: { id: "p_a", day: "0" } });
+  card.on_form_weekly_reset({ dataset: { id: "p_a" } });
+  await card.on_set_role({ dataset: { id: "p_a" } });
+  write = calls.filter((c) => c.type === "write").pop();
+  assert.deepEqual(write.service_data, { person: "person.anna", valid_from: card.today, household: true });
+});
+
+test("rooms card lets the house follow chosen residents or the roles again", async () => {
+  const calls = [];
+  const card = new defined["werktags-rooms"]();
+  card.setConfig({});
+  card.hass = fakeHass("de", calls);
+  await tick(); await tick();
+  assert.match(card.shadowRoot.innerHTML, /nach Rolle/);
+  card.on_house_add({ value: "p_c" });
+  await card.on_house_apply();
+  let write = calls.filter((c) => c.type === "write").pop();
+  assert.equal(write.service, "set_house");
+  assert.deepEqual(write.service_data, { valid_from: card.today, person: ["person.anna", "person.clara"] });
+  card.on_house_remove({ dataset: { id: "p_a" } });
+  card.on_house_remove({ dataset: { id: "p_c" } });
+  card.on_house_date({ value: "2026-01-01" });
+  await card.on_house_apply();
+  assert.match(card.shadowRoot.innerHTML, /rückwirkend/);
+  await card.on_house_apply();
+  write = calls.filter((c) => c.type === "write").pop();
+  assert.deepEqual(write.service_data, { valid_from: "2026-01-01", by_role: true });
 });
 
 test("rooms card edits residents with a date and changes rules directly", async () => {

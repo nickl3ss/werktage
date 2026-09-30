@@ -310,3 +310,43 @@ def test_public_api_names_are_english():
         for member in enum:
             assert member.value.isascii() and member.value == member.value.lower()
     assert frozenset({5, 6}) == rules.DEFAULT_WEEKEND
+
+
+# --- personal weekly days off, house residents, holiday corrections ------------------------
+
+def test_personal_off_weekdays_override_the_household_weekend(household):
+    """Ben works Monday to Thursday: Friday is his day off, Saturday and Sunday still are."""
+    ben = household.residents["ben"]
+    part_time = Resident("ben", "B", ben.roles, ben.order, History((Step(d("2026-10-01"), frozenset({4, 5, 6})),)))
+    h = Household(household.calendar, {**household.residents, "ben": part_time}, household.rooms)
+    assert h.day_of("ben", d("2026-10-02")).reason is Reason.WEEKEND         # Friday after the change
+    assert h.day_of("ben", d("2026-09-25")).is_workday                       # Friday before the change
+    assert h.day_of("anna", d("2026-10-02")).is_workday                      # Anna keeps the household weekend
+    assert h.room_modes("bedroom", d("2026-10-02"))[0] is MorningMode.DAY_OFF   # day_off_wins with Ben off
+    # a workday exception on Ben's Friday is stored; a day-off exception equals his default and is not
+    h2 = h.with_exceptions(["ben"], d("2026-10-09"), d("2026-10-09"), DayType.DAY_OFF)
+    assert h2.exceptions == {}
+    h3 = h.with_exceptions(["ben"], d("2026-10-09"), d("2026-10-09"), DayType.WORKDAY)
+    assert h3.day_of("ben", d("2026-10-09")).reason is Reason.EXCEPTION_WORKDAY
+
+
+def test_house_uses_assigned_residents_when_there_is_an_assignment(household):
+    """Without an assignment the house follows the roles; with one, exactly the assigned residents count."""
+    assert household.house_residents_on(d("2026-10-20")) == ["anna", "ben"]
+    house = House(residents=History((Step(d("2026-10-01"), frozenset({"anna", "clara"})),)))
+    h = Household(household.calendar, household.residents, household.rooms, house)
+    assert h.house_residents_on(d("2026-09-30")) == ["anna", "ben"]          # before the assignment: roles
+    assert h.house_residents_on(d("2026-10-20")) == ["anna", "clara"]
+    assert h.house_day(d("2026-10-05")).reason is Reason.SCHOOL_HOLIDAY       # Clara's autumn break now counts
+    gone = House(residents=History((Step(d("2026-10-01"), frozenset({"anna", "nobody"})),)))
+    assert Household(household.calendar, household.residents, household.rooms, gone).house_residents_on(d("2026-10-20")) == ["anna"]
+
+
+def test_holiday_corrections(calendar):
+    """A company holiday is added, an official holiday removed."""
+    corrected = Calendar(calendar.public_holidays, calendar.school_holidays, calendar.weekend,
+                         extra_holidays={d("2026-10-20"): "Company holiday"}, removed_holidays=frozenset({d("2026-12-25")}))
+    added = default_day(Role.ADULT, d("2026-10-20"), corrected)
+    assert (added.day_type, added.reason, added.holiday_name) == (DayType.DAY_OFF, Reason.PUBLIC_HOLIDAY, "Company holiday")
+    assert default_day(Role.ADULT, d("2026-12-25"), corrected).is_workday       # a Friday, holiday removed
+    assert default_day(Role.ADULT, d("2026-10-03"), corrected).reason is Reason.PUBLIC_HOLIDAY   # untouched

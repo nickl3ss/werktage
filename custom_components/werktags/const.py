@@ -16,6 +16,8 @@ CONF_HOUSE_ROLES = "house_roles"
 CONF_HOUSE_MORNING_RULE = "house_morning_rule"
 CONF_HOUSE_EVENING_RULE = "house_evening_rule"
 CONF_ADMIN_ONLY = "admin_only"
+CONF_ADD_HOLIDAYS = "add_holidays"        # ["2026-10-20", "2026-12-24 Christmas Eve"]
+CONF_REMOVE_HOLIDAYS = "remove_holidays"  # ["2026-06-04", "Corpus"] (date or part of a name)
 
 DEFAULT_WEEKEND_DAYS = ["5", "6"]          # Saturday, Sunday as date.weekday() strings (selector values)
 
@@ -43,6 +45,8 @@ SERVICE_REMOVE_ROLE = "remove_role"
 SERVICE_SET_ROOM = "set_room"
 SERVICE_REMOVE_ROOM_ASSIGNMENT = "remove_room_assignment"
 SERVICE_SET_ORDER = "set_order"
+SERVICE_SET_WEEKLY = "set_weekly"
+SERVICE_SET_HOUSE = "set_house"
 SERVICE_GET_DAYS = "get_days"
 SERVICE_PREVIEW_DAYS = "preview_days"
 SERVICE_GET_OVERVIEW = "get_overview"

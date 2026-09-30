@@ -2,6 +2,18 @@
 
 ## 0.1.0 — 2026-09-29 (unreleased)
 
+- Gaps from the product audit: personal days off every week per resident
+  (`set_weekly`, history), the house follows chosen residents instead of
+  roles (`set_house`, history), extra and removed public holidays in the
+  region step, `binary_sensor.<x>_workday` for residents, rooms and the
+  house, two automation blueprints (cover in the morning, lights off in the
+  evening), an options menu that adds residents, rooms and house residents
+  without any dashboard card. Store version 2. Brand icon from the
+  household's artwork (`brand/icon.png` in 256 px and a 2× variant in 512 px).
+- Cards: weekday chips per resident with a reset to the household weekend;
+  the house row on the rooms card is editable (empty = by role). 17 card
+  tests, 84 Python tests.
+
 - Integration: config flow with three steps and options, store with
   versioned JSON, coordinator (midnight rebuild, monthly school holiday
   fetch from the OpenHolidays API or a calendar entity, plausibility check,

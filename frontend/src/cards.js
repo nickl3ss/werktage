@@ -7,8 +7,8 @@
  */
 import {
   DAY_OFF, WORKDAY, DEFAULT, activeResidents, addDays, allState, allToggleStatus, dayClasses, esc,
-  longDate, mondayOf, monthName, moveInList, proposeShortName, retroactiveDays, shortDate, startsMonth,
-  texts, todayIso, toggleStatus, validRange, weekRows,
+  longDate, mondayOf, monthName, moveInList, proposeShortName, retroactiveDays, sameMembers, shortDate, startsMonth,
+  texts, todayIso, toggleStatus, validRange, weekRows, weekdayNames,
 } from "./logic.js";
 
 const DOMAIN = "werktags";
@@ -86,6 +86,7 @@ const STYLE = `
   .block .row { margin: 4px 0; }
   .field { display: inline-flex; flex-direction: column; gap: 2px; font-size: 0.85em; color: var(--secondary-text-color); }
   .field > * { font-size: 1rem; color: var(--primary-text-color); }
+  .days { display: inline-flex; gap: 3px; flex-wrap: wrap; }
 `;
 
 // --- base ---------------------------------------------------------------------------------
@@ -461,7 +462,7 @@ class WerktagsResidentsCard extends WerktagsCard {
   constructor() {
     super();
     this._overview = null;
-    this._forms = {};      // person id → {role, valid_from, short_name, confirm, dirty}
+    this._forms = {};      // person id → {role, valid_from, short_name, weekly, confirm, dirty}
   }
 
   async load() {
@@ -479,13 +480,23 @@ class WerktagsResidentsCard extends WerktagsCard {
       const taken = this._overview.persons.map((p) => p.short_name).filter(Boolean);
       const resident = person.role_today && person.role_today !== "none";
       this._forms[id] = { role: resident ? person.role_today : "adult", valid_from: this.today,
-        short_name: person.short_name || proposeShortName(person.name, taken), confirm: false, dirty: false };
+        short_name: person.short_name || proposeShortName(person.name, taken),
+        weekly: this._effectiveWeekly(person).slice(), confirm: false, dirty: false };
     }
     return this._forms[id];
   }
 
+  _effectiveWeekly(person) { return person.off_weekdays || this._overview.weekend || [5, 6]; }
+  _weeklyChanged(person, form) { return !sameMembers(form.weekly, this._effectiveWeekly(person)); }
+
   _touch(el) { const form = this._form(el.dataset.id); form.dirty = true; form.confirm = false; return form; }
   on_form_role(el) { this._touch(el).role = el.value; this.render(); }
+  on_form_day(el) {
+    const form = this._touch(el), day = Number(el.dataset.day);
+    form.weekly = form.weekly.includes(day) ? form.weekly.filter((d) => d !== day) : [...form.weekly, day];
+    this.render();
+  }
+  on_form_weekly_reset(el) { this._touch(el).weekly = (this._overview.weekend || [5, 6]).slice(); this.render(); }
   on_form_date(el) { this._touch(el).valid_from = el.value; this.render(); }
   on_form_short(el) { this._touch(el).short_name = el.value; }
   on_form_cancel(el) { delete this._forms[el.dataset.id]; this.render(); }
@@ -497,18 +508,24 @@ class WerktagsResidentsCard extends WerktagsCard {
     const isResident = person.role_today && person.role_today !== "none";
     const roleChanged = !isResident || form.role !== person.role_today;
     const shortChanged = form.short_name.trim() !== (person.short_name || "");
-    const data = { person: person.entity_id };
-    if (roleChanged) {
+    const weeklyChanged = this._weeklyChanged(person, form);
+    if (roleChanged || weeklyChanged) {
       const retro = retroactiveDays(form.valid_from, this.today);
       if (retro > 0 && !form.confirm) { form.confirm = true; this.render(); return; }
-      data.role = form.role; data.valid_from = form.valid_from;
-    } else {
-      const first = person.roles[0];             // only the short name changed: rewrite the first entry as it is
-      data.role = first.role; data.valid_from = first.valid_from;
     }
-    if (shortChanged || !isResident) data.short_name = form.short_name.trim();
+    const weekly = { person: person.entity_id, valid_from: form.valid_from };
+    if (sameMembers(form.weekly, this._overview.weekend || [5, 6])) weekly.household = true;
+    else weekly.weekdays = [...form.weekly].sort();
     delete this._forms[person.id];
-    await this.write("set_role", data, this.t.applied);
+    if (roleChanged || shortChanged || !isResident) {
+      const data = { person: person.entity_id };
+      if (roleChanged) { data.role = form.role; data.valid_from = form.valid_from; }
+      else { const first = person.roles[0]; data.role = first.role; data.valid_from = first.valid_from; }   // short name only
+      if (shortChanged || !isResident) data.short_name = form.short_name.trim();
+      if (!weeklyChanged) { await this.write("set_role", data, this.t.applied); return; }
+      try { await this.callService("set_role", data); } catch (err) { this.fail(err); return; }
+    }
+    await this.write("set_weekly", weekly, this.t.applied);
   }
 
   async on_remove_step(el) {
@@ -533,9 +550,16 @@ class WerktagsResidentsCard extends WerktagsCard {
       ? `${esc(t.role[person.role_today])} <span class="muted">${esc(t.since)} ${esc(shortDate(current.valid_from, this.lang))}</span>`
       : `<span class="muted">${esc(t.not_resident)}</span>`;
     const roleChanged = form.dirty && (!isResident || form.role !== person.role_today);
+    const weeklyChanged = form.dirty && this._weeklyChanged(person, form);
+    const names = weekdayNames(this.lang);
+    const personal = form.dirty ? !sameMembers(form.weekly, this._overview.weekend || [5, 6]) : person.off_weekdays != null;
+    const weekly = `<div class="field"><span>${esc(t.weekly)} <span class="muted">(${esc(personal ? t.weekly_personal : t.weekly_household)})</span></span>
+      <span class="days">${names.map((n, i) => `<button class="tg ${form.weekly.includes(i) ? "off" : ""}" data-action="form_day" data-on="click" data-id="${id}" data-day="${i}" aria-pressed="${form.weekly.includes(i)}">${esc(n)}</button>`).join("")}
+      ${personal ? `<button class="icon" data-action="form_weekly_reset" data-on="click" data-id="${id}" title="${esc(t.weekly_reset)}">↺</button>` : ""}</span></div>`;
     const editor = `<label class="field">${esc(t.short_name)}<input size="2" maxlength="2" value="${esc(form.short_name)}" data-action="form_short" data-on="input" data-id="${id}"></label>
       <label class="field">${esc(t.new_role)}<select data-action="form_role" data-on="change" data-id="${id}">${roleOptions}</select></label>
-      ${roleChanged ? `<label class="field">${esc(t.valid_from)}<input type="date" value="${form.valid_from}" data-action="form_date" data-on="change" data-id="${id}"></label>` : ""}
+      ${isResident || form.dirty ? weekly : ""}
+      ${roleChanged || weeklyChanged ? `<label class="field">${esc(t.valid_from)}<input type="date" value="${form.valid_from}" data-action="form_date" data-on="change" data-id="${id}"></label>` : ""}
       ${form.dirty ? `<button class="primary" data-action="set_role" data-on="click" data-id="${id}">${esc(t.apply)}</button>
       <button data-action="form_cancel" data-on="click" data-id="${id}">${esc(t.cancel)}</button>` : ""}`;
     const confirm = form.confirm ? `<div class="confirm">${esc(t.retro(retroactiveDays(form.valid_from, this.today)))}
@@ -583,13 +607,53 @@ class WerktagsRoomsCard extends WerktagsCard {
     super();
     this._overview = null;
     this._forms = {};      // area id → {residents, valid_from, morning_rule, evening_rule, confirm, dirty}
+    this._house = null;    // {residents, valid_from, confirm, dirty}
   }
 
   async load() {
     if (!this._hass) return;
     try { this._overview = await this.callWithResponse("get_overview", {}); } catch (err) { this.fail(err); return; }
     this._forms = {};
+    this._house = null;
     this.render();
+  }
+
+  _houseForm() {
+    if (!this._house) {
+      this._house = { residents: this._overview.house.residents_today.slice(), valid_from: this.today, confirm: false, dirty: false };
+    }
+    return this._house;
+  }
+  _touchHouse() { const f = this._houseForm(); f.dirty = true; f.confirm = false; return f; }
+  on_house_remove(el) { const f = this._touchHouse(); f.residents = f.residents.filter((id) => id !== el.dataset.id); this.render(); }
+  on_house_add(el) { if (!el.value) return; this._touchHouse().residents.push(el.value); this.render(); }
+  on_house_date(el) { this._touchHouse().valid_from = el.value; this.render(); }
+  on_house_cancel() { this._house = null; this.render(); }
+
+  async on_house_apply() {
+    const form = this._houseForm();
+    const retro = retroactiveDays(form.valid_from, this.today);
+    if (retro > 0 && !form.confirm) { form.confirm = true; this.render(); return; }
+    const data = { valid_from: form.valid_from };
+    if (form.residents.length) data.person = form.residents.map((id) => this._person(id).entity_id);
+    else data.by_role = true;
+    await this.write("set_house", data, this.t.applied);
+  }
+
+  _houseParts() {
+    const t = this.t, house = this._overview.house, form = this._houseForm();
+    const chips = form.residents.map((id) => `<span class="chip on">${esc(this._person(id)?.name || id)}<button data-action="house_remove" data-on="click" data-id="${esc(id)}" aria-label="${esc(t.remove)}" title="${esc(t.remove)}">✕</button></span>`).join("");
+    const candidates = activeResidents(this._overview).filter((r) => !form.residents.includes(r.id));
+    const add = `<select data-action="house_add" data-on="change" aria-label="${esc(t.add)}"><option value="">+ ${esc(t.add)}</option>${candidates.map((r) => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join("")}</select>`;
+    const mode = form.dirty ? (form.residents.length ? t.house_chosen : t.house_by_role) : (house.by_role === false ? t.house_chosen : t.house_by_role);
+    const apply = form.dirty ? `<div class="row"><label class="field">${esc(t.change_from)}<input type="date" value="${form.valid_from}" data-action="house_date" data-on="change"></label>
+        <button class="primary" data-action="house_apply" data-on="click">${esc(t.apply)}</button>
+        <button data-action="house_cancel" data-on="click">${esc(t.cancel)}</button></div>` : "";
+    const confirm = form.confirm ? `<div class="confirm">${esc(t.retro(retroactiveDays(form.valid_from, this.today)))}
+        <button class="primary" data-action="house_apply" data-on="click">${esc(t.yes)}</button>
+        <button data-action="house_cancel" data-on="click">${esc(t.cancel)}</button></div>` : "";
+    const info = `<span class="muted">${esc(mode)} · ${esc(house.roles.map((r) => t.role[r]).join(", "))} · ${esc(t.morning)}: ${esc(t.rule[house.morning_rule])} · ${esc(t.evening)}: ${esc(t.rule[house.evening_rule])} — ${esc(t.house_hint)}</span>`;
+    return { chips: chips || `<span class="muted">${esc(t.no_residents)}</span>`, add, apply, confirm, info };
   }
 
   _room(id) { return this._overview.rooms.find((r) => r.id === id); }
@@ -664,18 +728,16 @@ class WerktagsRoomsCard extends WerktagsCard {
     const t = this.t;
     if (!this._overview) { this.card(this._config.title, `<div class="muted">${t.loading}</div>`); return; }
     const rooms = [...this._overview.rooms].sort((a, b) => (b.residents_today.length > 0) - (a.residents_today.length > 0) || a.name.localeCompare(b.name));
-    const house = this._overview.house;
-    const houseChips = house.residents_today.map((id) => `<span class="chip on">${esc(this._person(id)?.name || id)}</span>`).join("") || `<span class="muted">${esc(t.no_residents)}</span>`;
-    const houseInfo = `<span class="muted">${esc(house.roles.map((r) => t.role[r]).join(", "))} · ${esc(t.morning)}: ${esc(t.rule[house.morning_rule])} · ${esc(t.evening)}: ${esc(t.rule[house.evening_rule])} — ${esc(t.house_hint)}</span>`;
+    const h = this._houseParts();
     const empty = activeResidents(this._overview).length ? "" : `<div class="hint">${esc(t.no_residents_yet)}</div>`;
     let body;
     if (this._narrow) {
       body = rooms.map((room) => { const x = this._parts(room); return `<div class="block"><div class="name">${esc(room.name)}</div><div>${x.chips} ${x.add}</div>${x.apply}${x.confirm}<div class="row">${x.rules}</div>${x.history}</div>`; }).join("")
-        + `<div class="block"><div class="name">${esc(t.house)}</div><div>${houseChips}</div>${houseInfo}</div>`;
+        + `<div class="block"><div class="name">${esc(t.house)}</div><div>${h.chips} ${h.add}</div>${h.apply}${h.confirm}${h.info}</div>`;
     } else {
       const rows = rooms.map((room) => { const x = this._parts(room); return `<tr><td><b>${esc(room.name)}</b></td><td>${x.chips} ${x.add}${x.apply}${x.confirm}${x.history}</td><td><div class="row">${x.rules}</div></td></tr>`; }).join("");
       body = `<table><thead><tr><th>${esc(t.room)}</th><th>${esc(t.residents)}</th><th>${esc(t.morning)} / ${esc(t.evening)}</th></tr></thead><tbody>${rows}
-        <tr><td><b>${esc(t.house)}</b></td><td>${houseChips}<br>${houseInfo}</td><td></td></tr></tbody></table>`;
+        <tr><td><b>${esc(t.house)}</b></td><td>${h.chips} ${h.add}${h.apply}${h.confirm}<br>${h.info}</td><td></td></tr></tbody></table>`;
     }
     this.card(this._config.title, empty + body);
   }

@@ -16,11 +16,15 @@
         "description": "Settings for {country}.",
         "data": {
           "subdivision": "State, province or region",
-          "weekend": "Weekend days"
+          "weekend": "Weekend days",
+          "add_holidays": "Additional holidays",
+          "remove_holidays": "Holidays that do not apply"
         },
         "data_description": {
           "subdivision": "Regional public holidays and school holidays apply only here. Leave empty for nationwide holidays only.",
-          "weekend": "Days off for everyone, every week."
+          "weekend": "Days off for everyone, every week.",
+          "add_holidays": "One per line: a date (YYYY-MM-DD), optionally followed by a name, e.g. “2026-12-24 Christmas Eve”.",
+          "remove_holidays": "One per line: a date (YYYY-MM-DD) or part of a holiday name, e.g. “Corpus Christi”."
         }
       },
       "school_holidays": {
@@ -65,7 +69,8 @@
       "calendar_missing": "This calendar does not exist.",
       "invalid_subdivision": "This region does not belong to the selected country.",
       "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
-      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”."
+      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”.",
+      "holiday_format": "Use YYYY-MM-DD, optionally followed by a name."
     },
     "abort": {
       "already_configured": "Werktags is already set up. Use its options to change settings."
@@ -74,6 +79,15 @@
   "options": {
     "step": {
       "init": {
+        "title": "Werktags",
+        "menu_options": {
+          "settings": "Settings (country, school holidays, house, access)",
+          "resident": "Add or change a resident",
+          "room": "Assign a room",
+          "house": "Residents of the house"
+        }
+      },
+      "settings": {
         "title": "Country",
         "data": {
           "country": "Country"
@@ -87,11 +101,15 @@
         "description": "Settings for {country}.",
         "data": {
           "subdivision": "State, province or region",
-          "weekend": "Weekend days"
+          "weekend": "Weekend days",
+          "add_holidays": "Additional holidays",
+          "remove_holidays": "Holidays that do not apply"
         },
         "data_description": {
           "subdivision": "Regional public holidays and school holidays apply only here. Leave empty for nationwide holidays only.",
-          "weekend": "Days off for everyone, every week."
+          "weekend": "Days off for everyone, every week.",
+          "add_holidays": "One per line: a date (YYYY-MM-DD), optionally followed by a name, e.g. “2026-12-24 Christmas Eve”.",
+          "remove_holidays": "One per line: a date (YYYY-MM-DD) or part of a holiday name, e.g. “Corpus Christi”."
         }
       },
       "school_holidays": {
@@ -105,8 +123,9 @@
           "calendar_entity": "Only for the source “calendar”: every all-day event counts as a school holiday."
         }
       },
-      "house": {
-        "title": "House",
+      "house_rules": {
+        "title": "House rules",
+        "description": "Besides every resident and room, the whole house gets a morning and an evening mode. Choose whose days count for it and how they are combined.",
         "data": {
           "house_roles": "Roles that count for the house",
           "house_morning_rule": "Morning rule",
@@ -126,6 +145,53 @@
         "data_description": {
           "admin_only": "Off: every user of this Home Assistant may edit. On: only users with administrator rights."
         }
+      },
+      "resident": {
+        "title": "Resident",
+        "description": "A person becomes a resident with a role. Pupils have school holidays off. Personal days off every week replace the household weekend for this person (part-time).",
+        "data": {
+          "person": "Person",
+          "role": "Role",
+          "short_name": "Short name",
+          "off_weekdays": "Personal days off every week",
+          "valid_from": "Valid from"
+        },
+        "data_description": {
+          "person": "Any person of this Home Assistant.",
+          "role": "“None” ends residency from the date on.",
+          "short_name": "One or two characters for the calendar card; proposed from the name if empty.",
+          "off_weekdays": "Leave empty to use the household weekend.",
+          "valid_from": "Earlier days keep what they had; today if empty."
+        }
+      },
+      "room": {
+        "title": "Room",
+        "description": "A room is an area with residents. Its morning and evening modes combine their days.",
+        "data": {
+          "area": "Area",
+          "person": "Residents",
+          "morning_rule": "Morning rule",
+          "evening_rule": "Evening rule",
+          "valid_from": "Valid from"
+        },
+        "data_description": {
+          "person": "Only residents (persons with a role) count.",
+          "morning_rule": "“Day off wins”: the room sleeps in as soon as one resident is off.",
+          "evening_rule": "Refers to tomorrow.",
+          "valid_from": "Today if empty."
+        }
+      },
+      "house": {
+        "title": "Residents of the house",
+        "description": "Whose days count for the whole house. Leave the list empty to count everyone with one of the house roles.",
+        "data": {
+          "person": "Residents of the house",
+          "valid_from": "Valid from"
+        },
+        "data_description": {
+          "person": "Empty: everyone with a house role (see settings).",
+          "valid_from": "Today if empty."
+        }
       }
     },
     "error": {
@@ -133,7 +199,16 @@
       "calendar_missing": "This calendar does not exist.",
       "invalid_subdivision": "This region does not belong to the selected country.",
       "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
-      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”."
+      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”.",
+      "holiday_format": "Use YYYY-MM-DD, optionally followed by a name.",
+      "not_resident": "This person is not a resident yet. Add the resident first.",
+      "short_name_taken": "This short name is already used.",
+      "unknown_area": "This area does not exist."
+    },
+    "abort": {
+      "resident_saved": "Resident saved.",
+      "room_saved": "Room saved.",
+      "house_saved": "House residents saved."
     }
   },
   "selector": {
@@ -229,6 +304,11 @@
     "calendar": {
       "days_off": {
         "name": "Days off"
+      }
+    },
+    "binary_sensor": {
+      "workday": {
+        "name": "Workday"
       }
     }
   },
@@ -384,6 +464,46 @@
     "refresh_school_holidays": {
       "name": "Refresh school holidays",
       "description": "Fetches the school holidays now."
+    },
+    "set_weekly": {
+      "name": "Set weekly days off",
+      "description": "Personal days off every week for a person from a date on, replacing the household weekend (part-time, four-day week).",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The person."
+        },
+        "weekdays": {
+          "name": "Days off",
+          "description": "Weekdays that are off every week."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "First day the pattern applies; today if omitted."
+        },
+        "household": {
+          "name": "Back to household weekend",
+          "description": "Removes the personal pattern; the household weekend applies again."
+        }
+      }
+    },
+    "set_house": {
+      "name": "Set residents of the house",
+      "description": "Which residents count for the house from a date on. Without persons (or with “by role”) everyone with a house role counts again.",
+      "fields": {
+        "person": {
+          "name": "Residents",
+          "description": "Residents that count for the house."
+        },
+        "valid_from": {
+          "name": "Valid from",
+          "description": "First day the assignment applies; today if omitted."
+        },
+        "by_role": {
+          "name": "By role",
+          "description": "Back to the default: everyone with a house role."
+        }
+      }
     }
   },
   "exceptions": {

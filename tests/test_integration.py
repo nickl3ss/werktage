@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.werktags.const import DOMAIN
@@ -124,6 +125,76 @@ async def test_set_days_range_default_and_workday_on_weekend(hass: HomeAssistant
     await call_service("set_days", person=[persons["p_anna"]], start="2026-10-03", end="2026-10-04", status="default")
     days = await call_service("get_days", start="2026-10-03", weeks=1)
     assert days["days"][5]["persons"]["p_anna"]["exception"] is None
+
+
+async def test_weekly_days_off_replace_the_household_weekend(hass: HomeAssistant, household, call_service, persons):
+    # Anna works four days: Friday off every week from this Monday on
+    await call_service("set_weekly", person=persons["p_anna"], weekdays=[4, 5, 6], valid_from="2026-09-28")
+    assert hass.states.get("sensor.anna_evening").state == "before_day_off"        # tomorrow is Friday
+    assert hass.states.get("sensor.ben_evening").state == "before_workday"
+    assert hass.states.get("binary_sensor.anna_workday").state == "on"            # Thursday
+    friday = hass.states.get("sensor.anna_morning").attributes["next_day_off"]
+    assert friday == "2026-10-02"
+    overview = await call_service("get_overview")
+    anna = next(p for p in overview["persons"] if p["name"] == "Anna")
+    assert anna["off_weekdays"] == [4, 5, 6] and anna["off_weekdays_history"][0]["valid_from"] == "2026-09-28"
+    assert overview["weekend"] == [5, 6]
+    days = await call_service("get_days", start="2026-10-05", weeks=1)
+    assert days["days"][4]["persons"]["p_anna"]["reason"] == "weekend"             # her Friday
+    assert days["days"][4]["persons"]["p_ben"]["reason"] == "workday"
+    await call_service("set_weekly", person=persons["p_anna"], household=True)
+    assert hass.states.get("sensor.anna_evening").state == "before_workday"
+    with pytest.raises(Exception, match="at most 6"):                                 # schema
+        await call_service("set_weekly", person=persons["p_anna"], weekdays=[7])
+    hass.states.async_set("person.nobody", "home", {"id": "p_nobody", "friendly_name": "Nobody"})
+    with pytest.raises(ServiceValidationError):
+        await call_service("set_weekly", person="person.nobody", weekdays=[0])       # not a resident
+
+
+async def test_house_follows_chosen_residents(hass: HomeAssistant, household, call_service, persons):
+    # only Clara (a pupil, autumn break from Monday) counts for the house from Monday on
+    await call_service("set_house", person=[persons["p_clara"]], valid_from="2026-10-05")
+    assert hass.states.get("sensor.house_morning").state == "workday"              # today the adults still count
+    overview = await call_service("get_overview")
+    assert overview["house"]["by_role"] is True and overview["house"]["residents_today"] == ["p_anna", "p_ben"]
+    assert overview["house"]["assignments"] == [{"valid_from": "2026-10-05", "residents": ["p_clara"]}]
+    days = await call_service("get_days", start="2026-10-05", weeks=1)
+    assert days["days"][0]["persons"]["p_clara"]["reason"] == "school_holiday"
+    coordinator = household.runtime_data
+    assert coordinator.household.house_day(d("2026-10-05")).is_workday is False   # Clara's holidays rule the house
+    assert coordinator.household.house_day(d("2026-10-01")).is_workday is True
+    await call_service("set_house", by_role=True, valid_from="2026-10-05")
+    assert coordinator.household.house_day(d("2026-10-05")).is_workday is True
+    with pytest.raises(ServiceValidationError):
+        await call_service("set_house", person=["person.nobody"])
+
+
+async def test_binary_sensors_follow_residents_rooms_and_house(hass: HomeAssistant, household, call_service, persons):
+    assert hass.states.get("binary_sensor.house_workday").state == "on"
+    assert hass.states.get("binary_sensor.bedroom_workday").state == "on"
+    assert hass.states.get("binary_sensor.clara_workday").attributes["reason"] == "workday"
+    await call_service("set_days", person=persons["p_anna"], start=TODAY.isoformat(), status="day_off")
+    assert hass.states.get("binary_sensor.anna_workday").state == "off"
+    assert hass.states.get("binary_sensor.bedroom_workday").state == "off"       # day_off_wins
+    assert hass.states.get("binary_sensor.house_workday").state == "off"
+    await call_service("set_role", person=persons["p_clara"], role="none", valid_from="2026-09-01")
+    assert hass.states.get("binary_sensor.clara_workday").state == "unavailable"
+    assert hass.states.get("binary_sensor.nursery_workday").state == "unavailable"
+
+
+async def test_holiday_corrections_from_the_options(hass: HomeAssistant, config_entry: MockConfigEntry, persons, areas,
+                                                    call_service):
+    hass.config_entries.async_update_entry(config_entry, options={
+        "add_holidays": ["2026-10-02 Bridge day", "2026-10-30"], "remove_holidays": ["2026-10-03", "Reformation"]})
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    await call_service("set_role", person=persons["p_anna"], role="adult", valid_from="2010-01-01")
+    days = {x["date"]: x for x in (await call_service("get_days", start="2026-09-28", weeks=5))["days"]}
+    assert days["2026-10-02"]["public_holiday"] == "Bridge day"
+    assert days["2026-10-02"]["persons"]["p_anna"]["reason"] == "public_holiday"
+    assert days["2026-10-30"]["public_holiday"] == "Holiday"                          # unnamed
+    assert days["2026-10-03"]["public_holiday"] is None                              # German Unity Day removed
+    assert hass.states.get("sensor.anna_evening").state == "before_day_off"          # Friday is the bridge day
 
 
 async def test_get_overview_lists_every_person_and_area(hass: HomeAssistant, household, call_service, areas):

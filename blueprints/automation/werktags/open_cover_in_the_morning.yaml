@@ -1,0 +1,70 @@
+blueprint:
+  name: "Werktags: open a cover in the morning"
+  description: >-
+    Opens a cover (shutter, blind, curtain) at one time on workday mornings and
+    at another time when the resident, room or house sleeps in — never before
+    sunrise. Uses a Werktags "morning" sensor.
+  domain: automation
+  author: nickl3ss
+  source_url: https://github.com/nickl3ss/werktags/blob/main/blueprints/automation/werktags/open_cover_in_the_morning.yaml
+  input:
+    morning_sensor:
+      name: Morning sensor
+      description: A Werktags morning sensor, e.g. sensor.anna_morning or sensor.bedroom_morning.
+      selector:
+        entity:
+          filter:
+            - integration: werktags
+              domain: sensor
+    cover:
+      name: Cover
+      selector:
+        target:
+          entity:
+            domain: cover
+    workday_time:
+      name: Time on workdays
+      default: "07:00:00"
+      selector:
+        time:
+    day_off_time:
+      name: Time on days off
+      default: "10:00:00"
+      selector:
+        time:
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input workday_time
+    id: workday
+  - trigger: time
+    at: !input day_off_time
+    id: day_off
+  - trigger: sun
+    event: sunrise
+    id: sunrise
+
+conditions:
+  - condition: state
+    entity_id: sun.sun
+    state: above_horizon
+  - condition: template
+    value_template: >-
+      {% set mode = states(morning_sensor) %}
+      {% set workday = mode != 'day_off' %}
+      {{ (trigger.id == 'workday' and workday)
+         or (trigger.id == 'day_off' and not workday)
+         or (trigger.id == 'sunrise' and (
+              (workday and now().time() > today_at(workday_time).time())
+              or (not workday and now().time() > today_at(day_off_time).time()))) }}
+
+variables:
+  morning_sensor: !input morning_sensor
+  workday_time: !input workday_time
+  day_off_time: !input day_off_time
+
+actions:
+  - action: cover.open_cover
+    target: !input cover
