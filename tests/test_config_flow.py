@@ -1,7 +1,7 @@
 """Setup dialog (five steps) and options."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant import config_entries
@@ -212,3 +212,26 @@ async def test_options_flow_drops_the_region_when_the_country_changes(hass: Home
     import voluptuous as vol
     key = next(k for k in result["data_schema"].schema if str(k) == "subdivision")
     assert key.default is vol.UNDEFINED                            # no region preselected for the new country
+
+
+async def test_the_holidays_library_never_runs_in_the_event_loop(hass: HomeAssistant):
+    """It is synchronous and walks its country modules; the dialog builds its lists in the executor."""
+    import threading
+
+    from custom_components.werktags import sources
+    loop_thread, seen = threading.get_ident(), []
+    real_countries, real_names = sources.supported_countries, sources.subdivision_names
+
+    def countries():
+        seen.append(threading.get_ident())
+        return real_countries()
+
+    def names(country):
+        seen.append(threading.get_ident())
+        return real_names(country)
+
+    with patch.object(sources, "supported_countries", countries), patch.object(sources, "subdivision_names", names):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"country": "DE"})
+    assert result["step_id"] == "region" and len(seen) >= 2 and loop_thread not in seen
+

@@ -64,9 +64,13 @@ rules:
   docs-troubleshooting: done
   docs-use-cases: done
   dynamic-devices: done
-  entity-category: done
+  entity-category:
+    status: exempt
+    comment: All entities are primary; there are no diagnostic or configuration entities.
   entity-device-class: done
-  entity-disabled-by-default: done
+  entity-disabled-by-default:
+    status: exempt
+    comment: Three entities per resident, room and house, all meant for automations; none is noisy.
   entity-translations: done
   exception-translations: done
   icon-translations: done
@@ -77,6 +81,15 @@ rules:
   stale-devices: done
 
   # Platinum
-  async-dependency: todo
-  inject-websession: done
-  strict-typing: done
+  async-dependency:
+    status: done
+    comment: >-
+      The only network dependency, the OpenHolidays client, is asyncio (aiohttp). The holidays
+      library is an offline computation and always runs in the executor, in the coordinator
+      and in the config flow.
+  inject-websession:
+    status: done
+    comment: The client receives Home Assistant's shared aiohttp session.
+  strict-typing:
+    status: done
+    comment: mypy --strict in CI for the integration and the client library; the library ships py.typed.

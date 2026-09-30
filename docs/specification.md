@@ -251,7 +251,11 @@ The README provides a ready-made dashboard with the four cards.
 - `custom_components/werktags/quality_scale.yaml` records every rule.
   Bronze is complete except `brands` (the pull request to
   `home-assistant/brands` waits for the repository to go public); target is
-  **Silver** (test coverage ≥ 95 %), then Gold.
+  **Platinum**: Silver and Gold are complete (coverage 99 %, documentation,
+  translated errors), and so are the Platinum rules — the only network
+  dependency is asyncio and gets Home Assistant's session, the synchronous
+  `holidays` library runs in the executor everywhere (a test checks the
+  config flow), `mypy --strict` in CI.
 - `tools/check_publication.py` before every commit: no private household data.
 
 ## 8. Path to Home Assistant core

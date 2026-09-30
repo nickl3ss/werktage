@@ -25,6 +25,10 @@
 - Silver: test coverage 99 % (CI fails below 95 %). Gold documentation: use
   cases, supported functions, data updates, known limitations,
   troubleshooting.
+- Platinum rules: the setup dialog builds its country and region lists in the
+  executor (the `holidays` library took about 0.2 s in the event loop on a
+  Raspberry Pi); only two-letter country codes are offered. Every rule in
+  `quality_scale.yaml` is now done or exempt except `brands`.
 - Quality scale Bronze complete except the brands pull request (needs a
   public repository): `quality_scale.yaml`, manifest key order and
   `CONFIG_SCHEMA` as hassfest requires (hassfest passes locally), config flow

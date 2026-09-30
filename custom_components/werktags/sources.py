@@ -75,8 +75,8 @@ def subdivision_names(country: str) -> dict[str, str]:
 
 
 def supported_countries() -> list[str]:
-    """ISO country codes the ``holidays`` library supports."""
-    return sorted(holidays_lib.list_supported_countries())
+    """ISO 3166-1 alpha-2 codes the ``holidays`` library supports (it also lists the alpha-3 aliases)."""
+    return sorted(code for code in holidays_lib.list_supported_countries(include_aliases=False) if len(code) == 2)
 
 
 def supports_country(country: str) -> bool:

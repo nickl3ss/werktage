@@ -148,6 +148,15 @@ class _Steps:
     def _country(self) -> str:
         return str(self._data.get(CONF_COUNTRY, "DE"))
 
+    # The ``holidays`` library is synchronous and walks its country modules: keep it off the event loop.
+    async def _country_schema(self, defaults: dict[str, Any]) -> vol.Schema:
+        schema: vol.Schema = await self.hass.async_add_executor_job(country_schema, defaults)
+        return schema
+
+    async def _region_schema(self) -> vol.Schema:
+        schema: vol.Schema = await self.hass.async_add_executor_job(region_schema, dict(self._data), self._country())
+        return schema
+
     def _show(self, step_id: str, schema: vol.Schema, errors: dict[str, str] | None = None) -> ConfigFlowResult:
         result: ConfigFlowResult = self.async_show_form(  # type: ignore[attr-defined]
             step_id=step_id, data_schema=schema, errors=errors or {},
@@ -177,12 +186,12 @@ class _Steps:
         if user_input is not None:
             subdivision = user_input.get(CONF_SUBDIVISION) or ""      # the selector only offers this country's
             if not holiday_lines_valid(user_input.get(CONF_ADD_HOLIDAYS) or []):
-                return self._show(STEP_REGION, region_schema(self._data, self._country()),
+                return self._show(STEP_REGION, await self._region_schema(),
                                   {CONF_ADD_HOLIDAYS: "holiday_format"})
             self._data.update(user_input)
             self._data[CONF_SUBDIVISION] = subdivision
             return await next_step()
-        return self._show(STEP_REGION, region_schema(self._data, self._country()))
+        return self._show(STEP_REGION, await self._region_schema())
 
     async def _step_school_holidays(self, user_input: dict[str, Any] | None, next_step: NextStep) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -215,7 +224,7 @@ class WerktagsConfigFlow(_Steps, ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._data.update(user_input)
             return await self.async_step_region()
-        return self._show(STEP_COUNTRY, country_schema({CONF_COUNTRY: self.hass.config.country or "DE"}))
+        return self._show(STEP_COUNTRY, await self._country_schema({CONF_COUNTRY: self.hass.config.country or "DE"}))
 
     async def async_step_region(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return await self._step_region(user_input, self.async_step_school_holidays)
@@ -292,7 +301,7 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                 self._data[CONF_SUBDIVISION] = ""          # the old region belongs to the old country
             self._data.update(user_input)
             return await self.async_step_region()
-        return self._show(STEP_SETTINGS, country_schema(self._data))
+        return self._show(STEP_SETTINGS, await self._country_schema(dict(self._data)))
 
     async def async_step_region(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return await self._step_region(user_input, self.async_step_school_holidays)

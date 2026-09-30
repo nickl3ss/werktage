@@ -120,3 +120,9 @@ def test_version_1_data_reads_as_version_2():
 def test_newer_version_is_refused():
     with pytest.raises(ValueError):
         storage.from_dict({"version": storage.DATA_VERSION + 1})
+
+
+def test_supported_countries_are_two_letter_codes_only():
+    countries = sources.supported_countries()
+    assert "DE" in countries and "LU" in countries and all(len(code) == 2 for code in countries)
+
