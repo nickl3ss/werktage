@@ -43,6 +43,8 @@ jederzeit öffentlich werden kann.
     python3 tools/sync_vendor.py            # nach jeder Aenderung an lib/openholidays
     python3 tools/build_cards.py            # nach jeder Aenderung an frontend/src
     node --test frontend/test/*.test.mjs    # Karten browserlos (Node, z. B. apk add nodejs)
+    # CI-Ergebnis eines Commits (Token aus einer lokalen Datei, nie ausgeben):
+    GH_TOKEN="$(sed -n 's/^GH_TOKEN=//p' <Token-Datei>)" .venv/bin/python tools/ci_status.py <sha>
     # hassfest: sparse checkout von home-assistant/core (script/hassfest, script/translations, script/util)
     # im Scratchpad, dann dort: PATH=.venv/bin:$PATH .venv/bin/python -m script.hassfest --action validate \
     #   --integration-path <Repository>/custom_components/werktags
