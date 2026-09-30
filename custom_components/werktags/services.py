@@ -11,7 +11,7 @@ from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
@@ -26,6 +26,7 @@ from .const import (
     SERVICE_SET_ORDER,
     SERVICE_SET_ROLE,
     SERVICE_SET_ROOM,
+    SOURCE_NONE,
     STATUS_DEFAULT,
 )
 from .coordinator import WerktagsCoordinator
@@ -56,7 +57,8 @@ SET_ROOM_SCHEMA = vol.Schema({
 REMOVE_ROOM_SCHEMA = vol.Schema({vol.Required("area"): cv.string, vol.Required("valid_from"): cv.date})
 SET_ORDER_SCHEMA = vol.Schema({vol.Required("person"): PERSONS})
 GET_DAYS_SCHEMA = vol.Schema({
-    vol.Optional("start"): cv.date, vol.Optional("weeks", default=5): vol.All(int, vol.Range(1, MAX_WEEKS)),
+    vol.Optional("start"): cv.date,
+    vol.Optional("weeks", default=5): vol.All(vol.Coerce(int), vol.Range(1, MAX_WEEKS)),
 })
 EMPTY_SCHEMA = vol.Schema({})
 
@@ -159,7 +161,11 @@ async def _set_order(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceC
 
 
 async def _refresh(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
-    await c.async_refresh_school_holidays(force=True)
+    if c.source == SOURCE_NONE:
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_source")
+    if not await c.async_refresh_school_holidays(force=True):
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="fetch_failed",
+                                 translation_placeholders={"source": c.source})
     return None
 
 
@@ -199,6 +205,7 @@ async def _get_days(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCa
         "residents": [{"id": r.id, "name": c.person_name(r.id), "short_name": r.short_name,
                        "entity_id": c.person_entity_id(r.id)} for r in residents],
         "days": days,
+        "status": c.status(),
     }
 
 

@@ -11,7 +11,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
-from openholidays import Holiday
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.werktags.const import (
@@ -27,6 +26,7 @@ from custom_components.werktags.const import (
     DOMAIN,
     SOURCE_OPENHOLIDAYS,
 )
+from custom_components.werktags.openholidays import Holiday
 
 d = dt.date.fromisoformat
 TODAY = d("2026-10-01")     # a Thursday; 3 Oct is a public holiday in DE, autumn break 5–16 Oct (fictitious dates)

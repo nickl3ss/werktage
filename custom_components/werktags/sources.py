@@ -56,6 +56,21 @@ def supported_subdivisions(country: str) -> list[str]:
         return []
 
 
+def supported_subdivision_codes(country: str) -> set[str]:
+    """ISO-style codes (``"DE-NW"``) accepted for a country."""
+    return {f"{country}-{code}" for code in supported_subdivisions(country)}
+
+
+def subdivision_names(country: str) -> dict[str, str]:
+    """Bare code → display name, as the ``workday`` integration shows them; code if no name is known."""
+    try:
+        table = holidays_lib.country_holidays(country)
+    except NotImplementedError:
+        return {}
+    aliases = table.get_subdivision_aliases() if table.subdivisions_aliases else {}
+    return {code: ", ".join(aliases.get(code) or []) or code for code in table.subdivisions}
+
+
 def supported_countries() -> list[str]:
     """ISO country codes the ``holidays`` library supports."""
     return sorted(holidays_lib.list_supported_countries())

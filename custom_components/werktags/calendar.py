@@ -69,7 +69,7 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
             return info.holiday_name
         if info.role is Role.PUPIL and (name := self.coordinator.household.calendar.school_holidays.name_on(day)):
             return name
-        return info.holiday_name or _summary(info.reason)
+        return info.holiday_name or _summary(info.reason, self.coordinator.hass.config.language)
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -82,8 +82,16 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
         return self._events(start_date.date(), end_date.date())
 
 
-def _summary(reason: Reason) -> str:
-    return {Reason.WEEKEND: "Weekend", Reason.EXCEPTION_DAY_OFF: "Day off"}.get(reason, reason.value.replace("_", " "))
+_SUMMARIES = {
+    "en": {Reason.WEEKEND: "Weekend", Reason.EXCEPTION_DAY_OFF: "Day off"},
+    "de": {Reason.WEEKEND: "Wochenende", Reason.EXCEPTION_DAY_OFF: "Frei"},
+}
+
+
+def _summary(reason: Reason, language: str | None) -> str:
+    """Event title for a day off without a holiday name, in the installation's language."""
+    table = _SUMMARIES.get((language or "en").split("-")[0].lower(), _SUMMARIES["en"])
+    return table.get(reason, reason.value.replace("_", " "))
 
 
 def _event(start: dt.date, end: dt.date, summary: str) -> CalendarEvent:

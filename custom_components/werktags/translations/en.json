@@ -2,55 +2,107 @@
   "config": {
     "step": {
       "user": {
-        "title": "Country and weekend",
-        "description": "Public holidays come from the selected country and subdivision.",
+        "title": "Country",
+        "description": "Public holidays and school holidays depend on the country. Choose where the household lives.",
         "data": {
-          "country": "Country",
-          "subdivision": "Subdivision (state, province)",
+          "country": "Country"
+        },
+        "data_description": {
+          "country": "Public holidays come from this country; school holidays too, if the OpenHolidays API covers it."
+        }
+      },
+      "region": {
+        "title": "Region and weekend",
+        "description": "Settings for {country}.",
+        "data": {
+          "subdivision": "State, province or region",
           "weekend": "Weekend days"
+        },
+        "data_description": {
+          "subdivision": "Regional public holidays and school holidays apply only here. Leave empty for nationwide holidays only.",
+          "weekend": "Days off for everyone, every week."
         }
       },
       "school_holidays": {
         "title": "School holidays",
-        "description": "Pupils have school holidays off. Choose where they come from. OpenHolidays data is licensed under ODbL 1.0 (openholidaysapi.org).",
+        "description": "Residents with the role “pupil” have school holidays off. Choose where the dates come from. OpenHolidays data is licensed under ODbL 1.0 (openholidaysapi.org).",
         "data": {
           "school_holiday_source": "Source",
-          "calendar_entity": "Calendar with school holidays (all-day events)"
+          "calendar_entity": "Calendar with school holidays"
+        },
+        "data_description": {
+          "school_holiday_source": "OpenHolidays covers most of Europe and needs no account. A calendar uses its all-day events as school holidays.",
+          "calendar_entity": "Only for the source “calendar”: every all-day event counts as a school holiday."
         }
       },
       "house": {
         "title": "House",
-        "description": "Which residents count for the whole house, and how their days are combined.",
+        "description": "Besides every resident and room, the whole house gets a morning and an evening mode. Choose whose days count for it and how they are combined.",
         "data": {
           "house_roles": "Roles that count for the house",
           "house_morning_rule": "Morning rule",
-          "house_evening_rule": "Evening rule",
+          "house_evening_rule": "Evening rule"
+        },
+        "data_description": {
+          "house_roles": "Usually the adults: pupils would otherwise switch the house to “day off” for the whole summer.",
+          "house_morning_rule": "“Day off wins”: the house sleeps in as soon as one resident is off. “Workday wins”: it is a workday as soon as one resident works.",
+          "house_evening_rule": "Refers to tomorrow: “Workday wins” means an evening before a workday as soon as one resident works tomorrow."
+        }
+      },
+      "access": {
+        "title": "Who may change days",
+        "description": "Days off, roles and rooms can be changed on the dashboard. Automations and scripts are never restricted.",
+        "data": {
           "admin_only": "Only administrators may change days, roles and rooms"
+        },
+        "data_description": {
+          "admin_only": "Off: every user of this Home Assistant may edit. On: only users with administrator rights."
         }
       }
     },
     "error": {
-      "calendar_required": "Select a calendar for this source."
+      "calendar_required": "Select a calendar for this source.",
+      "calendar_missing": "This calendar does not exist.",
+      "invalid_subdivision": "This region does not belong to the selected country.",
+      "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
+      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”."
     },
     "abort": {
-      "single_instance_allowed": "Werktags is already set up."
+      "already_configured": "Werktags is already set up. Use its options to change settings."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Country and weekend",
+        "title": "Country",
         "data": {
-          "country": "Country",
-          "subdivision": "Subdivision (state, province)",
+          "country": "Country"
+        },
+        "data_description": {
+          "country": "Changing the country resets the region."
+        }
+      },
+      "region": {
+        "title": "Region and weekend",
+        "description": "Settings for {country}.",
+        "data": {
+          "subdivision": "State, province or region",
           "weekend": "Weekend days"
+        },
+        "data_description": {
+          "subdivision": "Regional public holidays and school holidays apply only here. Leave empty for nationwide holidays only.",
+          "weekend": "Days off for everyone, every week."
         }
       },
       "school_holidays": {
         "title": "School holidays",
         "data": {
           "school_holiday_source": "Source",
-          "calendar_entity": "Calendar with school holidays (all-day events)"
+          "calendar_entity": "Calendar with school holidays"
+        },
+        "data_description": {
+          "school_holiday_source": "Changing the source fetches the school holidays again.",
+          "calendar_entity": "Only for the source “calendar”: every all-day event counts as a school holiday."
         }
       },
       "house": {
@@ -58,13 +110,30 @@
         "data": {
           "house_roles": "Roles that count for the house",
           "house_morning_rule": "Morning rule",
-          "house_evening_rule": "Evening rule",
+          "house_evening_rule": "Evening rule"
+        },
+        "data_description": {
+          "house_roles": "Usually the adults: pupils would otherwise switch the house to “day off” for the whole summer.",
+          "house_morning_rule": "“Day off wins”: the house sleeps in as soon as one resident is off. “Workday wins”: it is a workday as soon as one resident works.",
+          "house_evening_rule": "Refers to tomorrow: “Workday wins” means an evening before a workday as soon as one resident works tomorrow."
+        }
+      },
+      "access": {
+        "title": "Who may change days",
+        "data": {
           "admin_only": "Only administrators may change days, roles and rooms"
+        },
+        "data_description": {
+          "admin_only": "Off: every user of this Home Assistant may edit. On: only users with administrator rights."
         }
       }
     },
     "error": {
-      "calendar_required": "Select a calendar for this source."
+      "calendar_required": "Select a calendar for this source.",
+      "calendar_missing": "This calendar does not exist.",
+      "invalid_subdivision": "This region does not belong to the selected country.",
+      "cannot_connect": "The OpenHolidays API could not be reached. Check the internet connection or choose another source.",
+      "not_covered": "The OpenHolidays API has no school holidays for this country or region. Choose a calendar or “none”."
     }
   },
   "selector": {
@@ -81,14 +150,14 @@
     },
     "school_holiday_source": {
       "options": {
-        "openholidays": "OpenHolidays API (Europe, no key needed)",
+        "openholidays": "OpenHolidays API (Europe, no account needed)",
         "calendar": "A calendar entity",
         "none": "None — pupils have no school holidays"
       }
     },
     "role": {
       "options": {
-        "pupil": "Pupil",
+        "pupil": "Pupil — school holidays off",
         "adult": "Adult",
         "none": "None (not a resident)"
       }
@@ -209,8 +278,8 @@
       }
     },
     "remove_role": {
-      "name": "Remove role step",
-      "description": "Removes a role step that was entered by mistake.",
+      "name": "Remove role entry",
+      "description": "Removes a role entry that was made by mistake.",
       "fields": {
         "person": {
           "name": "Person",
@@ -218,7 +287,7 @@
         },
         "valid_from": {
           "name": "Valid from",
-          "description": "The date of the step to remove."
+          "description": "The date of the entry to remove."
         }
       }
     },
@@ -249,8 +318,8 @@
       }
     },
     "remove_room_assignment": {
-      "name": "Remove room assignment step",
-      "description": "Removes an assignment step that was entered by mistake.",
+      "name": "Remove room entry",
+      "description": "Removes a room assignment entry that was made by mistake.",
       "fields": {
         "area": {
           "name": "Room",
@@ -258,7 +327,7 @@
         },
         "valid_from": {
           "name": "Valid from",
-          "description": "The date of the step to remove."
+          "description": "The date of the entry to remove."
         }
       }
     },
@@ -333,6 +402,12 @@
     "range_too_long": {
       "message": "At most {max} days per call."
     },
+    "no_source": {
+      "message": "No school holiday source is configured."
+    },
+    "fetch_failed": {
+      "message": "School holidays could not be fetched from {source}. The last known dates are still used."
+    },
     "invalid": {
       "message": "{message}"
     }
@@ -340,7 +415,7 @@
   "issues": {
     "school_holidays_unreachable": {
       "title": "School holidays could not be fetched",
-      "description": "The source \"{source}\" failed {failures} times in a row. The last known school holidays are still used. Check the connection or choose another source in the options."
+      "description": "The source “{source}” failed {failures} times in a row. The last known school holidays are still used. Check the connection or choose another source in the options."
     },
     "school_holidays_incomplete": {
       "title": "School holidays for {year} are missing",
@@ -348,7 +423,7 @@
     },
     "person_missing": {
       "title": "Residents without a person",
-      "description": "These residents refer to persons that no longer exist in Home Assistant: {ids}. Their sensors are unavailable. Set their role to \"none\" or recreate the person."
+      "description": "These residents refer to persons that no longer exist in Home Assistant: {ids}. Their sensors are unavailable. Set their role to “none” or recreate the person."
     },
     "area_missing": {
       "title": "Rooms without an area",

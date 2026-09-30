@@ -114,9 +114,14 @@ test("tapping a toggle sets the opposite day and calls set_days", async () => {
   await card.on_toggle({ dataset: { date: "2026-10-01", person: "p_a" } });      // Thursday, workday → day_off
   const write = calls.find((c) => c.type === "write");
   assert.deepEqual(write.service_data, { person: "person.anna", start: "2026-10-01", status: "day_off" });
-  await card.on_all({ dataset: { date: "2026-10-03" } });                         // everybody off → all workday
+  await card.on_all({ dataset: { date: "2026-10-03" } });                         // everybody off on a holiday → asks first
+  assert.equal(calls.filter((c) => c.type === "write").length, 1);
+  assert.match(card.shadowRoot.innerHTML, /Set everyone to workday on a day off\?/);
+  await card.on_all({ dataset: { date: "2026-10-03" } });                         // confirmed → all workday
   const all = calls.filter((c) => c.type === "write").pop();
   assert.deepEqual(all.service_data, { person: ["person.anna", "person.clara"], start: "2026-10-03", status: "workday" });
+  await card.on_all({ dataset: { date: "2026-10-01" } });                         // workday: everybody off, no question
+  assert.equal(calls.filter((c) => c.type === "write").pop().service_data.status, "day_off");
 });
 
 test("narrow width switches to one row per day", async () => {
@@ -157,7 +162,7 @@ test("residents card lists everyone and asks before a retroactive role change", 
   const html = card.shadowRoot.innerHTML;
   assert.match(html, /Anna/); assert.match(html, /Guest/); assert.match(html, /kein Bewohner/);
   assert.match(html, /seit 01\.01\.10: Schüler/);
-  assert.match(html, /Schüler<br><span class="muted">seit 01\.01\.10/);          // the current step, not the future one
+  assert.match(html, /Schüler <span class="muted">seit 01\.01\.10/);             // the current entry, not the future one
   card.on_form_date({ dataset: { id: "p_c" }, value: "2026-09-01" });
   card.on_form_role({ dataset: { id: "p_c" }, value: "adult" });
   await card.on_set_role({ dataset: { id: "p_c" } });
@@ -180,7 +185,9 @@ test("rooms card edits residents with a date and changes rules directly", async 
   await card.on_room_apply({ dataset: { area: "bedroom" } });
   let write = calls.find((c) => c.type === "write");
   assert.deepEqual(write.service_data, { area: "bedroom", person: ["person.anna", "person.clara"], valid_from: card.today });
-  await card.on_room_rule({ dataset: { area: "kitchen", rule: "morning_rule" }, value: "workday_wins" });
+  card.on_room_rule({ dataset: { area: "kitchen", rule: "morning_rule" }, value: "workday_wins" });
+  assert.equal(calls.filter((c) => c.type === "write").length, 1);                 // nothing written yet
+  await card.on_room_apply({ dataset: { area: "kitchen" } });
   write = calls.filter((c) => c.type === "write").pop();
   assert.deepEqual(write.service_data, { area: "kitchen", morning_rule: "workday_wins" });
 });

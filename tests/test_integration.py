@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -178,9 +178,11 @@ async def test_data_survives_a_reload(hass: HomeAssistant, household: MockConfig
 
 async def test_failed_fetch_keeps_old_data_and_raises_issue_after_three_failures(hass: HomeAssistant, household,
                                                                                  fake_api, call_service):
-    fake_api.school_holidays.side_effect = RuntimeError("down")
+    from custom_components.werktags.openholidays import RequestFailed
+    fake_api.school_holidays.side_effect = RequestFailed("down")
     for _ in range(3):
-        await call_service("refresh_school_holidays")
+        with pytest.raises(HomeAssistantError):
+            await call_service("refresh_school_holidays")
     status = (await call_service("get_overview"))["status"]["school_holidays"]
     assert status["periods"] == 6 and status["failures"] == 3
     assert ir.async_get(hass).async_get_issue(DOMAIN, "school_holidays_unreachable") is not None
@@ -191,7 +193,8 @@ async def test_failed_fetch_keeps_old_data_and_raises_issue_after_three_failures
 
 async def test_implausible_answer_is_rejected(hass: HomeAssistant, household, fake_api, call_service, school_holidays):
     fake_api.school_holidays.return_value = school_holidays[:1]         # no summer holidays
-    await call_service("refresh_school_holidays")
+    with pytest.raises(HomeAssistantError):
+        await call_service("refresh_school_holidays")
     status = (await call_service("get_overview"))["status"]["school_holidays"]
     assert status["periods"] == 6 and status["failures"] == 1
 

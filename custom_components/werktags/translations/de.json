@@ -2,55 +2,107 @@
   "config": {
     "step": {
       "user": {
-        "title": "Land und Wochenende",
-        "description": "Die gesetzlichen Feiertage kommen aus dem gewählten Land und Bundesland.",
+        "title": "Land",
+        "description": "Feiertage und Schulferien hängen vom Land ab. Wähle, wo der Haushalt wohnt.",
         "data": {
-          "country": "Land",
-          "subdivision": "Bundesland / Region",
+          "country": "Land"
+        },
+        "data_description": {
+          "country": "Die Feiertage kommen aus diesem Land, die Schulferien ebenfalls, wenn die OpenHolidays API es abdeckt."
+        }
+      },
+      "region": {
+        "title": "Region und Wochenende",
+        "description": "Einstellungen für {country}.",
+        "data": {
+          "subdivision": "Bundesland, Provinz oder Region",
           "weekend": "Wochenendtage"
+        },
+        "data_description": {
+          "subdivision": "Regionale Feiertage und Schulferien gelten nur hier. Leer lassen für nur bundesweite Feiertage.",
+          "weekend": "Freie Tage für alle, jede Woche."
         }
       },
       "school_holidays": {
         "title": "Schulferien",
-        "description": "Schüler haben in den Schulferien frei. Wähle, woher sie kommen. Die Daten der OpenHolidays API stehen unter ODbL 1.0 (openholidaysapi.org).",
+        "description": "Bewohner mit der Rolle „Schüler“ haben in den Schulferien frei. Wähle, woher die Termine kommen. Die Daten der OpenHolidays API stehen unter ODbL 1.0 (openholidaysapi.org).",
         "data": {
           "school_holiday_source": "Quelle",
-          "calendar_entity": "Kalender mit Schulferien (Ganztagstermine)"
+          "calendar_entity": "Kalender mit Schulferien"
+        },
+        "data_description": {
+          "school_holiday_source": "OpenHolidays deckt den größten Teil Europas ab und braucht kein Konto. Ein Kalender nutzt seine Ganztagstermine als Schulferien.",
+          "calendar_entity": "Nur für die Quelle „Kalender“: jeder Ganztagstermin zählt als Schulferien."
         }
       },
       "house": {
         "title": "Haus",
-        "description": "Welche Bewohner für das ganze Haus zählen und wie ihre Tage zusammengefasst werden.",
+        "description": "Neben jedem Bewohner und Raum bekommt das ganze Haus einen Morgen- und einen Abendmodus. Wähle, wessen Tage dafür zählen und wie sie zusammengefasst werden.",
         "data": {
           "house_roles": "Rollen, die für das Haus zählen",
           "house_morning_rule": "Regel morgens",
-          "house_evening_rule": "Regel abends",
+          "house_evening_rule": "Regel abends"
+        },
+        "data_description": {
+          "house_roles": "Meist die Erwachsenen: Schüler würden das Haus sonst den ganzen Sommer auf „frei“ stellen.",
+          "house_morning_rule": "„Frei gewinnt“: das Haus schläft aus, sobald ein Bewohner frei hat. „Arbeit gewinnt“: es ist ein Werktag, sobald ein Bewohner arbeitet.",
+          "house_evening_rule": "Bezieht sich auf morgen: „Arbeit gewinnt“ heißt Abend vor Werktag, sobald ein Bewohner morgen arbeitet."
+        }
+      },
+      "access": {
+        "title": "Wer darf Tage ändern",
+        "description": "Freie Tage, Rollen und Räume lassen sich im Dashboard ändern. Automatisierungen und Skripte sind nie eingeschränkt.",
+        "data": {
           "admin_only": "Nur Administratoren dürfen Tage, Rollen und Räume ändern"
+        },
+        "data_description": {
+          "admin_only": "Aus: jeder Nutzer dieses Home Assistant darf ändern. An: nur Nutzer mit Administratorrechten."
         }
       }
     },
     "error": {
-      "calendar_required": "Wähle für diese Quelle einen Kalender."
+      "calendar_required": "Wähle für diese Quelle einen Kalender.",
+      "calendar_missing": "Diesen Kalender gibt es nicht.",
+      "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
+      "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
+      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“."
     },
     "abort": {
-      "single_instance_allowed": "Werktags ist bereits eingerichtet."
+      "already_configured": "Werktags ist bereits eingerichtet. Ändere die Einstellungen in den Optionen."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Land und Wochenende",
+        "title": "Land",
         "data": {
-          "country": "Land",
-          "subdivision": "Bundesland / Region",
+          "country": "Land"
+        },
+        "data_description": {
+          "country": "Ein anderes Land setzt die Region zurück."
+        }
+      },
+      "region": {
+        "title": "Region und Wochenende",
+        "description": "Einstellungen für {country}.",
+        "data": {
+          "subdivision": "Bundesland, Provinz oder Region",
           "weekend": "Wochenendtage"
+        },
+        "data_description": {
+          "subdivision": "Regionale Feiertage und Schulferien gelten nur hier. Leer lassen für nur bundesweite Feiertage.",
+          "weekend": "Freie Tage für alle, jede Woche."
         }
       },
       "school_holidays": {
         "title": "Schulferien",
         "data": {
           "school_holiday_source": "Quelle",
-          "calendar_entity": "Kalender mit Schulferien (Ganztagstermine)"
+          "calendar_entity": "Kalender mit Schulferien"
+        },
+        "data_description": {
+          "school_holiday_source": "Eine andere Quelle ruft die Schulferien neu ab.",
+          "calendar_entity": "Nur für die Quelle „Kalender“: jeder Ganztagstermin zählt als Schulferien."
         }
       },
       "house": {
@@ -58,13 +110,30 @@
         "data": {
           "house_roles": "Rollen, die für das Haus zählen",
           "house_morning_rule": "Regel morgens",
-          "house_evening_rule": "Regel abends",
+          "house_evening_rule": "Regel abends"
+        },
+        "data_description": {
+          "house_roles": "Meist die Erwachsenen: Schüler würden das Haus sonst den ganzen Sommer auf „frei“ stellen.",
+          "house_morning_rule": "„Frei gewinnt“: das Haus schläft aus, sobald ein Bewohner frei hat. „Arbeit gewinnt“: es ist ein Werktag, sobald ein Bewohner arbeitet.",
+          "house_evening_rule": "Bezieht sich auf morgen: „Arbeit gewinnt“ heißt Abend vor Werktag, sobald ein Bewohner morgen arbeitet."
+        }
+      },
+      "access": {
+        "title": "Wer darf Tage ändern",
+        "data": {
           "admin_only": "Nur Administratoren dürfen Tage, Rollen und Räume ändern"
+        },
+        "data_description": {
+          "admin_only": "Aus: jeder Nutzer dieses Home Assistant darf ändern. An: nur Nutzer mit Administratorrechten."
         }
       }
     },
     "error": {
-      "calendar_required": "Wähle für diese Quelle einen Kalender."
+      "calendar_required": "Wähle für diese Quelle einen Kalender.",
+      "calendar_missing": "Diesen Kalender gibt es nicht.",
+      "invalid_subdivision": "Diese Region gehört nicht zum gewählten Land.",
+      "cannot_connect": "Die OpenHolidays API ist nicht erreichbar. Prüfe die Internetverbindung oder wähle eine andere Quelle.",
+      "not_covered": "Die OpenHolidays API hat keine Schulferien für dieses Land oder diese Region. Wähle einen Kalender oder „keine“."
     }
   },
   "selector": {
@@ -81,15 +150,15 @@
     },
     "school_holiday_source": {
       "options": {
-        "openholidays": "OpenHolidays API (Europa, ohne Schlüssel)",
+        "openholidays": "OpenHolidays API (Europa, ohne Konto)",
         "calendar": "Eine Kalender-Entität",
         "none": "Keine — Schüler haben keine Schulferien"
       }
     },
     "role": {
       "options": {
-        "pupil": "Schüler",
-        "adult": "Erwachsen",
+        "pupil": "Schüler — Schulferien frei",
+        "adult": "Erwachsener",
         "none": "Keine (kein Bewohner)"
       }
     },
@@ -117,8 +186,8 @@
       "morning": {
         "name": "Morgen",
         "state": {
-          "workday": "Arbeitstag",
-          "day_off": "Ausschlafen"
+          "workday": "Werktag",
+          "day_off": "Frei"
         },
         "state_attributes": {
           "reason": {
@@ -196,7 +265,7 @@
         },
         "role": {
           "name": "Rolle",
-          "description": "Schüler, Erwachsen oder Keine zum Beenden."
+          "description": "Schüler, Erwachsener oder Keine zum Beenden."
         },
         "valid_from": {
           "name": "Gültig ab",
@@ -209,8 +278,8 @@
       }
     },
     "remove_role": {
-      "name": "Rollenstufe löschen",
-      "description": "Entfernt eine versehentlich eingetragene Rollenstufe.",
+      "name": "Rolleneintrag löschen",
+      "description": "Entfernt einen versehentlich gemachten Rolleneintrag.",
       "fields": {
         "person": {
           "name": "Person",
@@ -218,7 +287,7 @@
         },
         "valid_from": {
           "name": "Gültig ab",
-          "description": "Das Datum der zu löschenden Stufe."
+          "description": "Das Datum des zu löschenden Eintrags."
         }
       }
     },
@@ -249,8 +318,8 @@
       }
     },
     "remove_room_assignment": {
-      "name": "Zuordnungsstufe löschen",
-      "description": "Entfernt eine versehentlich eingetragene Zuordnungsstufe.",
+      "name": "Raumeintrag löschen",
+      "description": "Entfernt einen versehentlich gemachten Zuordnungseintrag.",
       "fields": {
         "area": {
           "name": "Raum",
@@ -258,7 +327,7 @@
         },
         "valid_from": {
           "name": "Gültig ab",
-          "description": "Das Datum der zu löschenden Stufe."
+          "description": "Das Datum des zu löschenden Eintrags."
         }
       }
     },
@@ -332,6 +401,12 @@
     },
     "range_too_long": {
       "message": "Höchstens {max} Tage je Aufruf."
+    },
+    "no_source": {
+      "message": "Es ist keine Schulferienquelle eingerichtet."
+    },
+    "fetch_failed": {
+      "message": "Die Schulferien konnten nicht von {source} abgerufen werden. Die zuletzt bekannten Termine gelten weiter."
     },
     "invalid": {
       "message": "{message}"

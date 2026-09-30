@@ -7,9 +7,11 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 
-from . import frontend
+from . import frontend, storage
 from .const import DOMAIN
 from .coordinator import WerktagsConfigEntry, WerktagsCoordinator
 from .services import async_setup_services
@@ -30,7 +32,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: WerktagsConfigEntry) -> 
     await coordinator.async_load()
     entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     await frontend.async_register(hass)      # HACS version only; the core version drops frontend.py
     return True
 
@@ -42,5 +43,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: WerktagsConfigEntry) ->
     return unloaded
 
 
-async def _async_options_updated(hass: HomeAssistant, entry: WerktagsConfigEntry) -> None:
-    await entry.runtime_data.async_options_updated()
+async def async_remove_entry(hass: HomeAssistant, entry: WerktagsConfigEntry) -> None:
+    """The integration was removed: delete the stored residents, rooms and exceptions."""
+    store: Store[dict[str, object]] = Store(hass, storage.DATA_VERSION, f"{DOMAIN}.data")
+    await store.async_remove()
+
+
+async def async_remove_config_entry_device(hass: HomeAssistant, entry: WerktagsConfigEntry,
+                                           device: DeviceEntry) -> bool:
+    """Devices of residents and rooms that no longer exist may be deleted in the UI."""
+    return any(domain == DOMAIN and entry.runtime_data.is_stale_device_id(identifier)
+               for domain, identifier in device.identifiers)
