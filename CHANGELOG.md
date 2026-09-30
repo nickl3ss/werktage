@@ -10,6 +10,11 @@
   response, one refresh), diagnostics, English and German translations,
   optional card serving (`frontend.py`). Tested against Home Assistant
   2026.9.4 with `pytest-homeassistant-custom-component` (24 tests).
+- Cards `werktags-calendar`, `werktags-period`, `werktags-residents`,
+  `werktags-rooms` with a visual editor, in plain JavaScript without a
+  framework; bundled by `tools/build_cards.py` into
+  `custom_components/werktags/www/werktags-cards.js` and served by the
+  integration. 15 browserless tests (`node --test`).
 - `deploy.sh <config dir>` copies the integration into an installation;
   `tools/sync_vendor.py` keeps the vendored `openholidays` copy in sync.
 

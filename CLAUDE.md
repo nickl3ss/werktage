@@ -41,6 +41,8 @@ jederzeit öffentlich werden kann.
     python3 -m venv .venv && .venv/bin/pip install -e lib/openholidays pytest-homeassistant-custom-component mypy ruff
     .venv/bin/python -m pytest -q          # Regeln, Integration (tests/) und Bibliothek (lib/openholidays/tests)
     python3 tools/sync_vendor.py            # nach jeder Aenderung an lib/openholidays
+    python3 tools/build_cards.py            # nach jeder Aenderung an frontend/src
+    node --test frontend/test/*.test.mjs    # Karten browserlos (Node, z. B. apk add nodejs)
     .venv/bin/ruff check .                  # Lint, 120 Zeichen
     .venv/bin/python -m mypy                # strict, Integration und Bibliothek
     python3 tools/check_publication.py --areas

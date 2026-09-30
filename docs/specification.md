@@ -201,7 +201,9 @@ still in use, country not covered by OpenHolidays. Diagnostics without names.
 ## 6. Cards
 
 `custom:werktags-calendar`, `-period`, `-residents`, `-rooms`, each with a
-visual editor. They read through entities and services only. In the HACS
+visual editor. They read through entities and services only. Source in
+`frontend/src` (pure logic separated from the elements), bundled without a
+build system into one classic script. In the HACS
 version the integration serves them itself (`frontend.py`, `add_extra_js_url`,
 versioned URL); later they move to their own repository.
 
