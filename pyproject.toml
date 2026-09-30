@@ -18,3 +18,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
 "lib/openholidays/tests/**" = ["E501"]
+
+[tool.coverage.run]
+# The vendored client is a byte-identical copy of lib/openholidays (tests/test_vendor.py)
+# and is tested there against a local server.
+omit = ["custom_components/werktags/openholidays/*"]
+

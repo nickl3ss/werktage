@@ -126,8 +126,12 @@ independent of roles and rooms.
 | School holidays | OpenHolidays API · calendar entity · none | see below |
 
 **OpenHolidays API:** fetched at startup if the cache is older than 30 days,
-otherwise monthly; one request per run, 15 s timeout, own `User-Agent`; range
-from January of the previous year to December of the year after next. A result
+otherwise monthly; 15 s timeout, own `User-Agent`; range: **this year and the
+two following years** (`sources.fetch_span`). The API accepts at most 1095
+days per request, so the client splits longer ranges into consecutive windows
+(three calendar years with a leap year are 1096 days). Earlier years are not
+fetched again; their periods stay in the cache as long as the source is the
+same. The setup dialog probes the API with the very same range. A result
 replaces the cache only if it is plausible. The data is licensed under
 **ODbL 1.0**: attribution in the UI, the documentation and the entities'
 `attribution`; no holiday data is stored in this repository (see NOTICE).
@@ -202,7 +206,10 @@ installation language.
 | `werktags.refresh_school_holidays` | — | fetches now |
 
 Read services use `SupportsResponse.ONLY`. Writing checks the permission
-option (P12).
+option (P12). Every rejected change raises a `ServiceValidationError` with its
+own translation key (`exceptions` in `strings.json`); the coordinator raises
+`WerktagsError(key, **placeholders)`, the service layer translates it. A test
+checks that every key used in the code is translated in English and German.
 
 ### 5.5 Repairs and diagnostics
 

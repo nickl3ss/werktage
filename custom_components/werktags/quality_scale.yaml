@@ -43,7 +43,7 @@ rules:
   reauthentication-flow:
     status: exempt
     comment: No account and no credentials; the OpenHolidays API is public.
-  test-coverage: todo
+  test-coverage: done
 
   # Gold
   devices: done
@@ -54,21 +54,21 @@ rules:
   discovery-update-info:
     status: exempt
     comment: No discovery.
-  docs-data-update: todo
-  docs-examples: todo
-  docs-known-limitations: todo
+  docs-data-update: done
+  docs-examples: done
+  docs-known-limitations: done
   docs-supported-devices:
     status: exempt
     comment: No devices; persons and areas are the subjects.
-  docs-supported-functions: todo
-  docs-troubleshooting: todo
-  docs-use-cases: todo
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
   dynamic-devices: done
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done
   entity-translations: done
-  exception-translations: todo
+  exception-translations: done
   icon-translations: done
   reconfiguration-flow:
     status: exempt

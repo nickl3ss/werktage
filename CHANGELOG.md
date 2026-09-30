@@ -17,6 +17,14 @@
   calendar years with a leap year) are fetched in consecutive windows. Found
   on the first live run; before, every monthly fetch of the
   integration would have failed with HTTP 400.
+- School holidays are fetched for three calendar years (this year and the two
+  after) instead of four; earlier years stay in the cache. The setup dialog
+  probes the API with the same range as the monthly fetch.
+- Every rejected change has its own translated error message (English and
+  German) instead of a generic one carrying English text.
+- Silver: test coverage 99 % (CI fails below 95 %). Gold documentation: use
+  cases, supported functions, data updates, known limitations,
+  troubleshooting.
 - Quality scale Bronze complete except the brands pull request (needs a
   public repository): `quality_scale.yaml`, manifest key order and
   `CONFIG_SCHEMA` as hassfest requires (hassfest passes locally), config flow

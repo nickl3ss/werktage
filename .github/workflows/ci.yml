@@ -36,7 +36,7 @@ jobs:
       - run: ruff check .
       - run: python -m mypy
       - run: python tools/check_publication.py --areas
-      - run: python -m pytest -q --cov=custom_components/werktags --cov-report=term-missing --cov-fail-under=90
+      - run: python -m pytest -q --cov=custom_components/werktags --cov-report=term-missing --cov-fail-under=95
 
   cards:
     runs-on: ubuntu-latest

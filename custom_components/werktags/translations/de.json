@@ -526,6 +526,39 @@
     "fetch_failed": {
       "message": "Die Schulferien konnten nicht von {source} abgerufen werden. Die zuletzt bekannten Termine gelten weiter."
     },
+    "short_name_length": {
+      "message": "Das Kürzel muss ein oder zwei Zeichen haben."
+    },
+    "short_name_taken": {
+      "message": "Das Kürzel „{short_name}“ ist bereits an einen anderen Bewohner vergeben."
+    },
+    "no_role_entry": {
+      "message": "An diesem Datum gibt es keinen Rolleneintrag."
+    },
+    "last_role_entry": {
+      "message": "Der letzte Rolleneintrag kann nicht entfernt werden. Rolle „Keine“ setzen, um die Bewohnerschaft zu beenden."
+    },
+    "not_resident": {
+      "message": "Diese Person ist noch kein Bewohner. Zuerst eine Rolle vergeben."
+    },
+    "weekdays_range": {
+      "message": "Wochentage sind 0 (Montag) bis 6 (Sonntag)."
+    },
+    "not_residents": {
+      "message": "Keine Bewohner: {persons}. Zuerst eine Rolle vergeben."
+    },
+    "unknown_area": {
+      "message": "Den Bereich „{area}“ gibt es nicht."
+    },
+    "no_room_assignment": {
+      "message": "An diesem Datum gibt es keine Raumzuordnung."
+    },
+    "store_unreadable": {
+      "message": "Die gespeicherten Werktags-Daten sind nicht lesbar: {error}"
+    },
+    "country_unsupported": {
+      "message": "Land oder Region wird nicht unterstützt: {error}"
+    },
     "invalid": {
       "message": "{message}"
     }

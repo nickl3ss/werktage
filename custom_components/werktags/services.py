@@ -31,7 +31,7 @@ from .const import (
     SOURCE_NONE,
     STATUS_DEFAULT,
 )
-from .coordinator import WerktagsCoordinator
+from .coordinator import WerktagsCoordinator, WerktagsError
 from .rules import ONE_DAY, CombineRule, DayType, Role
 
 MAX_RANGE_DAYS = 366
@@ -91,11 +91,7 @@ async def _check_permission(hass: HomeAssistant, coordinator: WerktagsCoordinato
 
 
 def _person_ids(coordinator: WerktagsCoordinator, entity_ids: list[str]) -> list[str]:
-    try:
-        return [coordinator.person_id_of(e) for e in entity_ids]
-    except ValueError as err:
-        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="unknown_person",
-                                     translation_placeholders={"entity_id": str(err).split()[-1]}) from err
+    return [coordinator.person_id_of(e) for e in entity_ids]
 
 
 def _range(call: ServiceCall) -> tuple[dt.date, dt.date]:
@@ -126,7 +122,10 @@ def _wrap(func: Handler, hass: HomeAssistant, *, write: bool) -> Registered:
             await _check_permission(hass, coordinator, call)
         try:
             return cast(ServiceResponse, await func(hass, coordinator, call))
-        except ValueError as err:
+        except WerktagsError as err:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key=err.key,
+                                         translation_placeholders=err.placeholders) from err
+        except ValueError as err:       # anything the rules reject that has no message of its own
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="invalid",
                                          translation_placeholders={"message": str(err)}) from err
     return handler

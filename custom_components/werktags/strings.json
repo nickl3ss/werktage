@@ -526,6 +526,39 @@
     "fetch_failed": {
       "message": "School holidays could not be fetched from {source}. The last known dates are still used."
     },
+    "short_name_length": {
+      "message": "The short name must have one or two characters."
+    },
+    "short_name_taken": {
+      "message": "The short name “{short_name}” is already used by another resident."
+    },
+    "no_role_entry": {
+      "message": "There is no role entry on that date."
+    },
+    "last_role_entry": {
+      "message": "The last role entry cannot be removed. Set the role “none” to end residency."
+    },
+    "not_resident": {
+      "message": "This person is not a resident yet. Give the person a role first."
+    },
+    "weekdays_range": {
+      "message": "Weekdays are 0 (Monday) to 6 (Sunday)."
+    },
+    "not_residents": {
+      "message": "Not residents: {persons}. Give them a role first."
+    },
+    "unknown_area": {
+      "message": "The area “{area}” does not exist."
+    },
+    "no_room_assignment": {
+      "message": "There is no room assignment on that date."
+    },
+    "store_unreadable": {
+      "message": "The stored Werktags data cannot be read: {error}"
+    },
+    "country_unsupported": {
+      "message": "The country or region is not supported: {error}"
+    },
     "invalid": {
       "message": "{message}"
     }

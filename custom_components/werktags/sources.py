@@ -15,13 +15,21 @@ import holidays as holidays_lib
 
 from .rules import DEFAULT_WEEKEND, Calendar, SchoolHolidays
 
-YEARS_BACK = 1      # fetch/compute from January of last year …
+YEARS_BACK = 1      # public holidays are computed from January of last year …
 YEARS_AHEAD = 2     # … to December of the year after next
 
 
 def year_span(today: dt.date) -> tuple[dt.date, dt.date]:
     """The date range the integration keeps data for (specification section 4)."""
     return dt.date(today.year - YEARS_BACK, 1, 1), dt.date(today.year + YEARS_AHEAD, 12, 31)
+
+
+def fetch_span(today: dt.date) -> tuple[dt.date, dt.date]:
+    """The three calendar years fetched every month: this year and the two after.
+
+    Earlier years stay in the cache from former fetches; they no longer change.
+    """
+    return dt.date(today.year, 1, 1), dt.date(today.year + YEARS_AHEAD, 12, 31)
 
 
 def public_holidays(country: str, subdivision: str | None, years: Iterable[int],

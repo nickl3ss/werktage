@@ -74,6 +74,15 @@ _LOGGER = logging.getLogger(__name__)
 type WerktagsConfigEntry = ConfigEntry[WerktagsCoordinator]
 
 
+class WerktagsError(ValueError):
+    """A rejected change. ``key`` names the translated message (``exceptions`` in strings.json)."""
+
+    def __init__(self, key: str, **placeholders: str) -> None:
+        super().__init__(key)
+        self.key = key
+        self.placeholders = placeholders
+
+
 class FetchFailed(Exception):
     """A school holiday fetch did not yield usable data."""
 
@@ -81,8 +90,8 @@ class FetchFailed(Exception):
 async def async_probe_openholidays(hass: HomeAssistant, country: str, subdivision: str | None) -> int:
     """How many school holiday periods the API has for this year (setup check). Raises ``OpenHolidaysError``."""
     client = OpenHolidaysClient(async_get_clientsession(hass), user_agent=USER_AGENT)
-    year = dt_util.now().year
-    return len(await client.school_holidays(country, subdivision, dt.date(year, 1, 1), dt.date(year, 12, 31)))
+    first, last = sources.fetch_span(dt_util.now().date())      # the very range the integration fetches later
+    return len(await client.school_holidays(country, subdivision, first, last))
 
 
 class WerktagsCoordinator:
@@ -168,7 +177,8 @@ class WerktagsCoordinator:
         try:
             self.data = storage.from_dict(await self._store.async_load())
         except ValueError as err:
-            raise ConfigEntryError(f"stored data cannot be read: {err}") from err
+            raise ConfigEntryError(translation_domain=DOMAIN, translation_key="store_unreadable",
+                                   translation_placeholders={"error": str(err)}) from err
         await self._async_public_holidays()
         self._rebuild()
         self._unsub.append(async_track_time_change(self.hass, self._at_midnight, hour=0, minute=0, second=10))
@@ -184,10 +194,6 @@ class WerktagsCoordinator:
         for unsub in self._unsub:
             unsub()
         self._unsub.clear()
-
-    async def async_remove_data(self) -> None:
-        """Delete the store when the integration is removed."""
-        await self._store.async_remove()
 
     async def _at_midnight(self, _now: dt.datetime) -> None:
         await self._async_public_holidays()      # a new year may have entered the kept span
@@ -230,7 +236,8 @@ class WerktagsCoordinator:
                 sources.public_holidays, country, sources.subdivision_code(country, subdivision),
                 range(span[0].year, span[1].year + 1), language)
         except NotImplementedError as err:
-            raise ConfigEntryError(f"country or subdivision not supported: {err}") from err
+            raise ConfigEntryError(translation_domain=DOMAIN, translation_key="country_unsupported",
+                                   translation_placeholders={"error": str(err)}) from err
         self._public_holidays_span = span
 
     def _school_holidays(self) -> SchoolHolidays:
@@ -267,14 +274,14 @@ class WerktagsCoordinator:
         return state.name if state else person_id
 
     def person_id_of(self, entity_id: str) -> str:
-        """The stable id of a ``person.*`` entity; raises ``ValueError`` if unknown."""
+        """The stable id of a ``person.*`` entity; raises ``WerktagsError`` if unknown."""
         state = self.hass.states.get(entity_id)
         person_id = state.attributes.get("id") if state else None
         if not person_id:
             entry = er.async_get(self.hass).async_get(entity_id)
             person_id = entry.unique_id if entry and entry.domain == "person" else None
         if not person_id:
-            raise ValueError(f"unknown person {entity_id}")
+            raise WerktagsError("unknown_person", entity_id=entity_id)
         return str(person_id)
 
     def all_persons(self) -> list[tuple[str, str, str]]:
@@ -340,17 +347,17 @@ class WerktagsCoordinator:
 
     def _check_short_name(self, person_id: str, short_name: str) -> None:
         if not 1 <= len(short_name) <= 2:
-            raise ValueError("short name must be one or two characters")
+            raise WerktagsError("short_name_length")
         for rid, resident in self.data.residents.items():
             if rid != person_id and resident.short_name.lower() == short_name.lower():
-                raise ValueError(f"short name {short_name!r} is already used")
+                raise WerktagsError("short_name_taken", short_name=short_name)
 
     async def async_remove_role(self, person_id: str, valid_from: dt.date) -> None:
         resident = self.data.residents.get(person_id)
         if resident is None or not any(s.valid_from == valid_from for s in resident.roles.steps):
-            raise ValueError("no role entry on that date")
+            raise WerktagsError("no_role_entry")
         if len(resident.roles.steps) == 1:
-            raise ValueError("the last role entry cannot be removed; set role 'none' instead")
+            raise WerktagsError("last_role_entry")
         residents = dict(self.data.residents)
         residents[person_id] = replace(resident, roles=resident.roles.without_step(valid_from))
         await self._async_commit(replace(self.data, residents=residents))
@@ -359,9 +366,9 @@ class WerktagsCoordinator:
         """Personal days off every week from a date on; ``None`` returns the person to the household weekend."""
         resident = self.data.residents.get(person_id)
         if resident is None:
-            raise ValueError("not a resident; set a role first")
+            raise WerktagsError("not_resident")
         if weekdays is not None and not all(0 <= d <= 6 for d in weekdays):
-            raise ValueError("weekdays must be 0 (Monday) to 6 (Sunday)")
+            raise WerktagsError("weekdays_range")
         history = History() if weekdays is None else resident.off_weekdays.with_step(valid_from, frozenset(weekdays))
         residents = {**self.data.residents, person_id: replace(resident, off_weekdays=history)}
         await self._async_commit(replace(self.data, residents=residents))
@@ -375,7 +382,7 @@ class WerktagsCoordinator:
             ids = frozenset(person_ids)
             unknown = [pid for pid in ids if pid not in self.data.residents]
             if unknown:
-                raise ValueError(f"not residents: {', '.join(unknown)}")
+                raise WerktagsError("not_residents", persons=", ".join(sorted(unknown)))
             history = self.data.house_residents.with_step(valid_from, ids)
         await self._async_commit(replace(self.data, house_residents=history))
 
@@ -390,7 +397,7 @@ class WerktagsCoordinator:
                              morning_rule: CombineRule | None = None,
                              evening_rule: CombineRule | None = None) -> None:
         if not self.area_exists(area_id):
-            raise ValueError(f"unknown area {area_id}")
+            raise WerktagsError("unknown_area", area=area_id)
         rooms = dict(self.data.rooms)
         room = rooms.get(area_id) or Room(area_id)
         if person_ids is not None and valid_from is not None:
@@ -405,7 +412,7 @@ class WerktagsCoordinator:
     async def async_remove_room_assignment(self, area_id: str, valid_from: dt.date) -> None:
         room = self.data.rooms.get(area_id)
         if room is None or not any(s.valid_from == valid_from for s in room.residents.steps):
-            raise ValueError("no room assignment on that date")
+            raise WerktagsError("no_room_assignment")
         rooms = dict(self.data.rooms)
         rooms[area_id] = replace(room, residents=room.residents.without_step(valid_from))
         await self._async_commit(replace(self.data, rooms=rooms))
@@ -451,9 +458,14 @@ class WerktagsCoordinator:
             if self._source_down:
                 _LOGGER.info("School holidays from %s are available again", self.source)
                 self._source_down = False
-            first, last = sources.year_span(self.today())
+            first, last = sources.fetch_span(self.today())
             known_to = min(last, max((p.end for p in periods), default=first))
-            cache = SchoolHolidayCache(self.source, tuple(periods), first, known_to, dt_util.utcnow(), 0)
+            # earlier years are not fetched again: keep what the same source told us about them
+            kept = tuple(p for p in old.periods if p.end < first) if old.source == self.source else ()
+            contiguous = bool(kept) and old.known_from is not None and old.known_to is not None \
+                and old.known_to >= first - dt.timedelta(days=1)
+            known_from = old.known_from if contiguous else first
+            cache = SchoolHolidayCache(self.source, kept + tuple(periods), known_from, known_to, dt_util.utcnow(), 0)
         await self._async_commit(replace(self.data, school_holidays=cache))
         self._issue(ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE, cache.failures >= MAX_FETCH_FAILURES,
                     {"source": self.source, "failures": str(cache.failures)})
@@ -471,7 +483,7 @@ class WerktagsCoordinator:
         self._issue(ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE, incomplete, {"year": str(today.year + 1), "known_to": known_to})
 
     async def _fetch_periods(self) -> list[SchoolHolidayPeriod]:
-        first, last = sources.year_span(self.today())
+        first, last = sources.fetch_span(self.today())
         if self.source == SOURCE_OPENHOLIDAYS:
             client = OpenHolidaysClient(async_get_clientsession(self.hass), user_agent=USER_AGENT)
             try:

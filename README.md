@@ -4,10 +4,10 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: in development.** Integration and cards work and are tested
-> (Home Assistant 2026.9). A first release follows.
+> **Status: in development.** Integration and cards work, are tested
+> (Home Assistant 2026.9) and run in a household. A first release follows.
 
-## What it will do
+## What it does
 
 - One Home Assistant **person** = one resident with a **role**
   (*pupil* or *adult*), valid from a date.
@@ -28,6 +28,25 @@ modes for people, rooms and the whole house.
   - **workday** — a binary sensor for conditions and blueprints.
 - Dashboard cards: calendar, date range, residents, rooms — or the same
   without cards through the integration's options menu.
+
+## Use cases
+
+- **Shutters and curtains that respect who sleeps in.** A child's room opens
+  at 09:00 on school days and at noon on weekends and during school holidays.
+- **Lights for the early riser.** The stairs light comes on at 05:30 as soon
+  as one adult has to work — and stays off when everybody is off.
+- **A later evening before a day off.** Switch things off at 22:00 before a
+  workday and at 23:00 before a day off; the evening sensors look at tomorrow.
+- **Part-time and shift patterns.** A four-day week is a weekly pattern;
+  a day of leave, a sick child or a Saturday shift is one tap in the calendar
+  card.
+- **Heating, wake-up alarms, presence simulation** — anything that today
+  asks "is it a workday?" and gets the same answer for the whole household.
+
+How it differs from the built-in *Workday* integration: Workday answers once
+for the whole installation and knows weekends and public holidays. Werktags
+answers **per person**, adds school holidays, personal exceptions and weekly
+patterns, and combines people into rooms and the house by a rule you choose.
 
 ## Installation
 
@@ -168,6 +187,71 @@ Everything the cards do is an action of the `werktags` domain; the
 Writes raise an error when a person is not a resident, a range is longer
 than 366 days or ends before it starts, a short name is taken, or the user
 may not edit (see *Access*); the fetch raises when the source is down.
+
+## Supported functions
+
+| Per resident, room and house | Entity (English installation) | States |
+|---|---|---|
+| Morning mode | `sensor.<name>_morning` | `workday`, `day_off` — today |
+| Evening mode | `sensor.<name>_evening` | `before_workday`, `before_day_off` — tomorrow |
+| Workday | `binary_sensor.<name>_workday` | `on` on a workday |
+| Days off (residents only) | `calendar.<name>_days_off` | all-day events, read-only |
+
+Sensor attributes: `reason` (`workday`, `weekend`, `public_holiday`,
+`school_holiday`, `exception_day_off`, `exception_workday`, `unknown`),
+`holiday_name`, `date`; residents also `role`, `next_workday`,
+`next_day_off`; rooms and the house `residents` and `rule`. Resident entities
+are named after the person, room entities after the area. Entity ids follow
+the language of the installation (`sensor.anna_morgen` in German).
+
+A person without a role, or a room without residents, makes its entities
+unavailable; their devices can then be deleted.
+
+## Data updates
+
+- **Day change:** everything is recomputed at midnight and after every change
+  made through a card, an action or the options. Nothing is polled.
+- **Public holidays** are computed locally by the `holidays` library shipped
+  with Home Assistant — no network.
+- **School holidays (OpenHolidays API)** are fetched after the start of Home
+  Assistant if the cache is older than 30 days, and then once a month: this
+  year and the two following years. Earlier years stay in the cache. An
+  answer replaces the cache only if it is plausible (summer holidays of this
+  and next year present); otherwise the last known dates remain in use.
+- **School holidays (calendar entity)** are read on the same schedule;
+  every all-day event counts.
+- `werktags.refresh_school_holidays` fetches immediately.
+
+## Known limitations
+
+- One school holiday region for the whole household; children at schools in
+  different regions are not supported yet
+  ([idea 0001](docs/ideas/0001-school-holiday-source-per-person.md)).
+- A day is either a workday or a day off — no half days, no shift times.
+- Days whose school holidays are not published yet count as **workdays** for
+  pupils (reason `unknown`). The API usually publishes about two years ahead.
+- Moveable school days off that are not school holidays (teacher training,
+  local bridge days) must be entered as exceptions or as additional holidays.
+- The evening sensors refer to **tomorrow**; after midnight they already look
+  at the day after.
+- One instance per Home Assistant.
+- After updating the files of the integration Home Assistant must be
+  **restarted**; reloading the entry does not reload the code.
+
+## Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| Repair *School holidays could not be fetched* | Shown after three failed fetches. Check the internet connection; run `werktags.refresh_school_holidays` and read the error. The last known dates stay in use. |
+| Repair *School holidays are missing for next year* | From October on, next year's summer holidays must be known. The API may not have published them yet — add them as exceptions with the *Period* card, or switch the source to a calendar. |
+| Setup says *The OpenHolidays API has no school holidays for this country or region* | The country is not covered. Choose a calendar entity or *none*. |
+| A pupil works during the holidays | The reason attribute tells why. `unknown` means the dates are not published; `exception_workday` means someone set an exception. |
+| Entities are *unavailable* | The person has no role on that day, or the room has no residents. |
+| The cards do not appear in the card picker | Reload the browser (the script is cached). The integration serves it at `/werktags_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
+| An entity is called `sensor.bedroom_morning_2` | An entity with that id existed before. Rename it under *Settings → Entities*. |
+
+Diagnostics (*Devices & services → Werktags → ⋮ → Download diagnostics*)
+contain the configuration and counts, never names of persons.
 
 ## Repository layout
 
