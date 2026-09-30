@@ -9,13 +9,16 @@ jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
     runs-on: ubuntu-latest
+    # HACS reads hacs.json and the manifest from raw.githubusercontent.com without
+    # a token, which fails while the repository is private; do not fail the run.
+    continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: hacs/action@main
         with:
           category: integration
@@ -24,11 +27,12 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
-      - run: pip install -e lib/openholidays pytest-homeassistant-custom-component==0.13.367 pytest-cov mypy ruff
+      # the integration's own requirements (manifest.json) plus the test tooling
+      - run: pip install -e lib/openholidays "holidays>=0.60" pytest-homeassistant-custom-component==0.13.367 pytest-cov mypy ruff
       - run: ruff check .
       - run: python -m mypy
       - run: python tools/check_publication.py --areas
@@ -37,8 +41,8 @@ jobs:
   cards:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
       - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktags/www
