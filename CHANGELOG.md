@@ -13,6 +13,10 @@
 - Cards: weekday chips per resident with a reset to the household weekend;
   the house row on the rooms card is editable (empty = by role). 17 card
   tests, 84 Python tests.
+- Library: ranges longer than 1095 days (the API's maximum, e.g. four
+  calendar years with a leap year) are fetched in consecutive windows. Found
+  on the first live run; before, every monthly fetch of the
+  integration would have failed with HTTP 400.
 - Quality scale Bronze complete except the brands pull request (needs a
   public repository): `quality_scale.yaml`, manifest key order and
   `CONFIG_SCHEMA` as hassfest requires (hassfest passes locally), config flow

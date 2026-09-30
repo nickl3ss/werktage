@@ -60,6 +60,16 @@ async def test_school_holidays_sends_the_right_query_and_user_agent(api):
     assert agent == "werktags-test/0.1"
 
 
+async def test_long_ranges_are_fetched_in_windows_of_at_most_1095_days(api):
+    """The live API rejects longer ranges; four calendar years with a leap year are 1461 days."""
+    client, calls, _ = api
+    oh = OpenHolidaysClient(client.session, user_agent="t", base_url=str(client.make_url("")))
+    holidays = await oh.school_holidays("XX", "XX-AA", d("2027-01-01"), d("2030-12-31"))
+    windows = [(q["validFrom"], q["validTo"]) for _, q, _ in calls]
+    assert windows == [("2027-01-01", "2029-12-30"), ("2029-12-31", "2030-12-31")]     # 1095 days, then the rest
+    assert [h.id for h in holidays] == ["s1"]                                          # returned by both, kept once
+
+
 async def test_public_holidays_without_subdivision(api):
     client, calls, _ = api
     oh = OpenHolidaysClient(client.session, user_agent="t", base_url=str(client.make_url("")))

@@ -11,6 +11,7 @@ from .models import Country, Holiday, Subdivision, parse_countries, parse_holida
 
 DEFAULT_BASE_URL = "https://openholidaysapi.org"
 DEFAULT_TIMEOUT_SECONDS = 15.0
+MAX_RANGE_DAYS = 1095      # the API answers HTTP 400 to longer ranges ("The maximum date range is 1095 days")
 
 
 class OpenHolidaysClient:
@@ -45,12 +46,24 @@ class OpenHolidaysClient:
 
     async def _holidays(self, path: str, country: str, subdivision: str | None,
                         valid_from: dt.date, valid_to: dt.date) -> list[Holiday]:
+        """Longer ranges than the API accepts are fetched in consecutive windows;
+        a holiday that spans a window boundary is returned once."""
         if valid_to < valid_from:
             raise ValueError("valid_to before valid_from")
-        params = {"countryIsoCode": country, "validFrom": valid_from.isoformat(), "validTo": valid_to.isoformat()}
-        if subdivision:
-            params["subdivisionCode"] = subdivision
-        return parse_holidays(await self._get(path, params))
+        holidays: list[Holiday] = []
+        seen: set[str] = set()
+        start = valid_from
+        while start <= valid_to:
+            end = min(valid_to, start + dt.timedelta(days=MAX_RANGE_DAYS - 1))
+            params = {"countryIsoCode": country, "validFrom": start.isoformat(), "validTo": end.isoformat()}
+            if subdivision:
+                params["subdivisionCode"] = subdivision
+            for holiday in parse_holidays(await self._get(path, params)):
+                if holiday.id not in seen:
+                    seen.add(holiday.id)
+                    holidays.append(holiday)
+            start = end + dt.timedelta(days=1)
+        return holidays
 
     async def school_holidays(self, country: str, subdivision: str | None,
                               valid_from: dt.date, valid_to: dt.date) -> list[Holiday]:
