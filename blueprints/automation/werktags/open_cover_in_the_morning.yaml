@@ -2,8 +2,9 @@ blueprint:
   name: "Werktags: open a cover in the morning"
   description: >-
     Opens a cover (shutter, blind, curtain) at one time on workday mornings and
-    at another time when the resident, room or house sleeps in — never before
-    sunrise. Uses a Werktags "morning" sensor.
+    at a later time when the resident, room or house sleeps in — never before
+    sunrise. The later time opens in any case, so a workday opening that Home
+    Assistant missed is caught up. Uses a Werktags "morning" sensor.
   domain: automation
   author: nickl3ss
   source_url: https://github.com/nickl3ss/werktags/blob/main/blueprints/automation/werktags/open_cover_in_the_morning.yaml
@@ -55,10 +56,10 @@ conditions:
       {% set mode = states(morning_sensor) %}
       {% set workday = mode != 'day_off' %}
       {{ (trigger.id == 'workday' and workday)
-         or (trigger.id == 'day_off' and not workday)
+         or trigger.id == 'day_off'
          or (trigger.id == 'sunrise' and (
               (workday and now().time() > today_at(workday_time).time())
-              or (not workday and now().time() > today_at(day_off_time).time()))) }}
+              or now().time() > today_at(day_off_time).time())) }}
 
 variables:
   morning_sensor: !input morning_sensor

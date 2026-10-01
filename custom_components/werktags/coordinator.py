@@ -179,6 +179,10 @@ class WerktagsCoordinator:
         except ValueError as err:
             raise ConfigEntryError(translation_domain=DOMAIN, translation_key="store_unreadable",
                                    translation_placeholders={"error": str(err)}) from err
+        rooms = {area_id: room for area_id, room in self.data.rooms.items() if room.ever_assigned}
+        if len(rooms) != len(self.data.rooms):   # written by versions that let a rule alone create a room
+            self.data = replace(self.data, rooms=rooms)
+            await self._store.async_save(storage.to_dict(self.data))
         await self._async_public_holidays()
         self._rebuild()
         self._unsub.append(async_track_time_change(self.hass, self._at_midnight, hour=0, minute=0, second=10))
@@ -406,6 +410,8 @@ class WerktagsCoordinator:
             room = replace(room, morning_rule=morning_rule)
         if evening_rule is not None:
             room = replace(room, evening_rule=evening_rule)
+        if not room.ever_assigned:
+            raise WerktagsError("room_without_residents")        # rules belong to a room that has residents
         rooms[area_id] = room
         await self._async_commit(replace(self.data, rooms=rooms))
 
@@ -414,7 +420,11 @@ class WerktagsCoordinator:
         if room is None or not any(s.valid_from == valid_from for s in room.residents.steps):
             raise WerktagsError("no_room_assignment")
         rooms = dict(self.data.rooms)
-        rooms[area_id] = replace(room, residents=room.residents.without_step(valid_from))
+        room = replace(room, residents=room.residents.without_step(valid_from))
+        if room.ever_assigned:
+            rooms[area_id] = room
+        else:
+            del rooms[area_id]                  # a room is its residents; without any it is gone
         await self._async_commit(replace(self.data, rooms=rooms))
 
     def is_stale_device_id(self, identifier: str) -> bool:

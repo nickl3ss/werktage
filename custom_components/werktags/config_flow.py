@@ -51,7 +51,7 @@ from .const import (
     SOURCE_OPENHOLIDAYS,
     SOURCES,
 )
-from .coordinator import WerktagsCoordinator, async_probe_openholidays
+from .coordinator import WerktagsCoordinator, WerktagsError, async_probe_openholidays
 from .openholidays import OpenHolidaysError
 from .rules import DEFAULT_EVENING_RULE, DEFAULT_MORNING_RULE, CombineRule, Role
 
@@ -358,8 +358,8 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                                            _date_or_today(user_input.get("valid_from"), c.today()),
                                            CombineRule(user_input["morning_rule"]),
                                            CombineRule(user_input["evening_rule"]))
-                except ValueError:
-                    errors["area"] = "unknown_area"
+                except WerktagsError as err:
+                    errors["person" if err.key == "room_without_residents" else "area"] = err.key
                 else:
                     return self.async_abort(reason="room_saved")
         return self.async_show_form(step_id=STEP_ROOM, data_schema=room_schema(), errors=errors)

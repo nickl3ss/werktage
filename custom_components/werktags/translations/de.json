@@ -201,7 +201,8 @@
       "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen.",
       "not_resident": "Diese Person ist noch kein Bewohner. Zuerst den Bewohner anlegen.",
       "short_name_taken": "Dieses Kürzel ist bereits vergeben.",
-      "unknown_area": "Diesen Bereich gibt es nicht."
+      "unknown_area": "Diesen Bereich gibt es nicht.",
+      "room_without_residents": "Mindestens einen Bewohner zuordnen. Die Regeln gehören zu einem Raum mit Bewohnern."
     },
     "abort": {
       "resident_saved": "Bewohner gespeichert.",
@@ -561,6 +562,9 @@
     },
     "invalid": {
       "message": "{message}"
+    },
+    "room_without_residents": {
+      "message": "Ein Raum braucht Bewohner. Mindestens einen zuordnen; die Regeln gelten für sie."
     }
   },
   "issues": {

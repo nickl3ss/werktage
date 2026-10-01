@@ -225,16 +225,19 @@ test("rooms card edits residents with a date and changes rules directly", async 
   card.hass = fakeHass("en", calls);
   await tick(); await tick();
   assert.match(card.shadowRoot.innerHTML, /Kitchen/); assert.match(card.shadowRoot.innerHTML, /House/);
+  assert.match(card.shadowRoot.innerHTML, /rules appear once residents are assigned/);   // the empty kitchen
   card.on_room_add({ dataset: { area: "bedroom" }, value: "p_c" });
   assert.match(card.shadowRoot.innerHTML, /Change from/);
   await card.on_room_apply({ dataset: { area: "bedroom" } });
   let write = calls.find((c) => c.type === "write");
   assert.deepEqual(write.service_data, { area: "bedroom", person: ["person.anna", "person.clara"], valid_from: card.today });
+  card.on_room_add({ dataset: { area: "kitchen" }, value: "p_c" });                // residents first, then rules
+  assert.doesNotMatch(card.shadowRoot.innerHTML, /rules appear once residents are assigned/);
   card.on_room_rule({ dataset: { area: "kitchen", rule: "morning_rule" }, value: "workday_wins" });
   assert.equal(calls.filter((c) => c.type === "write").length, 1);                 // nothing written yet
   await card.on_room_apply({ dataset: { area: "kitchen" } });
   write = calls.filter((c) => c.type === "write").pop();
-  assert.deepEqual(write.service_data, { area: "kitchen", morning_rule: "workday_wins" });
+  assert.deepEqual(write.service_data, { area: "kitchen", person: ["person.clara"], valid_from: card.today, morning_rule: "workday_wins" });
 });
 
 test("a missing integration is reported in words", async () => {

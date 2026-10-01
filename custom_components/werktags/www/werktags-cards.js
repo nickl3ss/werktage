@@ -183,6 +183,7 @@ const TEXTS = {
     role: { pupil: "Pupil", adult: "Adult", none: "None" }, not_resident: "not a resident",
     rule: { day_off_wins: "Day off wins", workday_wins: "Workday wins" },
     rule_hint: { day_off_wins: "one resident off is enough", workday_wins: "one resident working is enough" },
+    rules_need_residents: "rules appear once residents are assigned",
     legend: "Legend", legend_off: "day off", legend_work: "workday", legend_exc: "exception", legend_school: "school holidays",
     legend_weekend: "weekend / public holiday", legend_unknown: "unknown (counts as workday)",
     reset_day: "Everyone to default", confirm_all_work: "Set everyone to workday on a day off?",
@@ -212,6 +213,7 @@ const TEXTS = {
     role: { pupil: "Schüler", adult: "Erwachsener", none: "Keine" }, not_resident: "kein Bewohner",
     rule: { day_off_wins: "Frei gewinnt", workday_wins: "Arbeit gewinnt" },
     rule_hint: { day_off_wins: "ein Bewohner mit freiem Tag genügt", workday_wins: "ein arbeitender Bewohner genügt" },
+    rules_need_residents: "Regeln erscheinen, sobald Bewohner zugeordnet sind",
     legend: "Legende", legend_off: "frei", legend_work: "Werktag", legend_exc: "Ausnahme", legend_school: "Schulferien",
     legend_weekend: "Wochenende / Feiertag", legend_unknown: "unbekannt (gilt als Werktag)",
     reset_day: "Alle auf Standard", confirm_all_work: "Alle an einem freien Tag auf Werktag setzen?",
@@ -977,7 +979,9 @@ class WerktagsRoomsCard extends WerktagsCard {
         <button data-action="room_cancel" data-on="click" data-area="${area}">${esc(t.cancel)}</button></div>` : "";
     const history = room.assignments.length ? `<details><summary>${esc(t.history)}</summary>${room.assignments.map((s, i) =>
       `<div class="step"><span>${esc(t.since)} ${esc(shortDate(s.valid_from, this.lang))}: ${esc(s.residents.map((id) => this._person(id)?.name || id).join(", ") || t.no_residents)}</span>${i > 0 ? `<button data-action="room_remove_step" data-on="click" data-area="${area}" data-date="${s.valid_from}">${esc(t.remove)}</button>` : ""}</div>`).join("")}</details>` : "";
-    const rules = this._ruleSelect(room, form, "morning_rule") + this._ruleSelect(room, form, "evening_rule");
+    const rules = form.residents.length
+      ? this._ruleSelect(room, form, "morning_rule") + this._ruleSelect(room, form, "evening_rule")
+      : `<span class="muted">${esc(t.rules_need_residents)}</span>`;        // a room is its residents
     return { chips: chips || `<span class="muted">${esc(t.no_residents)}</span>`, add, apply, confirm, history, rules };
   }
 

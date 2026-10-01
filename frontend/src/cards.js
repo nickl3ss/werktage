@@ -737,7 +737,9 @@ class WerktagsRoomsCard extends WerktagsCard {
         <button data-action="room_cancel" data-on="click" data-area="${area}">${esc(t.cancel)}</button></div>` : "";
     const history = room.assignments.length ? `<details><summary>${esc(t.history)}</summary>${room.assignments.map((s, i) =>
       `<div class="step"><span>${esc(t.since)} ${esc(shortDate(s.valid_from, this.lang))}: ${esc(s.residents.map((id) => this._person(id)?.name || id).join(", ") || t.no_residents)}</span>${i > 0 ? `<button data-action="room_remove_step" data-on="click" data-area="${area}" data-date="${s.valid_from}">${esc(t.remove)}</button>` : ""}</div>`).join("")}</details>` : "";
-    const rules = this._ruleSelect(room, form, "morning_rule") + this._ruleSelect(room, form, "evening_rule");
+    const rules = form.residents.length
+      ? this._ruleSelect(room, form, "morning_rule") + this._ruleSelect(room, form, "evening_rule")
+      : `<span class="muted">${esc(t.rules_need_residents)}</span>`;        // a room is its residents
     return { chips: chips || `<span class="muted">${esc(t.no_residents)}</span>`, add, apply, confirm, history, rules };
   }
 

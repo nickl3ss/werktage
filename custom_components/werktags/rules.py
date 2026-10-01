@@ -273,6 +273,11 @@ class Room:
     def residents_on(self, day: dt.date) -> frozenset[str]:
         return self.residents.value_on(day) or frozenset()
 
+    @property
+    def ever_assigned(self) -> bool:
+        """Whether anyone was ever assigned; a room is its residents, without any it is not a room."""
+        return any(step.value for step in self.residents.steps)
+
 
 @dataclass(frozen=True, slots=True)
 class House:

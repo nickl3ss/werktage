@@ -163,6 +163,10 @@ without any template — import them under *Settings → Automations → Bluepri
 | *Werktags: open a cover in the morning* | a morning sensor, a cover, the time on workdays and on days off (never before sunrise) |
 | *Werktags: switch off in the evening* | an evening sensor, lights or switches, the time before a workday and before a day off |
 
+The later time of each blueprint acts in any case, so a run that Home
+Assistant missed (restart, power cut) is caught up. Both are validated
+against Home Assistant's blueprint schema in the tests.
+
 ### Actions
 
 Everything the cards do is an action of the `werktags` domain; the

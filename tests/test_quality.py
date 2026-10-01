@@ -240,3 +240,36 @@ def test_empty_history_and_unknown_resident():
 
 def test_holiday_model_is_the_vendored_one():
     assert Holiday.__module__.startswith("custom_components.werktags.openholidays")
+
+
+# --- a room is its residents -----------------------------------------------------------------
+
+async def test_a_rule_alone_does_not_create_a_room(hass: HomeAssistant, household: MockConfigEntry, call_service, areas):
+    with pytest.raises(ServiceValidationError) as err:
+        await call_service("set_room", area=areas["Kitchen"], morning_rule="workday_wins")
+    assert err.value.translation_key == "room_without_residents"
+    assert areas["Kitchen"] not in household.runtime_data.data.rooms
+    assert hass.states.get("sensor.kitchen_morning") is None
+
+
+async def test_removing_the_last_assignment_removes_the_room(hass: HomeAssistant, household: MockConfigEntry, call_service,
+                                                            areas):
+    await call_service("remove_room_assignment", area=areas["Nursery"], valid_from="2010-01-01")
+    coordinator = household.runtime_data
+    assert areas["Nursery"] not in coordinator.data.rooms
+    assert hass.states.get("sensor.nursery_morning").state == "unavailable"
+    assert coordinator.is_stale_device_id(f"{household.entry_id}_room_{areas['Nursery']}")
+
+
+async def test_rooms_without_residents_are_dropped_when_loading(hass: HomeAssistant, config_entry: MockConfigEntry, persons,
+                                                               areas, hass_storage):
+    """Earlier versions let a rule alone create a room; such rooms made unavailable entities."""
+    hass_storage[f"{DOMAIN}.data"] = {"version": 2, "minor_version": 1, "key": f"{DOMAIN}.data", "data": {
+        "version": 2, "residents": {}, "exceptions": {}, "school_holidays": None, "house": {"residents": []},
+        "rooms": {"kitchen": {"residents": [], "morning_rule": "day_off_wins", "evening_rule": "workday_wins"}}}}
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert config_entry.runtime_data.data.rooms == {}
+    assert hass.states.get("sensor.kitchen_morning") is None
+    assert hass_storage[f"{DOMAIN}.data"]["data"]["rooms"] == {}
+

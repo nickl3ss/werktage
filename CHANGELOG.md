@@ -25,6 +25,12 @@
 - Silver: test coverage 99 % (CI fails below 95 %). Gold documentation: use
   cases, supported functions, data updates, known limitations,
   troubleshooting.
+- A room is its residents: a rule alone no longer creates a room (and three
+  unavailable entities), removing the last assignment removes the room, and
+  rooms without residents written by earlier versions are dropped on load.
+  The rooms card shows the rules once residents are assigned.
+- Blueprints are validated with Home Assistant's blueprint schema in the
+  tests; their later time now acts in any case, catching up a missed run.
 - Cards: the reload-on-change watched `sensor.house_morning`, which only
   exists in English installations; the cards now find the Werktags sensors
   by platform. The script URL carries a hash of the bundle instead of the

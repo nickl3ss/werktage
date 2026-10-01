@@ -2,8 +2,9 @@ blueprint:
   name: "Werktags: switch off in the evening"
   description: >-
     Switches lights or switches off at one time on evenings before a workday
-    and at a later time before a day off. Uses a Werktags "evening" sensor,
-    which refers to tomorrow.
+    and at a later time before a day off. The later time switches off in any
+    case, so an evening Home Assistant missed is caught up. Uses a Werktags
+    "evening" sensor, which refers to tomorrow.
   domain: automation
   author: nickl3ss
   source_url: https://github.com/nickl3ss/werktags/blob/main/blueprints/automation/werktags/lights_off_in_the_evening.yaml
@@ -49,7 +50,7 @@ conditions:
     value_template: >-
       {% set before_workday = states(evening_sensor) != 'before_day_off' %}
       {{ (trigger.id == 'before_workday' and before_workday)
-         or (trigger.id == 'before_day_off' and not before_workday) }}
+         or trigger.id == 'before_day_off' }}
 
 variables:
   evening_sensor: !input evening_sensor

@@ -182,7 +182,8 @@ async def test_options_menu_adds_a_resident_a_room_and_the_house(hass: HomeAssis
 
 
 async def test_options_menu_rejects_bad_input_and_resets_the_weekly_pattern(hass: HomeAssistant,
-                                                                            setup_integration: MockConfigEntry, persons):
+                                                                            setup_integration: MockConfigEntry, persons,
+                                                                            areas):
     result = await _options(hass, setup_integration, "resident")
     await hass.config_entries.options.async_configure(
         result["flow_id"], {"person": persons["p_anna"], "role": "adult", "off_weekdays": ["0"]})
@@ -199,6 +200,9 @@ async def test_options_menu_rejects_bad_input_and_resets_the_weekly_pattern(hass
         result["flow_id"], {"area": "nowhere", "person": [persons["p_anna"]],
                             "morning_rule": "day_off_wins", "evening_rule": "workday_wins"})
     assert result["type"] is FlowResultType.FORM and result["errors"] == {"area": "unknown_area"}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"area": areas["Kitchen"], "morning_rule": "day_off_wins", "evening_rule": "workday_wins"})
+    assert result["errors"] == {"person": "room_without_residents"}                 # no residents: no room
 
     result = await _options(hass, setup_integration, "house")
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"person": [persons["p_clara"]]})
