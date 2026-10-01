@@ -247,7 +247,7 @@ unavailable; their devices can then be deleted.
 | Setup says *The OpenHolidays API has no school holidays for this country or region* | The country is not covered. Choose a calendar entity or *none*. |
 | A pupil works during the holidays | The reason attribute tells why. `unknown` means the dates are not published; `exception_workday` means someone set an exception. |
 | Entities are *unavailable* | The person has no role on that day, or the room has no residents. |
-| The cards do not appear in the card picker | Reload the browser (the script is cached). The integration serves it at `/werktags_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
+| A card shows *Configuration error* / *Custom element doesn't exist* | The page was loaded before the integration was set up or restarted: the list of scripts is part of the page. Reload the browser once (in the Companion app: pull down or close and reopen). The script is served at `/werktags_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
 | An entity is called `sensor.bedroom_morning_2` | An entity with that id existed before. Rename it under *Settings → Entities*. |
 
 Diagnostics (*Devices & services → Werktags → ⋮ → Download diagnostics*)

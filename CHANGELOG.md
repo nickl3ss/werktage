@@ -25,6 +25,11 @@
 - Silver: test coverage 99 % (CI fails below 95 %). Gold documentation: use
   cases, supported functions, data updates, known limitations,
   troubleshooting.
+- Cards: the reload-on-change watched `sensor.house_morning`, which only
+  exists in English installations; the cards now find the Werktags sensors
+  by platform. The script URL carries a hash of the bundle instead of the
+  version, so a new build bypasses browser caches. README explains the
+  one-time browser reload after setup (*Configuration error* on a card).
 - Platinum rules: the setup dialog builds its country and region lists in the
   executor (the `holidays` library took about 0.2 s in the event loop on a
   Raspberry Pi); only two-letter country codes are offered. Every rule in

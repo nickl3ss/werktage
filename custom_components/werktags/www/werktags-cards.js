@@ -253,7 +253,7 @@ function esc(value) {
 
 const DOMAIN = "werktags";
 const NARROW_PX = 600;
-const CHANGE_SENSOR = "sensor.house_morning";   // updated on every change → tells the cards to reload
+const CHANGE_SENSOR = "sensor.house_morning";   // fallback when hass.entities is unavailable (see _changeStamp)
 
 const STYLE = `
   :host { display: block; }
@@ -341,7 +341,8 @@ class WerktagsCard extends HTMLElement {
     this._hass = null;
     this._message = null;
     this._narrow = false;
-    this._seen = null;                      // last_updated of CHANGE_SENSOR when we loaded
+    this._seen = null;                      // change stamp of the Werktags sensors when we loaded
+    this._tracked = null;                   // their entity ids, found once from hass.entities
     this._observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect?.width || 0;
       const narrow = width > 0 && width < NARROW_PX;
@@ -363,10 +364,26 @@ class WerktagsCard extends HTMLElement {
     this.render();
   }
 
+  /** Every change rebuilds all Werktags sensors; the newest last_updated among them says "reload".
+   *  Entity ids depend on the installation language, so the sensors are found by platform. */
+  _changeStamp(hass) {
+    if (!this._tracked || this._trackedFrom !== hass.entities) {
+      this._trackedFrom = hass.entities;
+      const ids = Object.keys(hass.entities || {}).filter((id) => id.startsWith("sensor.") && hass.entities[id].platform === DOMAIN);
+      this._tracked = ids.length ? ids : [CHANGE_SENSOR];
+    }
+    let stamp = null;
+    for (const id of this._tracked) {
+      const updated = hass.states?.[id]?.last_updated;
+      if (updated && (!stamp || updated > stamp)) stamp = updated;
+    }
+    return stamp;
+  }
+
   set hass(hass) {
     const first = !this._hass;
     this._hass = hass;
-    const stamp = hass?.states?.[CHANGE_SENSOR]?.last_updated || null;
+    const stamp = this._changeStamp(hass);
     if (first) { this._seen = stamp; this.load(); return; }
     if (stamp && stamp !== this._seen) { this._seen = stamp; this.load(); }   // somebody else changed data
   }

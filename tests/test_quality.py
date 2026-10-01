@@ -11,6 +11,7 @@ from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.werktags import async_remove_config_entry_device, frontend, rules, sources
@@ -42,7 +43,8 @@ async def test_cards_are_registered_once_when_the_frontend_is_loaded(hass: HomeA
         await frontend.async_register(hass)
         await frontend.async_register(hass)                               # second call is a no-op
     hass.http.async_register_static_paths.assert_awaited_once()
-    assert add_url.call_args[0][1].startswith("/werktags_static/werktags-cards.js?v=")
+    url = add_url.call_args[0][1]
+    assert url.startswith("/werktags_static/werktags-cards.js?v=") and len(url.rsplit("=", 1)[1]) == 8   # content hash
 
 
 async def test_removing_the_integration_deletes_the_store(hass: HomeAssistant, household: MockConfigEntry, hass_storage):
@@ -92,8 +94,7 @@ async def test_school_holidays_are_fetched_after_boot_and_checked_daily(hass: Ho
     fake_api.school_holidays.assert_awaited_once()
     coordinator = config_entry.runtime_data
     coordinator.data = coordinator.data.__class__(school_holidays=None)   # as if nothing was cached
-    async_fire_time_changed(hass, dt.datetime(2026, 10, 2, 3, 30, 0, tzinfo=dt.UTC).astimezone()
-                            .replace(hour=3, minute=30, second=0))
+    async_fire_time_changed(hass, (dt_util.now() + dt.timedelta(days=2)).replace(hour=3, minute=30, second=0, microsecond=0))
     await hass.async_block_till_done()
     assert fake_api.school_holidays.await_count == 2
 

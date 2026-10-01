@@ -244,3 +244,22 @@ test("a missing integration is reported in words", async () => {
   await tick(); await tick();
   assert.match(card.shadowRoot.innerHTML, /Werktags ist nicht eingerichtet/);
 });
+
+test("cards reload when any Werktags sensor changes, whatever its language", async () => {
+  const calls = [];
+  const card = new defined["werktags-rooms"]();
+  card.setConfig({});
+  const hass = fakeHass("de", calls);
+  hass.entities = { "sensor.haus_morgen": { platform: "werktags" }, "sensor.haus_abend": { platform: "werktags" }, "sensor.aussen": { platform: "other" } };
+  hass.states = { "sensor.haus_morgen": { last_updated: "2026-10-01T05:00:00" }, "sensor.aussen": { last_updated: "2026-10-01T09:00:00" } };
+  card.hass = hass;
+  await tick(); await tick();
+  assert.equal(calls.filter((c) => c.service === "get_overview").length, 1);
+  card.hass = { ...hass, states: { ...hass.states, "sensor.aussen": { last_updated: "2026-10-01T09:05:00" } } };
+  await tick();
+  assert.equal(calls.filter((c) => c.service === "get_overview").length, 1);        // foreign sensor: nothing
+  card.hass = { ...hass, states: { ...hass.states, "sensor.haus_abend": { last_updated: "2026-10-01T09:06:00" } } };
+  await tick(); await tick();
+  assert.equal(calls.filter((c) => c.service === "get_overview").length, 2);        // a Werktags sensor: reload
+});
+
