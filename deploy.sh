@@ -4,8 +4,8 @@
 # Afterwards: check the configuration and restart Home Assistant Core.
 set -e
 CONFIG_DIR="${1:?usage: deploy.sh <home assistant config dir>}"
-SRC="$(cd "$(dirname "$0")" && pwd)/custom_components/werktags"
-DST="$CONFIG_DIR/custom_components/werktags"
+SRC="$(cd "$(dirname "$0")" && pwd)/custom_components/werktage"
+DST="$CONFIG_DIR/custom_components/werktage"
 python3 "$(dirname "$0")/tools/sync_vendor.py" --check
 rm -rf "$DST" && mkdir -p "$DST"
 cp -r "$SRC"/. "$DST"/

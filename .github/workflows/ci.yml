@@ -32,7 +32,7 @@ jobs:
       - run: ruff check .
       - run: python -m mypy
       - run: python tools/check_publication.py --areas
-      - run: python -m pytest -q --cov=custom_components/werktags --cov-report=term-missing --cov-fail-under=95
+      - run: python -m pytest -q --cov=custom_components/werktage --cov-report=term-missing --cov-fail-under=95
 
   # The oldest Home Assistant release in hacs.json ("homeassistant"); keep both in step.
   minimum-ha:
@@ -52,5 +52,5 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
-      - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktags/www
+      - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktage/www
       - run: node --test frontend/test/*.test.mjs

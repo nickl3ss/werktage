@@ -11,7 +11,7 @@ import {
   texts, todayIso, toggleStatus, validRange, weekRows, weekdayNames,
 } from "./logic.js";
 
-const DOMAIN = "werktags";
+const DOMAIN = "werktage";
 const NARROW_PX = 600;
 const CHANGE_SENSOR = "sensor.house_morning";   // fallback when hass.entities is unavailable (see _changeStamp)
 
@@ -804,5 +804,5 @@ customElements.define("werktags-card-editor", WerktagsCardEditor);
 window.customCards = window.customCards || [];
 for (const [tag, cls, name, description] of CARDS) {
   customElements.define(tag, cls);
-  window.customCards.push({ type: tag, name, description, preview: false, documentationURL: "https://github.com/nickl3ss/werktags" });
+  window.customCards.push({ type: tag, name, description, preview: false, documentationURL: "https://github.com/nickl3ss/werktage" });
 }

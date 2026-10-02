@@ -6,7 +6,7 @@ asyncio_mode = "auto"
 [tool.mypy]
 python_version = "3.14"
 strict = true
-files = ["custom_components/werktags", "lib/openholidays/src"]
+files = ["custom_components/werktage", "lib/openholidays/src"]
 
 [tool.ruff]
 line-length = 120
@@ -22,5 +22,5 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 [tool.coverage.run]
 # The vendored client is a byte-identical copy of lib/openholidays (tests/test_vendor.py)
 # and is tested there against a local server.
-omit = ["custom_components/werktags/openholidays/*"]
+omit = ["custom_components/werktage/openholidays/*"]
 

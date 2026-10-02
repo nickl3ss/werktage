@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nickl3ss/werktags"
+Homepage = "https://github.com/nickl3ss/werktage"
 "Data source" = "https://www.openholidaysapi.org"
 
 [tool.setuptools.packages.find]

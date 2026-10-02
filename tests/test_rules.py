@@ -5,8 +5,8 @@ import datetime as dt
 
 import pytest
 
-from custom_components.werktags import rules
-from custom_components.werktags.rules import (
+from custom_components.werktage import rules
+from custom_components.werktage.rules import (
     Calendar,
     CombineRule,
     DayInfo,

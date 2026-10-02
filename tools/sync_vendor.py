@@ -3,7 +3,7 @@
 
 The library's source of truth is ``lib/openholidays/src/openholidays``. HACS
 installs the integration folder as it is in the repository, so the integration
-carries a verbatim copy in ``custom_components/werktags/openholidays``. Run this
+carries a verbatim copy in ``custom_components/werktage/openholidays``. Run this
 after every change to the library; ``tests/test_vendor.py`` fails when the copy
 is stale. The core version of the integration would drop the copy and list the
 PyPI package in ``manifest.json`` instead.
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "lib" / "openholidays" / "src" / "openholidays"
-TARGET = ROOT / "custom_components" / "werktags" / "openholidays"
+TARGET = ROOT / "custom_components" / "werktage" / "openholidays"
 
 
 def differences() -> list[str]:

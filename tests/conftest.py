@@ -13,7 +13,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.werktags.const import (
+from custom_components.werktage.const import (
     CONF_ADMIN_ONLY,
     CONF_CALENDAR_ENTITY,
     CONF_COUNTRY,
@@ -26,7 +26,7 @@ from custom_components.werktags.const import (
     DOMAIN,
     SOURCE_OPENHOLIDAYS,
 )
-from custom_components.werktags.openholidays import Holiday
+from custom_components.werktage.openholidays import Holiday
 
 d = dt.date.fromisoformat
 TODAY = d("2026-10-01")     # a Thursday; 3 Oct is a public holiday in DE, autumn break 5–16 Oct (fictitious dates)
@@ -53,13 +53,13 @@ CONFIG = {
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
-    """Let the test Home Assistant load custom_components/werktags."""
+    """Let the test Home Assistant load custom_components/werktage."""
 
 
 @pytest.fixture(autouse=True)
 def frozen_today() -> AsyncGenerator[None]:
     """Every test runs on TODAY, 09:00 in the configured time zone."""
-    with patch("custom_components.werktags.coordinator.WerktagsCoordinator.today", return_value=TODAY):
+    with patch("custom_components.werktage.coordinator.WerktagsCoordinator.today", return_value=TODAY):
         yield
 
 
@@ -71,7 +71,7 @@ def school_holidays() -> list[Holiday]:
 @pytest.fixture(autouse=True)
 def fake_api(school_holidays: list[Holiday]) -> AsyncGenerator[Any]:
     """The OpenHolidays client answers with fictitious data; no network."""
-    with patch("custom_components.werktags.coordinator.OpenHolidaysClient") as client_cls:
+    with patch("custom_components.werktage.coordinator.OpenHolidaysClient") as client_cls:
         client_cls.return_value.school_holidays = AsyncMock(return_value=school_holidays)
         yield client_cls.return_value
 

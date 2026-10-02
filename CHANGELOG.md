@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 — 2026-10-02
+
+- **Breaking: domain renamed from `werktags` to `werktage`**, repository
+  moved to `nickl3ss/werktage`. HACS removes the string `tags/` from every
+  download URL (meant for the Git ref `tags/<version>`), so a repository or
+  directory called `werktags/` was mangled to `werk` and neither the HACS
+  validation nor an installation through HACS could work. The product name
+  stays *Werktags*; the cards keep their names (`custom:werktags-calendar`
+  …); entity ids do not change because they come from person and area
+  names. Actions are now `werktage.*`, the card script is served at
+  `/werktage_static/`, the store is `.storage/werktage.data`. Migrating an
+  existing installation: remove the old entry, install the new version, set
+  it up again and re-create residents, rooms and exceptions (see README).
+  The HACS bug is reported upstream with a one-line fix.
+
 ## 0.1.0 — 2026-10-02
 
 - Brand icon ships inside the integration (`brand/`), as Home Assistant
@@ -65,12 +80,12 @@
 - Cards `werktags-calendar`, `werktags-period`, `werktags-residents`,
   `werktags-rooms` with a visual editor, in plain JavaScript without a
   framework; bundled by `tools/build_cards.py` into
-  `custom_components/werktags/www/werktags-cards.js` and served by the
+  `custom_components/werktage/www/werktags-cards.js` and served by the
   integration. 15 browserless tests (`node --test`).
 - `deploy.sh <config dir>` copies the integration into an installation;
   `tools/sync_vendor.py` keeps the vendored `openholidays` copy in sync.
 
-- Rules engine `custom_components/werktags/rules.py`: default day by role,
+- Rules engine `custom_components/werktage/rules.py`: default day by role,
   exceptions in both directions, unknown days count as workdays, morning and
   evening modes, room and house combination rules, histories for roles and
   room assignments, range changes with preview. 34 tests, no Home Assistant

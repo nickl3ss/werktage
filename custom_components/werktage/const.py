@@ -1,10 +1,10 @@
 """Constants of the Werktags integration."""
 from __future__ import annotations
 
-DOMAIN = "werktags"
+DOMAIN = "werktage"
 NAME = "Werktags"
 VERSION = "0.1.0"
-USER_AGENT = f"{DOMAIN}/{VERSION} (+https://github.com/nickl3ss/werktags)"
+USER_AGENT = f"{DOMAIN}/{VERSION} (+https://github.com/nickl3ss/werktage)"
 
 # Config entry / options keys
 CONF_COUNTRY = "country"

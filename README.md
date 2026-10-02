@@ -6,7 +6,7 @@ modes for people, rooms and the whole house.
 
 > **Status: 0.1.0.** Integration and cards are tested against Home Assistant
 > 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
-> [issues](https://github.com/nickl3ss/werktags/issues).
+> [issues](https://github.com/nickl3ss/werktage/issues).
 
 ## What it does
 
@@ -51,17 +51,24 @@ patterns, and combines people into rooms and the house by a rule you choose.
 
 ## Installation
 
+> **Upgrading from 0.1.0:** the domain changed from `werktags` to
+> `werktage` (a HACS bug mangles any download path containing `tags/`).
+> Remove the old *Werktags* entry under *Devices & services*, install
+> 0.2.0, set it up again and re-create residents, rooms and exceptions —
+> or call `werktage.set_role`, `set_room`, `set_days` from a copy of the old
+> `.storage/werktags.data`. Entity ids and the dashboard cards stay the same.
+
 Requires Home Assistant 2026.1 or newer.
 
 1. **With HACS** (recommended):
 
-   [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktags&category=integration)
+   [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktage&category=integration)
 
    Or in HACS: *⋮ → Custom repositories*, add
-   `https://github.com/nickl3ss/werktags` with type *Integration*. Then
+   `https://github.com/nickl3ss/werktage` with type *Integration*. Then
    download *Werktags* and restart Home Assistant.
 
-   **Manually:** copy `custom_components/werktags/` into the
+   **Manually:** copy `custom_components/werktage/` into the
    `custom_components/` folder of your Home Assistant configuration (or run
    `./deploy.sh <config dir>`), and restart Home Assistant.
 2. *Settings → Devices & services → Add integration → Werktags*. Five short
@@ -94,10 +101,10 @@ Requires Home Assistant 2026.1 or newer.
 
 *Settings → Devices & services → Werktags → ⋮ → Delete*. This removes the
 entities and devices and deletes the integration's store
-(`.storage/werktags.data`: residents, rooms, exceptions, cached school
+(`.storage/werktage.data`: residents, rooms, exceptions, cached school
 holidays). Persons, areas, automations and dashboards stay; automations that
 use Werktags entities then need a new condition. To remove the files as well,
-delete `custom_components/werktags/` and restart Home Assistant.
+delete `custom_components/werktage/` and restart Home Assistant.
 
 See the [specification](docs/specification.md) for rules, entities and
 services.
@@ -165,7 +172,7 @@ actions:
 
 ### Blueprints
 
-Two blueprints in `blueprints/automation/werktags/` cover the common cases
+Two blueprints in `blueprints/automation/werktage/` cover the common cases
 without any template — import them under *Settings → Automations → Blueprints*:
 
 | Blueprint | Inputs |
@@ -179,7 +186,7 @@ against Home Assistant's blueprint schema in the tests.
 
 ### Actions
 
-Everything the cards do is an action of the `werktags` domain; the
+Everything the cards do is an action of the `werktage` domain; the
 *Developer tools → Actions* page offers a form for each. Dates are
 `YYYY-MM-DD`; persons are `person.*` entities, areas are area ids.
 
@@ -234,13 +241,13 @@ unavailable; their devices can then be deleted.
   and next year present); otherwise the last known dates remain in use.
 - **School holidays (calendar entity)** are read on the same schedule;
   every all-day event counts.
-- `werktags.refresh_school_holidays` fetches immediately.
+- `werktage.refresh_school_holidays` fetches immediately.
 
 ## Known limitations
 
 - One school holiday region for the whole household; children at schools in
   different regions are not supported yet
-  ([#1](https://github.com/nickl3ss/werktags/issues/1)).
+  ([#1](https://github.com/nickl3ss/werktage/issues/1)).
 - A day is either a workday or a day off — no half days, no shift times.
 - Days whose school holidays are not published yet count as **workdays** for
   pupils (reason `unknown`). The API usually publishes about two years ahead.
@@ -256,12 +263,12 @@ unavailable; their devices can then be deleted.
 
 | Symptom | What to check |
 |---|---|
-| Repair *School holidays could not be fetched* | Shown after three failed fetches. Check the internet connection; run `werktags.refresh_school_holidays` and read the error. The last known dates stay in use. |
+| Repair *School holidays could not be fetched* | Shown after three failed fetches. Check the internet connection; run `werktage.refresh_school_holidays` and read the error. The last known dates stay in use. |
 | Repair *School holidays are missing for next year* | From October on, next year's summer holidays must be known. The API may not have published them yet — add them as exceptions with the *Period* card, or switch the source to a calendar. |
 | Setup says *The OpenHolidays API has no school holidays for this country or region* | The country is not covered. Choose a calendar entity or *none*. |
 | A pupil works during the holidays | The reason attribute tells why. `unknown` means the dates are not published; `exception_workday` means someone set an exception. |
 | Entities are *unavailable* | The person has no role on that day, or the room has no residents. |
-| A card shows *Configuration error* / *Custom element doesn't exist* | The page was loaded before the integration was set up or restarted: the list of scripts is part of the page. Reload the browser once. The Companion app keeps an older page in its cache: *Settings → Companion app → Troubleshooting → Clear cache*, then open the dashboard again. The script is served at `/werktags_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
+| A card shows *Configuration error* / *Custom element doesn't exist* | The page was loaded before the integration was set up or restarted: the list of scripts is part of the page. Reload the browser once. The Companion app keeps an older page in its cache: *Settings → Companion app → Troubleshooting → Clear cache*, then open the dashboard again. The script is served at `/werktage_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
 | An entity is called `sensor.bedroom_morning_2` | An entity with that id existed before. Rename it under *Settings → Entities*. |
 
 Diagnostics (*Devices & services → Werktags → ⋮ → Download diagnostics*)
@@ -271,11 +278,11 @@ contain the configuration and counts, never names of persons.
 
 | Path | Content |
 |---|---|
-| `custom_components/werktags/` | the integration |
+| `custom_components/werktage/` | the integration |
 | `lib/openholidays/` | client library for the OpenHolidays API, no Home Assistant dependency |
-| `frontend/` | source of the dashboard cards (`src/`) and their browserless tests (`test/`, run with `node --test frontend/test/*.test.mjs`); `tools/build_cards.py` bundles them into `custom_components/werktags/www/` |
+| `frontend/` | source of the dashboard cards (`src/`) and their browserless tests (`test/`, run with `node --test frontend/test/*.test.mjs`); `tools/build_cards.py` bundles them into `custom_components/werktage/www/` |
 | `blueprints/` | automation blueprints |
-| `custom_components/werktags/brand/` | the icon (a house between night and day, with an early cyclist) for the brands repository; the artwork is in `docs/brand/` |
+| `custom_components/werktage/brand/` | the icon (a house between night and day, with an early cyclist) for the brands repository; the artwork is in `docs/brand/` |
 | `tests/` | tests |
 | `tools/check_publication.py` | checks that no private household data is in the repository |
 
@@ -301,4 +308,4 @@ sich über die Karten oder das Optionen-Menü der Integration pflegen.
 > **Stand: 0.1.0.** Integration und Karten sind gegen Home Assistant 2026.1
 > (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
 > beschrieben; Ideen und Fehler als
-> [Issue](https://github.com/nickl3ss/werktags/issues).
+> [Issue](https://github.com/nickl3ss/werktage/issues).

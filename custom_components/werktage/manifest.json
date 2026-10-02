@@ -1,5 +1,5 @@
 {
-  "domain": "werktags",
+  "domain": "werktage",
   "name": "Werktags",
   "after_dependencies": [
     "calendar",
@@ -14,13 +14,13 @@
   "dependencies": [
     "person"
   ],
-  "documentation": "https://github.com/nickl3ss/werktags",
+  "documentation": "https://github.com/nickl3ss/werktage",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/nickl3ss/werktags/issues",
+  "issue_tracker": "https://github.com/nickl3ss/werktage/issues",
   "requirements": [
     "holidays>=0.60"
   ],
   "single_config_entry": true,
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

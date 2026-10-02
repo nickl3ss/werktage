@@ -5,8 +5,8 @@ import datetime as dt
 
 import pytest
 
-from custom_components.werktags import sources, storage
-from custom_components.werktags.rules import (
+from custom_components.werktage import sources, storage
+from custom_components.werktage.rules import (
     CombineRule,
     DayType,
     History,
@@ -17,7 +17,7 @@ from custom_components.werktags.rules import (
     Step,
     default_day,
 )
-from custom_components.werktags.sources import SchoolHolidayPeriod
+from custom_components.werktage.sources import SchoolHolidayPeriod
 
 d = dt.date.fromisoformat
 

@@ -12,7 +12,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.werktags.const import DOMAIN
+from custom_components.werktage.const import DOMAIN
 
 from .conftest import TODAY, d
 
@@ -75,7 +75,7 @@ async def test_room_and_house_rules(hass: HomeAssistant, household, call_service
 
 
 async def test_school_holidays_apply_to_pupils_only(hass: HomeAssistant, household):
-    with patch("custom_components.werktags.coordinator.WerktagsCoordinator.today", return_value=d("2026-10-06")):
+    with patch("custom_components.werktage.coordinator.WerktagsCoordinator.today", return_value=d("2026-10-06")):
         household.runtime_data._rebuild()
         await hass.async_block_till_done()
         clara = hass.states.get("sensor.clara_morning")
@@ -256,7 +256,7 @@ async def test_data_survives_a_reload(hass: HomeAssistant, household: MockConfig
 
 async def test_failed_fetch_keeps_old_data_and_raises_issue_after_three_failures(hass: HomeAssistant, household,
                                                                                  fake_api, call_service):
-    from custom_components.werktags.openholidays import RequestFailed
+    from custom_components.werktage.openholidays import RequestFailed
     fake_api.school_holidays.side_effect = RequestFailed("down")
     for _ in range(3):
         with pytest.raises(HomeAssistantError):
@@ -278,7 +278,7 @@ async def test_implausible_answer_is_rejected(hass: HomeAssistant, household, fa
 
 
 async def test_unknown_days_count_as_workday(hass: HomeAssistant, household):
-    with patch("custom_components.werktags.coordinator.WerktagsCoordinator.today", return_value=d("2028-03-06")):
+    with patch("custom_components.werktage.coordinator.WerktagsCoordinator.today", return_value=d("2028-03-06")):
         household.runtime_data._rebuild()
         await hass.async_block_till_done()
         clara = hass.states.get("sensor.clara_morning")
@@ -327,7 +327,7 @@ async def test_midnight_rebuild(hass: HomeAssistant, household):
     """At midnight the sensors move to the new day without any change in data."""
     from homeassistant.util import dt as dt_util
     from pytest_homeassistant_custom_component.common import async_fire_time_changed
-    with patch("custom_components.werktags.coordinator.WerktagsCoordinator.today", return_value=d("2026-10-02")):
+    with patch("custom_components.werktage.coordinator.WerktagsCoordinator.today", return_value=d("2026-10-02")):
         next_midnight = (dt_util.now() + dt.timedelta(days=1)).replace(hour=0, minute=0, second=15, microsecond=0)
         async_fire_time_changed(hass, next_midnight)
         await hass.async_block_till_done()

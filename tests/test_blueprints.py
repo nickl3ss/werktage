@@ -10,7 +10,7 @@ from homeassistant.components.blueprint.schemas import BLUEPRINT_SCHEMA
 from homeassistant.core import HomeAssistant
 from homeassistant.util.yaml import load_yaml_dict
 
-BLUEPRINTS = sorted((Path(__file__).parent.parent / "blueprints" / "automation" / "werktags").glob("*.yaml"))
+BLUEPRINTS = sorted((Path(__file__).parent.parent / "blueprints" / "automation" / "werktage").glob("*.yaml"))
 INPUTS = {
     "open_cover_in_the_morning": {"morning_sensor": "sensor.anna_morning", "cover": {"entity_id": "cover.shutter"},
                                   "workday_time": "07:00:00", "day_off_time": "10:00:00"},

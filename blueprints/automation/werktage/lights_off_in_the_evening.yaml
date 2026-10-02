@@ -7,7 +7,7 @@ blueprint:
     "evening" sensor, which refers to tomorrow.
   domain: automation
   author: nickl3ss
-  source_url: https://github.com/nickl3ss/werktags/blob/main/blueprints/automation/werktags/lights_off_in_the_evening.yaml
+  source_url: https://github.com/nickl3ss/werktage/blob/main/blueprints/automation/werktage/lights_off_in_the_evening.yaml
   input:
     evening_sensor:
       name: Evening sensor
@@ -15,7 +15,7 @@ blueprint:
       selector:
         entity:
           filter:
-            - integration: werktags
+            - integration: werktage
               domain: sensor
     targets:
       name: Lights or switches

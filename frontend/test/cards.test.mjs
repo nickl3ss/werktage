@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 
-const source = readFileSync(new URL("../../custom_components/werktags/www/werktags-cards.js", import.meta.url), "utf8");
+const source = readFileSync(new URL("../../custom_components/werktage/www/werktags-cards.js", import.meta.url), "utf8");
 
 // --- DOM stand-in ------------------------------------------------------------------------------
 class FakeShadowRoot {
@@ -253,7 +253,7 @@ test("cards reload when any Werktags sensor changes, whatever its language", asy
   const card = new defined["werktags-rooms"]();
   card.setConfig({});
   const hass = fakeHass("de", calls);
-  hass.entities = { "sensor.haus_morgen": { platform: "werktags" }, "sensor.haus_abend": { platform: "werktags" }, "sensor.aussen": { platform: "other" } };
+  hass.entities = { "sensor.haus_morgen": { platform: "werktage" }, "sensor.haus_abend": { platform: "werktage" }, "sensor.aussen": { platform: "other" } };
   hass.states = { "sensor.haus_morgen": { last_updated: "2026-10-01T05:00:00" }, "sensor.aussen": { last_updated: "2026-10-01T09:00:00" } };
   card.hass = hass;
   await tick(); await tick();

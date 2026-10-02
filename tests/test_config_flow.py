@@ -9,8 +9,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.werktags.const import DOMAIN
-from custom_components.werktags.openholidays import RequestFailed
+from custom_components.werktage.const import DOMAIN
+from custom_components.werktage.openholidays import RequestFailed
 
 from .conftest import CONFIG, d
 
@@ -222,7 +222,7 @@ async def test_the_holidays_library_never_runs_in_the_event_loop(hass: HomeAssis
     """It is synchronous and walks its country modules; the dialog builds its lists in the executor."""
     import threading
 
-    from custom_components.werktags import sources
+    from custom_components.werktage import sources
     loop_thread, seen = threading.get_ident(), []
     real_countries, real_names = sources.supported_countries, sources.subdivision_names
 

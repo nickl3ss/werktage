@@ -14,12 +14,12 @@ from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
-from custom_components.werktags import async_remove_config_entry_device, frontend, rules, sources
-from custom_components.werktags.const import DOMAIN
-from custom_components.werktags.coordinator import WerktagsError, async_probe_openholidays
-from custom_components.werktags.diagnostics import async_get_config_entry_diagnostics
-from custom_components.werktags.openholidays import Holiday
-from custom_components.werktags.storage import SchoolHolidayCache, SchoolHolidayPeriod
+from custom_components.werktage import async_remove_config_entry_device, frontend, rules, sources
+from custom_components.werktage.const import DOMAIN
+from custom_components.werktage.coordinator import WerktagsError, async_probe_openholidays
+from custom_components.werktage.diagnostics import async_get_config_entry_diagnostics
+from custom_components.werktage.openholidays import Holiday
+from custom_components.werktage.storage import SchoolHolidayCache, SchoolHolidayPeriod
 
 from .conftest import TODAY, d
 
@@ -44,7 +44,7 @@ async def test_cards_are_registered_once_when_the_frontend_is_loaded(hass: HomeA
         await frontend.async_register(hass)                               # second call is a no-op
     hass.http.async_register_static_paths.assert_awaited_once()
     url = add_url.call_args[0][1]
-    assert url.startswith("/werktags_static/werktags-cards.js?v=") and len(url.rsplit("=", 1)[1]) == 8   # content hash
+    assert url.startswith("/werktage_static/werktags-cards.js?v=") and len(url.rsplit("=", 1)[1]) == 8   # content hash
 
 
 async def test_removing_the_integration_deletes_the_store(hass: HomeAssistant, household: MockConfigEntry, hass_storage):
@@ -72,11 +72,11 @@ async def test_only_devices_of_vanished_residents_and_rooms_may_be_deleted(hass:
 
 async def test_unreadable_store_and_unsupported_country_fail_the_setup(hass: HomeAssistant, config_entry: MockConfigEntry,
                                                                        persons, areas):
-    with patch("custom_components.werktags.storage.from_dict", side_effect=ValueError("version 99")):
+    with patch("custom_components.werktage.storage.from_dict", side_effect=ValueError("version 99")):
         assert await async_setup_component(hass, DOMAIN, {})
         await hass.async_block_till_done()
     assert config_entry.state.name == "SETUP_ERROR" and config_entry.error_reason_translation_key == "store_unreadable"
-    with patch("custom_components.werktags.sources.public_holidays", side_effect=NotImplementedError("XX")):
+    with patch("custom_components.werktage.sources.public_holidays", side_effect=NotImplementedError("XX")):
         await hass.config_entries.async_reload(config_entry.entry_id)
         await hass.async_block_till_done()
     assert config_entry.state.name == "SETUP_ERROR" and config_entry.error_reason_translation_key == "country_unsupported"
@@ -239,7 +239,7 @@ def test_empty_history_and_unknown_resident():
 
 
 def test_holiday_model_is_the_vendored_one():
-    assert Holiday.__module__.startswith("custom_components.werktags.openholidays")
+    assert Holiday.__module__.startswith("custom_components.werktage.openholidays")
 
 
 # --- a room is its residents -----------------------------------------------------------------

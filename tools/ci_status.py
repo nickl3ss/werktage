@@ -11,7 +11,7 @@ import time
 import urllib.request
 
 TOKEN = os.environ["GH_TOKEN"]
-REPO = os.environ.get("GH_REPO", "nickl3ss/werktags")
+REPO = os.environ.get("GH_REPO", "nickl3ss/werktage")
 want, max_wait = sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else 480
 
 

@@ -2,7 +2,7 @@
 
 Custom Integration für Home Assistant: Werktage je Person mit Schulferien,
 Ausnahmen, Raum- und Hausmodi. Lizenz MIT. Das Repository liegt **privat** auf
-GitHub (`github.com/nickl3ss/werktags`) und wird so gehalten, dass es
+GitHub (`github.com/nickl3ss/werktage`) und wird so gehalten, dass es
 jederzeit öffentlich werden kann.
 
 ## Verbindliche Regeln
@@ -47,7 +47,7 @@ jederzeit öffentlich werden kann.
     GH_TOKEN="$(sed -n 's/^GH_TOKEN=//p' <Token-Datei>)" .venv/bin/python tools/ci_status.py <sha>
     # hassfest: sparse checkout von home-assistant/core (script/hassfest, script/translations, script/util)
     # im Scratchpad, dann dort: PATH=.venv/bin:$PATH .venv/bin/python -m script.hassfest --action validate \
-    #   --integration-path <Repository>/custom_components/werktags
+    #   --integration-path <Repository>/custom_components/werktage
     .venv/bin/ruff check .                  # Lint, 120 Zeichen
     .venv/bin/python -m mypy                # strict, Integration und Bibliothek
     python3 tools/check_publication.py --areas
@@ -60,14 +60,14 @@ HA-Testpaket prüfbar.
 
 ## Ausrollen in die eigene Installation
 
-`./deploy.sh <Konfigurationsverzeichnis>` kopiert `custom_components/werktags/`
+`./deploy.sh <Konfigurationsverzeichnis>` kopiert `custom_components/werktage/`
 (samt der einkopierten Bibliothek) dorthin; der Zielpfad ist ein Argument und
 steht nicht im Repository. Danach `ha core check` und Neustart; eingerichtet
 wird über *Einstellungen → Integrationen → Werktags*.
 
 ## Veröffentlichung
 
-Remote `origin` = `github.com/nickl3ss/werktags` (privat), Zugriff über einen
+Remote `origin` = `github.com/nickl3ss/werktage` (privat), Zugriff über einen
 Deploy-Key nur für dieses Repository. Commits laufen
 unter der anonymen GitHub-Adresse (`git config user.email`), damit keine
 private E-Mail-Adresse in der Historie steht; `tools/check_publication.py`

@@ -2,7 +2,7 @@
 """Bundle the card sources into one file the integration serves.
 
 ``frontend/src/logic.js`` (pure functions) and ``frontend/src/cards.js`` (the
-custom elements) are joined into ``custom_components/werktags/www/werktags-cards.js``:
+custom elements) are joined into ``custom_components/werktage/www/werktags-cards.js``:
 the ``export`` keywords and the ``import`` line disappear, the result is one
 classic script wrapped in an IIFE. No bundler, no dependencies.
 
@@ -17,8 +17,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "frontend" / "src"
-TARGET = ROOT / "custom_components" / "werktags" / "www" / "werktags-cards.js"
-MANIFEST = ROOT / "custom_components" / "werktags" / "manifest.json"
+TARGET = ROOT / "custom_components" / "werktage" / "www" / "werktags-cards.js"
+MANIFEST = ROOT / "custom_components" / "werktage" / "manifest.json"
 
 
 def bundle() -> str:

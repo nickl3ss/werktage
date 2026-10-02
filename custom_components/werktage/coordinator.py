@@ -189,7 +189,7 @@ class WerktagsCoordinator:
         self._unsub.append(async_track_time_change(self.hass, self._daily_check, hour=3, minute=30, second=0))
         if self.hass.is_running:
             # added at run time: fetch now, in the background so setup does not wait for the network
-            self.entry.async_create_background_task(self.hass, self._startup_fetch(), "werktags school holidays")
+            self.entry.async_create_background_task(self.hass, self._startup_fetch(), "werktage school holidays")
         else:
             # at boot: wait until Home Assistant has started, the network may not be up yet
             self._unsub.append(self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._startup_fetch))

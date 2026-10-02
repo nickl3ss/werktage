@@ -22,7 +22,7 @@ split without changes:
 | Part | Content | Later |
 |---|---|---|
 | **Library** `openholidays` (`lib/`) | client for the OpenHolidays API, no Home Assistant dependency | own package on PyPI |
-| **Integration** `werktags` (`custom_components/werktags/`) | rules, entities, services, setup | candidate for Home Assistant core |
+| **Integration** `werktage` (`custom_components/werktage/`) | rules, entities, services, setup | candidate for Home Assistant core |
 | **Cards** (`frontend/`) | calendar, date range, residents, rooms | own HACS repository (category *Dashboard*) |
 
 It is an **integration**, not an *app* (formerly *add-on*): it runs inside Home
@@ -193,17 +193,17 @@ installation language.
 
 | Service | Fields | Effect |
 |---|---|---|
-| `werktags.set_days` | `person` (one or more), `start`, `end`, `status` (`day_off`/`workday`/`default`) | exceptions for a day or range |
-| `werktags.set_role` | `person`, `role` (`pupil`/`adult`/`none`), `valid_from`, `short_name` | adds a role step |
-| `werktags.remove_role` | `person`, `valid_from` | removes a role step |
-| `werktags.set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | adds an assignment step or sets rules |
-| `werktags.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |
-| `werktags.set_weekly` | `person`, `weekdays` (0 = Monday), `valid_from`, `household` | personal days off every week; `household` returns to the household weekend |
-| `werktags.set_house` | `person` (several), `valid_from`, `by_role` | residents that count for the house; `by_role` or no persons returns to the roles |
-| `werktags.get_days` | `start`, `weeks` | **returns** per day and resident: effective, default, exception, reason, holiday names, role |
-| `werktags.preview_days` | as `set_days` | **returns** the days that would change |
-| `werktags.get_overview` | — | **returns** all persons, areas, roles, assignments and source status |
-| `werktags.refresh_school_holidays` | — | fetches now |
+| `werktage.set_days` | `person` (one or more), `start`, `end`, `status` (`day_off`/`workday`/`default`) | exceptions for a day or range |
+| `werktage.set_role` | `person`, `role` (`pupil`/`adult`/`none`), `valid_from`, `short_name` | adds a role step |
+| `werktage.remove_role` | `person`, `valid_from` | removes a role step |
+| `werktage.set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | adds an assignment step or sets rules |
+| `werktage.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |
+| `werktage.set_weekly` | `person`, `weekdays` (0 = Monday), `valid_from`, `household` | personal days off every week; `household` returns to the household weekend |
+| `werktage.set_house` | `person` (several), `valid_from`, `by_role` | residents that count for the house; `by_role` or no persons returns to the roles |
+| `werktage.get_days` | `start`, `weeks` | **returns** per day and resident: effective, default, exception, reason, holiday names, role |
+| `werktage.preview_days` | as `set_days` | **returns** the days that would change |
+| `werktage.get_overview` | — | **returns** all persons, areas, roles, assignments and source status |
+| `werktage.refresh_school_holidays` | — | fetches now |
 
 Read services use `SupportsResponse.ONLY`. Writing checks the permission
 option (P12). Every rejected change raises a `ServiceValidationError` with its
@@ -248,7 +248,7 @@ The README provides a ready-made dashboard with the four cards.
   `mypy --strict`. hassfest runs locally from a sparse checkout of
   `home-assistant/core` (`script/hassfest`, `script/translations`,
   `script/util`) with the venv's Python and ruff on the path.
-- `custom_components/werktags/quality_scale.yaml` records every rule.
+- `custom_components/werktage/quality_scale.yaml` records every rule.
   Bronze is complete except `brands` (the pull request to
   `home-assistant/brands` waits for the repository to go public); target is
   **Platinum**: Silver and Gold are complete (coverage 99 %, documentation,
