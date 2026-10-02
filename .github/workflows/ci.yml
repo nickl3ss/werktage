@@ -54,3 +54,12 @@ jobs:
           node-version: "22"
       - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktags/www
       - run: node --test frontend/test/*.test.mjs
+
+  hacs-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in "https://raw.githubusercontent.com/nickl3ss/werktags/refs/heads/main/hacs.json" "https://raw.githubusercontent.com/nickl3ss/werktags/main/hacs.json" "https://raw.githubusercontent.com/nickl3ss/werktags/refs/heads/main/custom_components/werktags/manifest.json"; do
+            echo "== $u"; curl -sS -D - -o /tmp/body "$u" | head -12; head -c 200 /tmp/body; echo
+          done
+
