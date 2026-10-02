@@ -14,6 +14,8 @@
   existing installation: remove the old entry, install the new version, set
   it up again and re-create residents, rooms and exceptions (see README).
   The HACS bug is reported upstream with a one-line fix.
+- Unloading the entry after boot logged "Unable to remove unknown job
+  listener": the one-time start listener had already removed itself.
 
 ## 0.1.0 — 2026-10-02
 

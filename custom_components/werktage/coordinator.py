@@ -107,6 +107,7 @@ class WerktagsCoordinator:
         self._public_holidays_span: tuple[dt.date, dt.date] | None = None
         self._listeners: list[Callable[[], None]] = []
         self._unsub: list[CALLBACK_TYPE] = []
+        self._unsub_started: CALLBACK_TYPE | None = None     # the one-time start listener, until it fired
         self._fetching = False
         self._source_down = False      # for log-when-unavailable: one line on failure, one on recovery
 
@@ -192,12 +193,15 @@ class WerktagsCoordinator:
             self.entry.async_create_background_task(self.hass, self._startup_fetch(), "werktage school holidays")
         else:
             # at boot: wait until Home Assistant has started, the network may not be up yet
-            self._unsub.append(self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._startup_fetch))
+            self._unsub_started = self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._on_started)
 
     async def async_unload(self) -> None:
         for unsub in self._unsub:
             unsub()
         self._unsub.clear()
+        if self._unsub_started is not None:
+            self._unsub_started()
+            self._unsub_started = None
 
     async def _at_midnight(self, _now: dt.datetime) -> None:
         await self._async_public_holidays()      # a new year may have entered the kept span
@@ -205,6 +209,10 @@ class WerktagsCoordinator:
 
     async def _daily_check(self, _now: dt.datetime) -> None:
         await self.async_refresh_school_holidays()
+
+    async def _on_started(self, _event: Any) -> None:
+        self._unsub_started = None          # a one-time listener removes itself; unsubscribing it again logs an error
+        await self._startup_fetch()
 
     async def _startup_fetch(self, _event: Any = None) -> None:
         await self.async_refresh_school_holidays()

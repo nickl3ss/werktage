@@ -94,6 +94,7 @@ async def test_school_holidays_are_fetched_after_boot_and_checked_daily(hass: Ho
     fake_api.school_holidays.assert_awaited_once()
     coordinator = config_entry.runtime_data
     coordinator.data = coordinator.data.__class__(school_holidays=None)   # as if nothing was cached
+    assert coordinator._unsub_started is None                             # the one-time listener is spent
     async_fire_time_changed(hass, (dt_util.now() + dt.timedelta(days=2)).replace(hour=3, minute=30, second=0, microsecond=0))
     await hass.async_block_till_done()
     assert fake_api.school_holidays.await_count == 2
@@ -272,4 +273,31 @@ async def test_rooms_without_residents_are_dropped_when_loading(hass: HomeAssist
     assert config_entry.runtime_data.data.rooms == {}
     assert hass.states.get("sensor.kitchen_morning") is None
     assert hass_storage[f"{DOMAIN}.data"]["data"]["rooms"] == {}
+
+
+async def test_unloading_after_boot_does_not_log_an_error(hass: HomeAssistant, config_entry: MockConfigEntry, persons, areas,
+                                                          caplog):
+    """The one-time start listener removes itself; unloading must not try to remove it again."""
+    hass.set_state(CoreState.not_running)
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    hass.set_state(CoreState.running)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
+    caplog.clear()
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    assert "Unable to remove unknown job listener" not in caplog.text
+
+
+async def test_unloading_before_boot_removes_the_start_listener(hass: HomeAssistant, config_entry: MockConfigEntry, persons,
+                                                               areas, fake_api):
+    hass.set_state(CoreState.not_running)
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(config_entry.entry_id)
+    hass.set_state(CoreState.running)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STARTED)
+    await hass.async_block_till_done()
+    fake_api.school_holidays.assert_not_awaited()                          # nothing listens any more
 
