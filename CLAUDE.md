@@ -51,6 +51,8 @@ jederzeit öffentlich werden kann.
     .venv/bin/ruff check .                  # Lint, 120 Zeichen
     .venv/bin/python -m mypy                # strict, Integration und Bibliothek
     python3 tools/check_publication.py --areas
+    # Mindestversion (hacs.json "homeassistant") pruefen: eigene venv mit Python 3.13 und
+    # pytest-homeassistant-custom-component==0.13.308 (HA 2026.1.3), wie der CI-Job minimum-ha
 
 Alle müssen vor einem Commit sauber sein. `rules.py`, `sources.py` und
 `storage.py` importieren nichts aus Home Assistant und sind auch ohne das

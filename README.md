@@ -4,8 +4,9 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: in development.** Integration and cards work, are tested
-> (Home Assistant 2026.9) and run in a household. A first release follows.
+> **Status: 0.1.0.** Integration and cards are tested against Home Assistant
+> 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
+> [issues](https://github.com/nickl3ss/werktags/issues).
 
 ## What it does
 
@@ -50,10 +51,19 @@ patterns, and combines people into rooms and the house by a rule you choose.
 
 ## Installation
 
-1. Copy `custom_components/werktags/` into the `custom_components/` folder of
-   your Home Assistant configuration (or run `./deploy.sh <config dir>`), and
-   restart Home Assistant. HACS: add this repository as a custom repository
-   of type *Integration*.
+Requires Home Assistant 2026.1 or newer.
+
+1. **With HACS** (recommended):
+
+   [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktags&category=integration)
+
+   Or in HACS: *⋮ → Custom repositories*, add
+   `https://github.com/nickl3ss/werktags` with type *Integration*. Then
+   download *Werktags* and restart Home Assistant.
+
+   **Manually:** copy `custom_components/werktags/` into the
+   `custom_components/` folder of your Home Assistant configuration (or run
+   `./deploy.sh <config dir>`), and restart Home Assistant.
 2. *Settings → Devices & services → Add integration → Werktags*. Five short
    steps; every field can be changed later under *Configure → Settings*.
 
@@ -230,7 +240,7 @@ unavailable; their devices can then be deleted.
 
 - One school holiday region for the whole household; children at schools in
   different regions are not supported yet
-  ([idea 0001](docs/ideas/0001-school-holiday-source-per-person.md)).
+  ([#1](https://github.com/nickl3ss/werktags/issues/1)).
 - A day is either a workday or a day off — no half days, no shift times.
 - Days whose school holidays are not published yet count as **workdays** for
   pupils (reason `unknown`). The API usually publishes about two years ahead.
@@ -288,5 +298,7 @@ Morgen- und einen Abendmodus sowie einen Werktag-Binärsensor; zwei Blueprints
 decken Rollladen morgens und Licht abends ab. Bewohner, Räume und Haus lassen
 sich über die Karten oder das Optionen-Menü der Integration pflegen.
 
-> **Stand: in Entwicklung.** Integration und Karten funktionieren und sind
-> getestet (Home Assistant 2026.9). Eine erste Version folgt.
+> **Stand: 0.1.0.** Integration und Karten sind gegen Home Assistant 2026.1
+> (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
+> beschrieben; Ideen und Fehler als
+> [Issue](https://github.com/nickl3ss/werktags/issues).

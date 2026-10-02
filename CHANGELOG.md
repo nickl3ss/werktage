@@ -2,6 +2,10 @@
 
 ## 0.1.0 — 2026-09-29 (unreleased)
 
+- Release preparation: minimum Home Assistant 2026.1 (tested in CI next to
+  the current release; `hacs.json` said 2025.2, which never worked),
+  installation through HACS documented, the HACS check in CI is binding,
+  extension ideas moved to GitHub issues.
 - Gaps from the product audit: personal days off every week per resident
   (`set_weekly`, history), the house follows chosen residents instead of
   roles (`set_house`, history), extra and removed public holidays in the

@@ -47,11 +47,18 @@ async def test_set_role_creates_entities_without_restart(hass: HomeAssistant, ho
     assert hass.states.get("calendar.anna_days_off") is not None
 
 
+def _device(registry: dr.DeviceRegistry, identifier: str) -> dr.DeviceEntry | None:
+    """Device lookup that works on the minimum and the current Home Assistant release."""
+    if hasattr(registry, "async_get_device_by_identifier"):          # 2026.8 and later
+        return registry.async_get_device_by_identifier((DOMAIN, identifier), "test_entry")
+    return registry.async_get_device(identifiers={(DOMAIN, identifier)})
+
+
 async def test_devices_and_areas(hass: HomeAssistant, household, areas):
     registry = dr.async_get(hass)
-    bedroom = registry.async_get_device_by_identifier((DOMAIN, "test_entry_room_bedroom"), "test_entry")
+    bedroom = _device(registry, "test_entry_room_bedroom")
     assert bedroom is not None and bedroom.name == "Bedroom" and bedroom.area_id is None   # see entity.room_device
-    house = registry.async_get_device_by_identifier((DOMAIN, "test_entry_house"), "test_entry")
+    house = _device(registry, "test_entry_house")
     assert house is not None
 
 

@@ -14,10 +14,14 @@ import logging
 from pathlib import Path
 
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http.server import StaticPathConfig
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+
+try:
+    from homeassistant.components.http.server import StaticPathConfig
+except ImportError:  # pragma: no cover - Home Assistant before 2026.8
+    from homeassistant.components.http import StaticPathConfig  # type: ignore[attr-defined]
 
 _LOGGER = logging.getLogger(__name__)
 CARDS_FILE = "werktags-cards.js"
