@@ -13,7 +13,8 @@
   `/werktage_static/`, the store is `.storage/werktage.data`. Migrating an
   existing installation: remove the old entry, install the new version, set
   it up again and re-create residents, rooms and exceptions (see README).
-  The HACS bug is reported upstream with a one-line fix.
+  The HACS bug is reported upstream with a one-line fix. With the new names
+  the HACS validation passes all nine checks.
 - Unloading the entry after boot logged "Unable to remove unknown job
   listener": the one-time start listener had already removed itself.
 
