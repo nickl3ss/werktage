@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — 2026-09-29 (unreleased)
+## 0.1.0 — 2026-10-02
 
 - Release preparation: minimum Home Assistant 2026.1 (tested in CI next to
   the current release; `hacs.json` said 2025.2, which never worked),
