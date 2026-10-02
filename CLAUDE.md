@@ -69,4 +69,6 @@ Remote `origin` = `github.com/nickl3ss/werktags` (privat), Zugriff über einen
 Deploy-Key nur für dieses Repository. Commits laufen
 unter der anonymen GitHub-Adresse (`git config user.email`), damit keine
 private E-Mail-Adresse in der Historie steht; `tools/check_publication.py`
-prüft das mit.
+prüft das mit. Das Skript durchsucht auch die gesamte Historie (Diffs und
+Commit-Nachrichten); weitere private Suchbegriffe (Handles, Domains, Orte)
+stehen zeilenweise in der lokalen, ignorierten Datei `.publication-terms`.
