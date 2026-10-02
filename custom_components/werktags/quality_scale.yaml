@@ -5,8 +5,10 @@ rules:
     status: done
     comment: School holidays are fetched once a month; everything else is computed locally at midnight.
   brands:
-    status: todo
-    comment: The icon is in brand/; the pull request to home-assistant/brands follows once the repository is public.
+    status: done
+    comment: >-
+      Shipped as local brand images in brand/ (icon, icon@2x, logo, logo@2x), which Home Assistant
+      serves itself since 2026.3; the brands repository no longer accepts custom integrations.
   common-modules: done
   config-flow: done
   config-flow-test-coverage: done

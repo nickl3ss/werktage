@@ -2,6 +2,9 @@
 
 ## 0.1.0 — 2026-10-02
 
+- Brand icon ships inside the integration (`brand/`), as Home Assistant
+  2026.3 and later expects for custom integrations; no brands pull request.
+
 - Release preparation: minimum Home Assistant 2026.1 (tested in CI next to
   the current release; `hacs.json` said 2025.2, which never worked),
   installation through HACS documented, the HACS check in CI is binding,
