@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The User-Agent sent to OpenHolidays reported version 0.1.0 after the 0.2.0
+  release; `const.VERSION` now matches `manifest.json`, and a test keeps them
+  in step.
+
 ## 0.2.0 — 2026-10-02
 
 - **Breaking: domain renamed from `werktags` to `werktage`**, repository
