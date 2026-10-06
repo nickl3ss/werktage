@@ -18,6 +18,13 @@ class FakeElement {
   dispatchEvent() {}
 }
 class FakeResizeObserver { observe() {} disconnect() {} }
+// The cards start at "Monday of this week"; pin the clock to the fixtures' today (Thursday
+// 2026-10-01), or the tests break as soon as the real week moves on.
+const NOW = new Date(2026, 9, 1, 12, 0, 0).getTime();
+class FixedDate extends Date {
+  constructor(...args) { super(...(args.length ? args : [NOW])); }
+  static now() { return NOW; }
+}
 const defined = {};
 const registry = [];
 const env = {
@@ -25,6 +32,7 @@ const env = {
   window: { customCards: registry },
   HTMLElement: FakeElement,
   ResizeObserver: FakeResizeObserver,
+  Date: FixedDate,
   document: { createElement: (tag) => new (defined[tag])() },
   CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init?.detail; } },
   setTimeout: (fn) => { fn(); return 1; },

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Card tests pin the clock to the fixtures' date; they used the real date and
+  failed from the week after the fixtures (CI of 0.2.1).
+
 ## 0.2.1 — 2026-10-06
 
 - README: status line said 0.1.0; the upgrade note now tells Companion app
