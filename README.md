@@ -4,7 +4,7 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: 0.1.0.** Integration and cards are tested against Home Assistant
+> **Status: 0.2.0.** Integration and cards are tested against Home Assistant
 > 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
 > [issues](https://github.com/nickl3ss/werktage/issues).
 
@@ -57,6 +57,10 @@ patterns, and combines people into rooms and the house by a rule you choose.
 > 0.2.0, set it up again and re-create residents, rooms and exceptions —
 > or call `werktage.set_role`, `set_room`, `set_days` from a copy of the old
 > `.storage/werktags.data`. Entity ids and the dashboard cards stay the same.
+> The card script moved from `/werktags_static/` to `/werktage_static/`: a
+> Companion app that still holds the old page shows *Configuration error* on
+> every card, even after pulling to refresh — clear its frontend cache once
+> (*Settings → Companion app → Troubleshooting*).
 
 Requires Home Assistant 2026.1 or newer.
 
@@ -305,7 +309,7 @@ Morgen- und einen Abendmodus sowie einen Werktag-Binärsensor; zwei Blueprints
 decken Rollladen morgens und Licht abends ab. Bewohner, Räume und Haus lassen
 sich über die Karten oder das Optionen-Menü der Integration pflegen.
 
-> **Stand: 0.1.0.** Integration und Karten sind gegen Home Assistant 2026.1
+> **Stand: 0.2.0.** Integration und Karten sind gegen Home Assistant 2026.1
 > (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
 > beschrieben; Ideen und Fehler als
 > [Issue](https://github.com/nickl3ss/werktage/issues).

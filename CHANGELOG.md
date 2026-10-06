@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- README: status line said 0.1.0; the upgrade note now tells Companion app
+  users to clear the frontend cache once — an app page from before the rename
+  still loads the card script from `/werktags_static/` and shows
+  *Configuration error* on every card until then.
 - The User-Agent sent to OpenHolidays reported version 0.1.0 after the 0.2.0
   release; `const.VERSION` now matches `manifest.json`, and a test keeps them
   in step.
