@@ -310,5 +310,5 @@ def test_user_agent_reports_the_manifest_version():
     from custom_components.werktage.const import USER_AGENT, VERSION
 
     manifest = Path(__file__).parent.parent / "custom_components" / "werktage" / "manifest.json"
-    assert VERSION == json.loads(manifest.read_text())["version"]
+    assert json.loads(manifest.read_text())["version"] == VERSION
     assert f"/{VERSION} " in USER_AGENT

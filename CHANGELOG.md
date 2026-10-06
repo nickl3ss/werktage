@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 — 2026-10-06
 
 - README: status line said 0.1.0; the upgrade note now tells Companion app
   users to clear the frontend cache once — an app page from before the rename
