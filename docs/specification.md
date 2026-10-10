@@ -1,7 +1,7 @@
 # Werktags — Specification
 
-**Status:** draft, not implemented · **Version:** 2 (2026-09-29) — all open
-questions decided (P21–P32)
+**Status:** implemented (released as 0.2.x, quality scale Platinum) ·
+**Version:** 3 (2026-10-10) — all open questions decided (P21–P34)
 
 Werktags tells Home Assistant, **per person**, whether a day is a workday or a
 day off. From that it derives a **morning mode** (*workday* / *day off*) and an
@@ -65,6 +65,8 @@ type.
 | P30 | Residents of the house | Explicitly chosen residents (history); empty means everyone with a house role as before |
 | P31 | Holiday corrections | Settings: added holidays (`YYYY-MM-DD [name]`) and removed ones (date or part of the name); an added holiday counts as a public holiday, a removed one as an ordinary day |
 | P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
+| P33 | Public holidays fail at midnight | The error is logged and the day still changes with the holidays already known; sensors never keep yesterday's date (see P5: missing data is never silently a day off) |
+| P34 | Library version | `lib/openholidays` carries its own version, which only changes with the library; the integration's `manifest.json` version is what the User-Agent reports |
 
 ## 3. Rules
 
@@ -249,9 +251,10 @@ The README provides a ready-made dashboard with the four cards.
   `home-assistant/core` (`script/hassfest`, `script/translations`,
   `script/util`) with the venv's Python and ruff on the path.
 - `custom_components/werktage/quality_scale.yaml` records every rule.
-  Bronze is complete except `brands` (the pull request to
-  `home-assistant/brands` waits for the repository to go public); target is
-  **Platinum**: Silver and Gold are complete (coverage 99 %, documentation,
+  Bronze is complete; `brands` is met by the local brand images (`brand/`),
+  which Home Assistant 2026.3 and later load for custom integrations (the
+  brands repository no longer takes them). The scale is **Platinum**: Silver
+  and Gold are complete (coverage 99 %, documentation,
   translated errors), and so are the Platinum rules — the only network
   dependency is asyncio and gets Home Assistant's session, the synchronous
   `holidays` library runs in the executor everywhere (a test checks the
