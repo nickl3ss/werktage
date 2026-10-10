@@ -204,7 +204,11 @@ class WerktagsCoordinator:
             self._unsub_started = None
 
     async def _at_midnight(self, _now: dt.datetime) -> None:
-        await self._async_public_holidays()      # a new year may have entered the kept span
+        try:
+            await self._async_public_holidays()      # a new year may have entered the kept span
+        except ConfigEntryError as err:
+            # keep the holidays already known: the sensors must still move to the new day
+            _LOGGER.error("Public holidays could not be updated at midnight, keeping the known ones: %s", err)
         self._rebuild()
 
     async def _daily_check(self, _now: dt.datetime) -> None:

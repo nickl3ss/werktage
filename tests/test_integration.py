@@ -333,3 +333,18 @@ async def test_midnight_rebuild(hass: HomeAssistant, household):
         await hass.async_block_till_done()
         assert hass.states.get("sensor.anna_evening").state == "before_day_off"   # Friday → public holiday Saturday
         assert hass.states.get("sensor.anna_morning").attributes["date"] == "2026-10-02"
+
+
+async def test_midnight_survives_a_public_holiday_error(hass: HomeAssistant, household, caplog):
+    """If the public holidays cannot be recomputed at midnight, the day still changes with the known ones."""
+    from homeassistant.util import dt as dt_util
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+    with (patch("custom_components.werktage.coordinator.WerktagsCoordinator.today", return_value=d("2027-01-01")),
+          patch("custom_components.werktage.sources.public_holidays", side_effect=NotImplementedError("XX"))):
+        next_midnight = (dt_util.now() + dt.timedelta(days=1)).replace(hour=0, minute=0, second=15, microsecond=0)
+        async_fire_time_changed(hass, next_midnight)    # a new year enters the kept span: holidays are recomputed
+        await hass.async_block_till_done()
+    assert hass.states.get("sensor.anna_morning").attributes["date"] == "2027-01-01"
+    assert hass.states.get("sensor.anna_morning").state == "day_off"          # New Year's Day from the kept holidays
+    assert household.state.name == "LOADED"
+    assert "Public holidays could not be updated at midnight" in caplog.text

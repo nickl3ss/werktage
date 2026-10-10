@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- If computing the public holidays failed at midnight (for example after the
+  `holidays` library dropped a subdivision), the error was only logged by the
+  time listener and the sensors kept showing the previous day until the next
+  midnight. The error is now logged by the integration and the day still
+  changes with the holidays already known.
 - Card tests pin the clock to the fixtures' date; they used the real date and
   failed from the week after the fixtures (CI of 0.2.1).
 
