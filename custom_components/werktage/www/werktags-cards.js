@@ -1,4 +1,4 @@
-/* Werktags cards v0.2.1 — built from frontend/src by tools/build_cards.py. Do not edit. */
+/* Werktags cards v0.2.2 — built from frontend/src by tools/build_cards.py. Do not edit. */
 (() => {
 "use strict";
 /**

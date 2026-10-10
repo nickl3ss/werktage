@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 — 2026-10-10
 
 - `next_workday` and `next_day_off` are computed once per household and
   resident instead of on every state write (each scanned up to 400 days).

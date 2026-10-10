@@ -4,7 +4,7 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: 0.2.1.** Integration and cards are tested against Home Assistant
+> **Status: 0.2.2.** Integration and cards are tested against Home Assistant
 > 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
 > [issues](https://github.com/nickl3ss/werktage/issues).
 
@@ -309,7 +309,7 @@ Morgen- und einen Abendmodus sowie einen Werktag-Binärsensor; zwei Blueprints
 decken Rollladen morgens und Licht abends ab. Bewohner, Räume und Haus lassen
 sich über die Karten oder das Optionen-Menü der Integration pflegen.
 
-> **Stand: 0.2.1.** Integration und Karten sind gegen Home Assistant 2026.1
+> **Stand: 0.2.2.** Integration und Karten sind gegen Home Assistant 2026.1
 > (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
 > beschrieben; Ideen und Fehler als
 > [Issue](https://github.com/nickl3ss/werktage/issues).
