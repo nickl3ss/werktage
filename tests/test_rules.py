@@ -254,6 +254,16 @@ def test_next_workday_and_next_day_off(household):
     assert empty.next_day("x", thursday, workday=True) is None
 
 
+def test_next_day_is_scanned_once_per_household_and_question(household, monkeypatch):
+    thursday = d("2026-10-01")
+    first = household.next_day("anna", thursday, workday=True)
+    monkeypatch.setattr(Household, "_scan_next_day", lambda *_: pytest.fail("scanned again"))
+    assert household.next_day("anna", thursday, workday=True) == first == d("2026-10-02")
+    assert household.next_day("anna", thursday, workday=True) is first
+    with pytest.raises(pytest.fail.Exception):            # a different question is a different scan
+        household.next_day("anna", d("2026-10-02"), workday=True)
+
+
 def test_midnight_boundary_evening_looks_at_the_next_calendar_day(household):
     """P6: at 00:30 on Saturday the evening mode already refers to Sunday."""
     assert household.resident_modes("anna", d("2026-10-09"))[1] is EveningMode.BEFORE_DAY_OFF   # Fri → Sat

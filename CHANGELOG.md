@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `next_workday` and `next_day_off` are computed once per household and
+  resident instead of on every state write (each scanned up to 400 days).
+- Decision: the OpenHolidays library (`lib/openholidays`) keeps its own
+  version, which only changes with the library.
 - If computing the public holidays failed at midnight (for example after the
   `holidays` library dropped a subdivision), the error was only logged by the
   time listener and the sensors kept showing the previous day until the next

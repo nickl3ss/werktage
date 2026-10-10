@@ -20,7 +20,9 @@ entwickelt; alles darin kann jederzeit von jedem gelesen werden.
    Dienst- und Zustandsschlüssel. Deutsch und Englisch nur über
    `strings.json` und `translations/`.
 4. **Drei Teile, sauber getrennt** (Spezifikation Abschnitt 1):
-   - `lib/openholidays/` importiert nichts aus Home Assistant;
+   - `lib/openholidays/` importiert nichts aus Home Assistant und hat eine
+     eigene Version (`pyproject.toml`), die nur bei Änderungen an der
+     Bibliothek steigt, unabhängig von der Version der Integration;
    - die Integration greift auf die API nur über diese Bibliothek zu;
    - Karten lesen nur über Entitäten und Dienste mit Antwort, keine eigene
      WebSocket-API, kein Panel. `frontend.py` ist die einzige Stelle, die

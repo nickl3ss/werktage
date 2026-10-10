@@ -306,6 +306,9 @@ class Household:
     rooms: Mapping[str, Room] = field(default_factory=dict)
     house: House = field(default_factory=House)
     exceptions: Exceptions = field(default_factory=dict)
+    # next_day results; a household is rebuilt whenever its data changes, so the cache lives as long as the data
+    _next_day_cache: dict[tuple[str, dt.date, bool], dt.date | None] = field(default_factory=dict, repr=False,
+                                                                              compare=False)
 
     # -- one person -------------------------------------------------------
     def exception_for(self, resident_id: str, day: dt.date) -> DayType | None:
@@ -325,7 +328,17 @@ class Household:
         return default_day(role, day, self.calendar, resident.weekend_on(day))
 
     def next_day(self, resident_id: str, start: dt.date, workday: bool) -> dt.date | None:
-        """First day after ``start`` that is a workday (or a day off); ``None`` if not found."""
+        """First day after ``start`` that is a workday (or a day off); ``None`` if not found.
+
+        Every resident sensor asks twice per state write; the scan of up to
+        ``SEARCH_LIMIT_DAYS`` days runs once per household and question.
+        """
+        key = (resident_id, start, workday)
+        if key not in self._next_day_cache:
+            self._next_day_cache[key] = self._scan_next_day(resident_id, start, workday)
+        return self._next_day_cache[key]
+
+    def _scan_next_day(self, resident_id: str, start: dt.date, workday: bool) -> dt.date | None:
         day = start
         for _ in range(SEARCH_LIMIT_DAYS):
             day += ONE_DAY
