@@ -147,12 +147,11 @@ holiday.
 
 | Step | Field | Default |
 |---|---|---|
-| 1 | country, subdivision | from `hass.config.country` |
-| 1 | weekend days | Sat, Sun |
-| 1 | added holidays, removed holidays | none |
-| 2 | school holiday source, calendar entity | OpenHolidays if the country is covered, otherwise none |
-| 3 | house roles, house rules | `adult`, `day_off_wins`, `workday_wins` |
-| 3 | who may edit | all users |
+| 1 Country | country | from `hass.config.country` |
+| 2 Region | subdivision, weekend days, added holidays, removed holidays | nationwide, Sat + Sun, none |
+| 3 School holidays | source, calendar entity | OpenHolidays if the country is covered, otherwise none |
+| 4 House | house roles, morning rule, evening rule | `adult`, `day_off_wins`, `workday_wins` |
+| 5 Access | only administrators may change data | off |
 
 One config entry per installation (`single_config_entry`). The options flow
 opens a menu: the settings steps above (the entry reloads afterwards) or a
@@ -202,6 +201,7 @@ installation language.
 | `werktage.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |
 | `werktage.set_weekly` | `person`, `weekdays` (0 = Monday), `valid_from`, `household` | personal days off every week; `household` returns to the household weekend |
 | `werktage.set_house` | `person` (several), `valid_from`, `by_role` | residents that count for the house; `by_role` or no persons returns to the roles |
+| `werktage.set_order` | `person` (in the wanted order) | order of the residents in the calendar card |
 | `werktage.get_days` | `start`, `weeks` | **returns** per day and resident: effective, default, exception, reason, holiday names, role |
 | `werktage.preview_days` | as `set_days` | **returns** the days that would change |
 | `werktage.get_overview` | — | **returns** all persons, areas, roles, assignments and source status |

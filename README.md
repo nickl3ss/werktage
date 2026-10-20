@@ -202,7 +202,7 @@ Everything the cards do is an action of the `werktage` domain; the
 | `set_house` | `person` (several), `valid_from`, `by_role` | residents whose days count for the house; `by_role: true` or no persons returns to the roles |
 | `set_order` | `person` (in the wanted order) | order of residents in the calendar card |
 | `refresh_school_holidays` | — | fetches the school holidays now |
-| `get_days` | `start` (any day of the first week), `weeks` (1–8) | **returns** every day with weekend, holidays and, per resident, the effective and default day, exception, reason, role |
+| `get_days` | `start` (any day of the first week), `weeks` (1–26) | **returns** every day with weekend, holidays and, per resident, the effective and default day, exception, reason, role |
 | `preview_days` | as `set_days` | **returns** how many days per person would change; writes nothing |
 | `get_overview` | — | **returns** all persons and areas with roles, weekly patterns, assignments, the house and the source status |
 
@@ -283,7 +283,7 @@ contain the configuration and counts, never names of persons.
 | `lib/openholidays/` | client library for the OpenHolidays API, no Home Assistant dependency |
 | `frontend/` | source of the dashboard cards (`src/`) and their browserless tests (`test/`, run with `node --test frontend/test/*.test.mjs`); `tools/build_cards.py` bundles them into `custom_components/werktage/www/` |
 | `blueprints/` | automation blueprints |
-| `custom_components/werktage/brand/` | the icon (a house between night and day, with an early cyclist) for the brands repository; the artwork is in `docs/brand/` |
+| `custom_components/werktage/brand/` | the icon (a house between night and day, with an early cyclist), shipped as local brand images (Home Assistant ≥ 2026.3 loads them from the integration; the brands repository no longer takes custom integrations); the artwork is in `docs/brand/` |
 | `tests/` | tests |
 | `tools/check_publication.py` | checks that no private household data is in the repository |
 
