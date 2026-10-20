@@ -62,3 +62,14 @@ CALENDAR_LOOKBACK_DAYS = 366
 CALENDAR_LOOKAHEAD_DAYS = 400
 CALENDAR_DEBOUNCE_SECONDS = 30
 SERVICE_SET_CALENDARS = "set_calendars"
+
+
+# Export of days off into a shared calendar (#3): options and the pause after a rebuild
+CONF_EXPORT_CALENDAR = "export_calendar"
+CONF_EXPORT_WEEKS = "export_weeks"
+CONF_EXPORT_PERSONS = "export_persons"       # person ids; empty = everyone
+CONF_EXPORT_WEEKENDS = "export_weekends"
+DEFAULT_EXPORT_WEEKS = 8
+MAX_EXPORT_WEEKS = 26
+EXPORT_DEBOUNCE_SECONDS = 5
+ISSUE_EXPORT_FAILED = "export_failed"

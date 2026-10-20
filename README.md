@@ -263,6 +263,21 @@ Calendar integration), a Nextcloud or iCloud calendar (the CalDAV
 integration), or an ICS feed (the Remote Calendar integration) — anything
 that appears as a `calendar.*` entity works. Nothing is written back.
 
+## Export into a shared calendar
+
+Family members who never open a dashboard can still see "Clara: autumn break"
+on their phones: under *Werktage → Configure → Export into a calendar* choose
+a calendar that Home Assistant can write (a CalDAV family calendar on
+Nextcloud, iCloud or Synology, a Google calendar, or a Local Calendar), how
+many weeks ahead (default 8), which residents (default all) and whether
+weekends are included (default no, they would flood the calendar). The
+integration then writes one all-day event per resident and day off, titled
+`<name>: <reason>`, and keeps them current after every change and once a
+day: events that are no longer true are removed, events it did not write are
+never touched (they carry a `werktage:` marker in the description). This is
+an export, nothing flows back; reading personal calendars is the section
+above. A calendar that refuses writes raises a repair issue.
+
 ## Data updates
 
 - **Day change:** everything is recomputed at midnight and after every change

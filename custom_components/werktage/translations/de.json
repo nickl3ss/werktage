@@ -83,7 +83,8 @@
           "settings": "Einstellungen (Land, Schulferien, Haus, Zugriff)",
           "resident": "Bewohner anlegen oder ändern",
           "room": "Raum zuordnen",
-          "house": "Bewohner des Hauses"
+          "house": "Bewohner des Hauses",
+          "export": "In einen Kalender exportieren"
         }
       },
       "settings": {
@@ -195,6 +196,21 @@
           "person": "Leer: alle mit einer Haus-Rolle (siehe Einstellungen).",
           "valid_from": "Leer: heute."
         }
+      },
+      "export": {
+        "title": "Freie Tage in einen Kalender exportieren",
+        "description": "Schreibt die freien Tage der nächsten Wochen als ganztägige Termine in einen Kalender, den Home Assistant beschreiben kann (CalDAV, Google, Local Calendar). Nur eigene Termine werden angelegt und entfernt; leerer Kalender = Export aus.",
+        "data": {
+          "export_calendar": "Zielkalender",
+          "export_weeks": "Wochen im Voraus",
+          "export_persons": "Nur diese Bewohner",
+          "export_weekends": "Wochenenden einschließen"
+        },
+        "data_description": {
+          "export_calendar": "Ein Kalender, dessen Integration Termine anlegen und löschen kann.",
+          "export_persons": "Leer: alle Bewohner.",
+          "export_weekends": "Aus: nur Feiertage, Ferien und Ausnahmen; Wochenenden würden den Kalender fluten."
+        }
       }
     },
     "error": {
@@ -207,7 +223,8 @@
       "short_name_taken": "Dieses Kürzel ist bereits vergeben.",
       "short_name_length": "Das Kürzel muss ein oder zwei Zeichen haben.",
       "unknown_area": "Diesen Bereich gibt es nicht.",
-      "room_without_residents": "Mindestens einen Bewohner zuordnen. Die Regeln gehören zu einem Raum mit Bewohnern."
+      "room_without_residents": "Mindestens einen Bewohner zuordnen. Die Regeln gehören zu einem Raum mit Bewohnern.",
+      "export_unsupported": "Dieser Kalender kann keine Termine anlegen und löschen; wähle einen CalDAV-, Google- oder lokalen Kalender."
     },
     "abort": {
       "resident_saved": "Bewohner gespeichert.",
@@ -627,6 +644,10 @@
     "area_missing": {
       "title": "Räume ohne Bereich",
       "description": "Diese Räume verweisen auf Bereiche, die es in Home Assistant nicht mehr gibt: {ids}. Ihre Sensoren sind nicht verfügbar."
+    },
+    "export_failed": {
+      "title": "Freie Tage konnten nicht exportiert werden",
+      "description": "Der Kalender {calendar} nahm die Termine nicht an: {error}. Der Export wird nach jeder Änderung und täglich erneut versucht. Prüfe Freigabe und Zugangsdaten des Kalenders oder wähle in den Optionen einen anderen."
     }
   }
 }

@@ -58,6 +58,15 @@ Testumgebung: ein Home Assistant ≥ 2026.1 mit der installierten Version aus de
 | N7-4 | Kalender-Integration stoppen, Tag abwarten | Tage bleiben wie zuletzt gelesen, Warnung im Protokoll, kein „unbekannt“ |
 | N7-5 | *Werktage → Konfigurieren → Bewohner* ohne Kalenderfelder speichern | Kalender der Person entfernt |
 
+### N8 · Export in einen geteilten Kalender (#3)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N8-1 | *Werktage → Konfigurieren → In einen Kalender exportieren*: CalDAV- oder lokalen Kalender wählen, 8 Wochen, alle, ohne Wochenenden | Nach dem Speichern erscheinen je Bewohner und freiem Tag Termine `<Name>: <Grund>` (Feiertage, Ferien, Ausnahmen) im Kalender, auch auf dem Handy |
+| N8-2 | Einen Tag in der Kalenderkarte frei schalten, 10 s warten | Termin erscheint; zurück auf Standard → Termin verschwindet; fremde Termine bleiben |
+| N8-3 | Schreibgeschützten Kalender wählen | Fehltext „kann keine Termine anlegen und löschen“; bei späterem Fehler Reparaturhinweis *Freie Tage konnten nicht exportiert werden* |
+| N8-4 | Export abschalten (Kalender leeren) | Keine neuen Termine; bestehende bleiben (dokumentiert) |
+
 ## Regressionssuite
 
 Vor jedem Release vollständig, nach jedem Push die betroffenen Abschnitte.

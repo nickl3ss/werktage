@@ -269,3 +269,22 @@ async def test_options_menu_sets_the_personal_calendars(hass: HomeAssistant, set
         result["flow_id"], {"person": persons["p_anna"], "role": "adult"})
     await hass.async_block_till_done()
     assert setup_integration.runtime_data.data.residents["p_anna"].has_calendars is False
+
+
+async def test_options_menu_configures_the_export(hass: HomeAssistant, household: MockConfigEntry, persons):
+    """#3: target calendar (must create and delete events), horizon, residents and weekends land in the options."""
+    from custom_components.werktage.coordinator import WerktagsCoordinator
+    hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
+    with patch.object(WerktagsCoordinator, "export_supported", lambda self, entity_id: entity_id == "calendar.family"):
+        result = await _options(hass, household, "export")
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"export_calendar": "calendar.readonly", "export_weeks": 8, "export_weekends": False})
+        assert result["type"] is FlowResultType.FORM and result["errors"] == {"export_calendar": "export_unsupported"}
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"export_calendar": "calendar.family", "export_weeks": 4, "export_persons": [persons["p_anna"]],
+                                "export_weekends": True})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+    assert household.options["export_calendar"] == "calendar.family"
+    assert household.options["export_weeks"] == 4 and household.options["export_persons"] == ["p_anna"]
+    assert household.options["export_weekends"] is True

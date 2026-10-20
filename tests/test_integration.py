@@ -500,3 +500,77 @@ async def test_personal_calendars_give_days_off_and_extra_workdays(hass: HomeAss
     days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-12", weeks=1))["days"]}
     assert days["2026-10-14"]["reason"] == "workday"
     assert household.runtime_data.data.calendar_days == {}
+
+
+class FakeCalendar:
+    """A writable calendar entity as CalDAV, Google or Local Calendar provide it (#3)."""
+
+    def __init__(self) -> None:
+        from homeassistant.components.calendar import CalendarEntityFeature, CalendarEvent
+        self.supported_features = CalendarEntityFeature.CREATE_EVENT | CalendarEntityFeature.DELETE_EVENT
+        self.events = [CalendarEvent(d("2026-10-06"), d("2026-10-07"), "Dentist", description="foreign", uid="foreign-1")]
+        self.fail = False
+        self._next = 0
+
+    async def async_get_events(self, hass, start, end):
+        return [e for e in self.events if e.start < end.date() and e.end > start.date()]
+
+    async def async_create_event(self, **kwargs):
+        from homeassistant.components.calendar import CalendarEvent
+        if self.fail:
+            raise RuntimeError("read-only share")
+        self._next += 1
+        self.events.append(CalendarEvent(kwargs["dtstart"], kwargs["dtend"], kwargs["summary"],
+                                         description=kwargs.get("description"), uid=f"u{self._next}"))
+
+    async def async_delete_event(self, uid, recurrence_id=None, recurrence_range=None):
+        self.events = [e for e in self.events if e.uid != uid]
+
+    def own(self):
+        return sorted((e.description, e.summary) for e in self.events if (e.description or "").startswith("werktage:"))
+
+
+async def test_days_off_are_exported_into_a_shared_calendar(hass: HomeAssistant, household, call_service, persons):
+    """#3: wanted events are created, stale ones deleted, foreign ones untouched; failures raise a repair issue."""
+    from custom_components.werktage.coordinator import WerktagsCoordinator
+    fake = FakeCalendar()
+    hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
+    coordinator = household.runtime_data
+    with patch.object(WerktagsCoordinator, "_calendar_entity", lambda self, entity_id: fake if entity_id == "calendar.family" else None):
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": "calendar.family",
+                                                                   "export_weeks": 2, "export_weekends": False})
+        await coordinator.async_export_days_off()
+        own = fake.own()
+        assert ("werktage:p_anna/2026-10-03", "Anna: Tag der Deutschen Einheit") in own      # Saturday, but a holiday
+        assert ("werktage:p_clara/2026-10-05", "Clara: Autumn Holidays") in own
+        assert not any(key.endswith("/2026-10-04") for key, _ in own)                       # Sunday: no weekends
+        assert all(key >= "werktage:p" and not key.endswith("/2026-10-15") for key, _ in own)   # two weeks: 1–14 Oct
+        assert len([e for e in fake.events if e.uid == "foreign-1"]) == 1                    # foreign event untouched
+        count = len(own)
+
+        await call_service("set_days", person=persons["p_anna"], start="2026-10-07", status="day_off")   # a change …
+        async_fire_time_changed(hass, dt_util.utcnow() + dt.timedelta(seconds=6))                      # … exported after 5 s
+        await hass.async_block_till_done()
+        assert ("werktage:p_anna/2026-10-07", "Anna: Day off") in fake.own() and len(fake.own()) == count + 1
+        await call_service("set_days", person=persons["p_anna"], start="2026-10-07", status="default")
+        async_fire_time_changed(hass, dt_util.utcnow() + dt.timedelta(seconds=12))
+        await hass.async_block_till_done()
+        assert len(fake.own()) == count                                                       # stale event removed
+
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": ["p_clara"],
+                                                                   "export_weekends": True})
+        await coordinator.async_export_days_off()
+        assert all(key.startswith("werktage:p_clara/") for key, _ in fake.own())             # only Clara, with weekends
+        assert ("werktage:p_clara/2026-10-04", "Clara: Weekend") in fake.own()
+
+        fake.fail = True
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": []})
+        await coordinator.async_export_days_off()
+        assert ir.async_get(hass).async_get_issue(DOMAIN, "export_failed") is not None
+        fake.fail = False
+        await coordinator.async_export_days_off()
+        assert ir.async_get(hass).async_get_issue(DOMAIN, "export_failed") is None
+
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": ""})
+        await coordinator.async_export_days_off()                                            # off: nothing happens
+        assert coordinator.export_calendar is None

@@ -72,7 +72,8 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 |---|---|---|---|
 | OpenHolidays API (`openholidaysapi.org`) | HTTPS GET über `lib/openholidays`, HA-Session, Timeout 15 s, `User-Agent werktage/<version> (+repo)` | ODbL 1.0: Namensnennung (`attribution` an jeder Entität und Karte), keine Ferientermine im Repo; höchstens ein Abruf je 30 Tage je Quelle, Fenster ≤ 1095 Tage, drei Kalenderjahre | Cache bleibt; `failures` zählt; ab 3 Reparaturhinweis; unbekannte Tage → Werktag |
 | python-holidays | lokal im Executor (`sources.public_holidays`) | MIT; wird von HA mitgeliefert | Fehler um Mitternacht → bekannte Feiertage bleiben (P33); beim Laden → `country_unsupported` |
-| Home-Assistant-Kalender (`calendar.get_events`) | nur wenn Quelle `calendar` | ganztägige Ereignisse = Schulferien | `FetchFailed` wie oben; Attribution leer |
+| Home-Assistant-Kalender (`calendar.get_events`) | Schulferienquelle `calendar`, persönliche Kalender (#2) | ganztägige Ereignisse = Schulferien bzw. freie Tage/Werktage | `FetchFailed` wie oben bzw. letzte Tage bleiben; Attribution leer |
+| Zielkalender des Exports (Entitätsmethoden, #3) | nur wenn `export_calendar` gesetzt; Integration muss Termine anlegen und löschen können | nur eigene Termine (Marker `werktage:`) anlegen und löschen; fremde nie anfassen | Reparaturhinweis `export_failed`, Wiederholung nach jeder Änderung und täglich |
 | Home Assistant selbst | Personen-, Bereichs-, Entitäts- und Issue-Register; `Store`; Zeitplaner | Entladen ohne Neustart; Diagnose ohne Namen | — |
 
 ## 6 · Leistungsbudgets (PERF-01)
@@ -101,6 +102,7 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | 9 | Release als ZIP-Asset (`hacs.json` `zip_release`, #7) | GitHub zählt Asset-Downloads; Bundle und Bibliothek im Asset sind geprüft | Quell-Archiv des Tags (nicht zählbar) | 2026-10-20 | gültig; ältere Releases ohne Asset sind über HACS nicht mehr wählbar |
 | 10 | Standard `nickl3ss/standards` Stufe **Gold** | öffentliches Repo mit Fremdnutzern | Silber mit Ziel Gold | 2026-10-20 | gültig |
 | 11 | Sprache: Produkt und Code Englisch, Prozessdoku und Reviews Deutsch | internationale HACS-Nutzer; Standard-Vorlage ist deutsch | alles Deutsch; alles Englisch | 2026-10-20 | gültig |
+| 14 | Export in einen geteilten Kalender über die HA-Kalender-Entität (Entitätsmethoden `async_get_events`, `async_create_event`, `async_delete_event`), nur eigene Termine mit Marker (P37) | kein eigener CalDAV-Client (Zugangsdaten, Server-Eigenheiten doppelt wäre ein Schritt weg vom Core); Zwei-Wege-Abgleich bewusst ausgeschlossen | eigener CalDAV-Client; Dienst `calendar.create_event` (keine UIDs, kein Löschen) | 2026-10-21 | gültig |
 | 13 | Kalendertage liegen zwischen Standard und Ausnahme (`exception ?? calendar ?? default`, P36); nichts wird in Kalender zurückgeschrieben | Korrektur bleibt in der Karte möglich; Zwei-Wege-Abgleich ist der Punkt, an dem solche Funktionen unzuverlässig werden | Kalender als Ausnahmen importieren (verliert die Korrektur); Kalender über dem Standard **und** der Ausnahme | 2026-10-21 | gültig |
 | 12 | Windows-Entwicklung über Stubs (`tools/windows_dev.py`, `conftest.py`) statt WSL | Tests laufen in 18 s lokal; kein Neustart, keine Admin-Rechte | WSL; nur CI | 2026-10-20 | gültig |
 
@@ -132,6 +134,7 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | Geräte verschwundener Bewohner/Räume | Register-Einträge | bis der Nutzer sie im Gerätedialog löscht | `async_remove_config_entry_device` erlaubt nur verschwundene — `tests/test_quality.py::test_only_devices_of_vanished_residents_and_rooms_may_be_deleted` |
 | Logs | Warnungen/Fehler mit IDs, nie Namen | HA-Logrotation | Home Assistant |
 | Diagnose-Download | Zählungen, Konfiguration | erzeugt auf Anforderung, nicht gespeichert | — |
+| Exportierte Termine im Zielkalender (#3) | `<name>: <Grund>` je Bewohner und freiem Tag, Marker in der Beschreibung | gelöscht, sobald der Tag nicht mehr frei ist oder der Bewohner nicht mehr exportiert wird; Termine jenseits eines verkürzten Horizonts bleiben, bis sie in den Horizont fallen oder der Nutzer sie löscht; Export aus → bestehende Termine bleiben | Export nach jeder Änderung (5 s) und täglich |
 
 ## 10 · Bedrohungsmodell light (SEC-01) und Berechtigungsmatrix (SEC-17)
 
@@ -143,6 +146,7 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | Config-Flow und Optionen | — | nur HA-Administratoren (HA-Regel); Eingaben validiert (Land, Region, Datumsformat, Kalender existiert) |
 | OpenHolidays-Antwort | manipulierte oder fehlerhafte Daten | Schema-Prüfung in `lib/openholidays/models.py`; Plausibilität (Sommerferien je Jahr) vor Übernahme; Namen werden in den Karten maskiert (`esc()`) |
 | Kalender-Entität als Quelle | Fremdtitel aus geteilten Kalendern | nur ganztägige Ereignisse; Titel maskiert; Fehler an der Grenze gefangen (`FetchFailed`) |
+| Zielkalender des Exports | geteilter Familienkalender, andere Mitglieder | Werktage schreibt nur Termine mit eigenem Marker und löscht nur solche; Zugangsdaten hält die Kalender-Integration, nie Werktage |
 | Statischer Pfad `/werktage_static/` | Fremder ohne Login | liefert nur das Bundle (ohne Daten); kein Verzeichnis-Listing; Cache-Header |
 | Diagnose-Download | Mitbewohner mit Adminrechten | enthält keine Namen, keine IDs (Invariante 9) |
 | Store-Datei | Mitbewohner mit Dateizugriff | außerhalb des Modells (wer `.storage` lesen kann, hat alle HA-Daten); beschädigte Datei → `store_unreadable`, nie Teilzustand |

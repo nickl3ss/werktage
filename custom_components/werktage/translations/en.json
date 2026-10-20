@@ -83,7 +83,8 @@
           "settings": "Settings (country, school holidays, house, access)",
           "resident": "Add or change a resident",
           "room": "Assign a room",
-          "house": "Residents of the house"
+          "house": "Residents of the house",
+          "export": "Export into a calendar"
         }
       },
       "settings": {
@@ -195,6 +196,21 @@
           "person": "Empty: everyone with a house role (see settings).",
           "valid_from": "Today if empty."
         }
+      },
+      "export": {
+        "title": "Export days off into a calendar",
+        "description": "Writes the days off of the coming weeks as all-day events into a calendar Home Assistant can write (CalDAV, Google, Local Calendar). Only its own events are created and removed; an empty calendar switches the export off.",
+        "data": {
+          "export_calendar": "Target calendar",
+          "export_weeks": "Weeks ahead",
+          "export_persons": "Only these residents",
+          "export_weekends": "Include weekends"
+        },
+        "data_description": {
+          "export_calendar": "A calendar whose integration can create and delete events.",
+          "export_persons": "Empty: every resident.",
+          "export_weekends": "Off: only public holidays, school holidays and exceptions; weekends would flood the calendar."
+        }
       }
     },
     "error": {
@@ -207,7 +223,8 @@
       "short_name_taken": "This short name is already used.",
       "short_name_length": "The short name must have one or two characters.",
       "unknown_area": "This area does not exist.",
-      "room_without_residents": "Assign at least one resident. The rules belong to a room that has residents."
+      "room_without_residents": "Assign at least one resident. The rules belong to a room that has residents.",
+      "export_unsupported": "This calendar cannot create and delete events; choose a CalDAV, Google or local calendar."
     },
     "abort": {
       "resident_saved": "Resident saved.",
@@ -627,6 +644,10 @@
     "area_missing": {
       "title": "Rooms without an area",
       "description": "These rooms refer to areas that no longer exist in Home Assistant: {ids}. Their sensors are unavailable."
+    },
+    "export_failed": {
+      "title": "Days off could not be exported",
+      "description": "The calendar {calendar} did not take the events: {error}. The export is retried after every change and daily. Check the calendar's sharing and credentials or choose another one in the options."
     }
   }
 }

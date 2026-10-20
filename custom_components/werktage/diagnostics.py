@@ -15,6 +15,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: Werktag
         "status": c.status(),
         "house": {"roles": sorted(r.value for r in c.house.roles), "morning_rule": c.house.morning_rule.value,
                   "evening_rule": c.house.evening_rule.value, "admin_only": c.admin_only},
+        "export": {"enabled": bool(c.export_calendar), "weeks": c.export_weeks, "persons": len(c.export_persons),
+                   "weekends": c.export_weekends},
         "counts": {
             "residents": len(data.residents),
             "school_holiday_sources": len(data.school_holidays),

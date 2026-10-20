@@ -22,6 +22,9 @@ from homeassistant.helpers.selector import (
     DateSelector,
     EntitySelector,
     EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -36,6 +39,10 @@ from .const import (
     CONF_ADMIN_ONLY,
     CONF_CALENDAR_ENTITY,
     CONF_COUNTRY,
+    CONF_EXPORT_CALENDAR,
+    CONF_EXPORT_PERSONS,
+    CONF_EXPORT_WEEKENDS,
+    CONF_EXPORT_WEEKS,
     CONF_HOUSE_EVENING_RULE,
     CONF_HOUSE_MORNING_RULE,
     CONF_HOUSE_ROLES,
@@ -43,8 +50,10 @@ from .const import (
     CONF_SCHOOL_HOLIDAY_SOURCE,
     CONF_SUBDIVISION,
     CONF_WEEKEND,
+    DEFAULT_EXPORT_WEEKS,
     DEFAULT_WEEKEND_DAYS,
     DOMAIN,
+    MAX_EXPORT_WEEKS,
     NAME,
     SOURCE_CALENDAR,
     SOURCE_NONE,
@@ -64,6 +73,7 @@ STEP_COUNTRY, STEP_REGION, STEP_SCHOOL_HOLIDAYS, STEP_HOUSE, STEP_ACCESS = (
     "user", "region", "school_holidays", "house", "access")
 # options flow: the settings chain starts at "settings"; "house" is the residents form there
 STEP_SETTINGS, STEP_HOUSE_RULES, STEP_RESIDENT, STEP_ROOM = "settings", "house_rules", "resident", "room"
+STEP_EXPORT = "export"
 NextStep = Callable[[], Awaitable[ConfigFlowResult]]
 
 
@@ -272,6 +282,19 @@ def room_schema() -> vol.Schema:
     })
 
 
+def export_schema(defaults: dict[str, Any]) -> vol.Schema:
+    """Target calendar, horizon, residents and weekends of the export (#3); an empty calendar switches it off."""
+    calendar = defaults.get(CONF_EXPORT_CALENDAR) or vol.UNDEFINED
+    return vol.Schema({
+        vol.Optional(CONF_EXPORT_CALENDAR, default=calendar): EntitySelector(EntitySelectorConfig(domain="calendar")),
+        vol.Required(CONF_EXPORT_WEEKS, default=defaults.get(CONF_EXPORT_WEEKS, DEFAULT_EXPORT_WEEKS)): NumberSelector(
+            NumberSelectorConfig(min=1, max=MAX_EXPORT_WEEKS, step=1, mode=NumberSelectorMode.BOX)),
+        vol.Optional(CONF_EXPORT_PERSONS, default=defaults.get(CONF_EXPORT_PERSONS, [])): EntitySelector(
+            EntitySelectorConfig(domain="person", multiple=True)),
+        vol.Required(CONF_EXPORT_WEEKENDS, default=defaults.get(CONF_EXPORT_WEEKENDS, False)): BooleanSelector(),
+    })
+
+
 def house_residents_schema() -> vol.Schema:
     return vol.Schema({
         vol.Optional("person"): EntitySelector(EntitySelectorConfig(domain="person", multiple=True)),
@@ -294,7 +317,7 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="init",
-                                    menu_options=[STEP_SETTINGS, STEP_RESIDENT, STEP_ROOM, STEP_HOUSE])
+                                    menu_options=[STEP_SETTINGS, STEP_RESIDENT, STEP_ROOM, STEP_HOUSE, STEP_EXPORT])
 
     # -- settings chain ---------------------------------------------------------
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -373,6 +396,29 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                 else:
                     return self.async_abort(reason="room_saved")
         return self.async_show_form(step_id=STEP_ROOM, data_schema=room_schema(), errors=errors)
+
+    async def async_step_export(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        c, errors = self._coordinator, {}
+        options = {**self.config_entry.options}
+        if user_input is not None:
+            calendar = user_input.get(CONF_EXPORT_CALENDAR) or ""
+            if calendar and not c.export_supported(calendar):
+                errors[CONF_EXPORT_CALENDAR] = "export_unsupported"
+            else:
+                try:
+                    persons = self._resident_ids(user_input.get(CONF_EXPORT_PERSONS) or [])
+                except ValueError:
+                    errors[CONF_EXPORT_PERSONS] = "not_resident"
+                else:
+                    options.update({CONF_EXPORT_CALENDAR: calendar,
+                                    CONF_EXPORT_WEEKS: int(user_input[CONF_EXPORT_WEEKS]),
+                                    CONF_EXPORT_PERSONS: persons,
+                                    CONF_EXPORT_WEEKENDS: bool(user_input.get(CONF_EXPORT_WEEKENDS, False))})
+                    return self.async_create_entry(title="", data=options)
+        defaults = {CONF_EXPORT_CALENDAR: c.export_calendar, CONF_EXPORT_WEEKS: c.export_weeks,
+                    CONF_EXPORT_WEEKENDS: c.export_weekends,
+                    CONF_EXPORT_PERSONS: [e for pid in sorted(c.export_persons) if (e := c.person_entity_id(pid))]}
+        return self.async_show_form(step_id=STEP_EXPORT, data_schema=export_schema(defaults), errors=errors)
 
     async def async_step_house(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         c, errors = self._coordinator, {}

@@ -12,6 +12,9 @@ from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any
 
+from homeassistant.components.calendar import CalendarEntity
+from homeassistant.components.calendar.const import DOMAIN as CALENDAR_DOMAIN
+from homeassistant.components.calendar.const import CalendarEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, callback
@@ -21,11 +24,12 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.debounce import Debouncer
+from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from . import sources, storage
+from . import export, sources, storage
 from .const import (
     ATTRIBUTION_OPENHOLIDAYS,
     CALENDAR_DEBOUNCE_SECONDS,
@@ -35,6 +39,10 @@ from .const import (
     CONF_ADMIN_ONLY,
     CONF_CALENDAR_ENTITY,
     CONF_COUNTRY,
+    CONF_EXPORT_CALENDAR,
+    CONF_EXPORT_PERSONS,
+    CONF_EXPORT_WEEKENDS,
+    CONF_EXPORT_WEEKS,
     CONF_HOUSE_EVENING_RULE,
     CONF_HOUSE_MORNING_RULE,
     CONF_HOUSE_ROLES,
@@ -42,10 +50,13 @@ from .const import (
     CONF_SCHOOL_HOLIDAY_SOURCE,
     CONF_SUBDIVISION,
     CONF_WEEKEND,
+    DEFAULT_EXPORT_WEEKS,
     DEFAULT_WEEKEND_DAYS,
     DOMAIN,
+    EXPORT_DEBOUNCE_SECONDS,
     FETCH_INTERVAL_DAYS,
     ISSUE_AREA_MISSING,
+    ISSUE_EXPORT_FAILED,
     ISSUE_PERSON_MISSING,
     ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE,
     ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE,
@@ -60,6 +71,7 @@ from .rules import (
     DEFAULT_EVENING_RULE,
     DEFAULT_HOUSE_ROLES,
     DEFAULT_MORNING_RULE,
+    ONE_DAY,
     Calendar,
     CalendarDays,
     CombineRule,
@@ -136,6 +148,10 @@ class WerktagsCoordinator:
         self._unsub_calendars: CALLBACK_TYPE | None = None     # state changes of the personal calendars (#2)
         self._calendar_debouncer = Debouncer(hass, _LOGGER, cooldown=CALENDAR_DEBOUNCE_SECONDS, immediate=False,
                                              function=self.async_refresh_calendars)
+        self._export_debouncer = Debouncer(hass, _LOGGER, cooldown=EXPORT_DEBOUNCE_SECONDS, immediate=False,
+                                           function=self.async_export_days_off)     # after a burst of changes (#3)
+        self._export_down = False
+        self._exporting = False
 
     # -- configuration (options win over data) ---------------------------------
     def _conf(self, key: str, default: Any = None) -> Any:
@@ -164,6 +180,24 @@ class WerktagsCoordinator:
     @property
     def admin_only(self) -> bool:
         return bool(self._conf(CONF_ADMIN_ONLY, False))
+
+    # -- export into a shared calendar (#3) ------------------------------------
+    @property
+    def export_calendar(self) -> str | None:
+        return self._conf(CONF_EXPORT_CALENDAR) or None
+
+    @property
+    def export_weeks(self) -> int:
+        return int(self._conf(CONF_EXPORT_WEEKS, DEFAULT_EXPORT_WEEKS))
+
+    @property
+    def export_persons(self) -> frozenset[str]:
+        """Residents to export; empty means everyone."""
+        return frozenset(str(pid) for pid in self._conf(CONF_EXPORT_PERSONS, []) or [])
+
+    @property
+    def export_weekends(self) -> bool:
+        return bool(self._conf(CONF_EXPORT_WEEKENDS, False))
 
     @property
     def house(self) -> House:
@@ -284,6 +318,7 @@ class WerktagsCoordinator:
             self._unsub_calendars()
             self._unsub_calendars = None
         self._calendar_debouncer.async_cancel()
+        self._export_debouncer.async_cancel()
         if self._unsub_started is not None:
             self._unsub_started()
             self._unsub_started = None
@@ -308,6 +343,7 @@ class WerktagsCoordinator:
     async def _startup_fetch(self, _event: Any = None) -> None:
         await self.async_refresh_school_holidays()
         await self.async_refresh_calendars()
+        await self.async_export_days_off()
 
     # -- listeners ---------------------------------------------------------------------
     @callback
@@ -364,6 +400,8 @@ class WerktagsCoordinator:
                                    calendar_days)
         self._check_registry_issues()
         self._notify()
+        if self.export_calendar and self.hass.is_running:        # at boot the target calendar may not be up yet
+            self.entry.async_create_background_task(self.hass, self._export_debouncer.async_call(), "werktage export")
 
     async def _async_save(self) -> None:
         await self._store.async_save(storage.to_dict(self.data))
@@ -541,6 +579,71 @@ class WerktagsCoordinator:
             caches.pop(person_id)
         if caches != self.data.calendar_days:
             await self._async_commit(replace(self.data, calendar_days=caches))
+
+    # -- export into a shared calendar (#3) ------------------------------------------------
+    def _calendar_entity(self, entity_id: str) -> CalendarEntity | None:
+        """The calendar entity object (for events with uids and for writing), if its integration is loaded."""
+        component: EntityComponent[CalendarEntity] | None = self.hass.data.get(CALENDAR_DOMAIN)
+        return component.get_entity(entity_id) if component else None
+
+    def export_supported(self, entity_id: str) -> bool:
+        """Whether the calendar can take our events: its integration must create and delete events."""
+        entity = self._calendar_entity(entity_id)
+        needed = CalendarEntityFeature.CREATE_EVENT | CalendarEntityFeature.DELETE_EVENT
+        return entity is not None and (entity.supported_features or 0) & needed == needed
+
+    async def async_export_days_off(self) -> None:
+        """Write the coming days off into the shared calendar and remove the ones that are no longer true.
+
+        Only events with our marker in the description are ever created, compared or
+        deleted (export.py); everything else in the calendar stays untouched. Failures
+        raise a repair issue and are logged once until the export works again.
+        """
+        entity_id = self.export_calendar
+        if not entity_id:
+            self._issue(ISSUE_EXPORT_FAILED, False)
+            return
+        if self._exporting:
+            return
+        self._exporting = True
+        try:
+            entity = self._calendar_entity(entity_id)
+            if entity is None or not self.export_supported(entity_id):
+                self._export_problem(entity_id, "the calendar is not loaded or cannot create and delete events")
+                return
+            today = self.today()
+            last = today + dt.timedelta(weeks=self.export_weeks) - ONE_DAY
+            residents = [pid for pid in self.data.residents if not self.export_persons or pid in self.export_persons]
+            names = {pid: self.person_name(pid) for pid in residents}
+            wanted = export.wanted_events(self.household, residents, names, today, last, self.export_weekends,
+                                          self.hass.config.language)
+            tz = dt_util.get_default_time_zone()
+            try:
+                events = await entity.async_get_events(self.hass, dt.datetime.combine(today, dt.time(), tz),
+                                                       dt.datetime.combine(last + ONE_DAY, dt.time(), tz))
+                existing = [export.OwnEvent(event.uid, key, event.summary) for event in events
+                            if event.uid and (key := export.key_of(event.description))]
+                to_create, to_delete = export.plan(wanted, existing)
+                for stale in to_delete:
+                    await entity.async_delete_event(stale.uid)
+                for new in to_create:
+                    await entity.async_create_event(dtstart=new.day, dtend=new.day + ONE_DAY, summary=new.summary,
+                                                    description=new.description)
+            except Exception as err:  # noqa: BLE001 — a calendar integration may raise anything
+                self._export_problem(entity_id, str(err))
+                return
+            if self._export_down:
+                _LOGGER.info("Export into %s works again", entity_id)
+                self._export_down = False
+            self._issue(ISSUE_EXPORT_FAILED, False)
+        finally:
+            self._exporting = False
+
+    def _export_problem(self, entity_id: str, error: str) -> None:
+        if not self._export_down:
+            _LOGGER.warning("Days off could not be exported into %s: %s", entity_id, error)
+            self._export_down = True
+        self._issue(ISSUE_EXPORT_FAILED, True, {"calendar": entity_id, "error": error})
 
     @callback
     def _track_calendars(self) -> None:

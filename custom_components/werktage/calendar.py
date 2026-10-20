@@ -10,6 +10,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import SOURCE_NONE
 from .coordinator import WerktagsConfigEntry, WerktagsCoordinator
 from .entity import WerktagsEntity, house_device, resident_device
+from .export import reason_label
 from .rules import ONE_DAY, DayInfo, Reason, Role
 
 PARALLEL_UPDATES = 0
@@ -72,7 +73,7 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
             return info.holiday_name
         if info.role is Role.PUPIL and (name := self.coordinator.household.calendar.school_holidays.name_on(day)):
             return name
-        return info.holiday_name or _summary(info.reason, self.coordinator.hass.config.language)
+        return info.holiday_name or reason_label(info.reason, self.coordinator.hass.config.language)
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -107,18 +108,6 @@ class SchoolHolidaysCalendar(WerktagsEntity, CalendarEntity):
     async def async_get_events(self, hass: HomeAssistant, start_date: dt.datetime,
                                end_date: dt.datetime) -> list[CalendarEvent]:
         return self._events(start_date.date(), end_date.date())
-
-
-_SUMMARIES = {
-    "en": {Reason.WEEKEND: "Weekend", Reason.EXCEPTION_DAY_OFF: "Day off"},
-    "de": {Reason.WEEKEND: "Wochenende", Reason.EXCEPTION_DAY_OFF: "Frei"},
-}
-
-
-def _summary(reason: Reason, language: str | None) -> str:
-    """Event title for a day off without a holiday name, in the installation's language."""
-    table = _SUMMARIES.get((language or "en").split("-")[0].lower(), _SUMMARIES["en"])
-    return table.get(reason, reason.value.replace("_", " "))
 
 
 def _event(start: dt.date, end: dt.date, summary: str) -> CalendarEvent:
