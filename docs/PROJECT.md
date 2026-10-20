@@ -43,11 +43,12 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 |---|---|---|---|
 | `residents[<person_id>].roles` | `History[Role]` (`adult` · `pupil` · `none`), Schritte mit `valid_from` | Rolle ab Datum; `none` beendet die Mitgliedschaft | Personen-ID aus `person.*` (stabil über Umbenennungen) |
 | `residents[].short_name`, `order` | 1–2 Zeichen, Reihenfolge | Anzeige in den Karten | Kürzel ist vom Nutzer gewählt |
+| `residents[].school_holiday_source` | Quellenschlüssel oder `null` | eigene Schulferienquelle (`openholidays:DE-HE`, `calendar:<entity>`), sonst die der Installation (#1) | Schulort |
 | `residents[].off_weekdays` | `History[frozenset[int] \| None]` | persönliche freie Wochentage ab Datum; `None`-Schritt = Haushaltswochenende (P29, #11) | Arbeitsmuster |
 | `rooms[<area_id>].residents` | `History[frozenset[str]]` | Bewohner eines Raums ab Datum | Bereichs-ID |
 | `rooms[].morning_rule`, `evening_rule` | `day_off_wins` · `workday_wins` | Kombinationsregel | — |
 | `exceptions[<date>][<person_id>]` | `DayType` (`workday` · `day_off`) | manuelle Ausnahme, relativ zum Standard normalisiert | Abwesenheitsmuster |
-| `school_holidays` | `source`, `periods[]` (start, end, name), `known_from`, `known_to`, `fetched_at` (UTC), `failures` | Cache der Quelle; frühere Jahre bleiben erhalten | — (öffentliche Daten, ODbL) |
+| `school_holidays[<key>]` | je Quellenschlüssel: `source`, `periods[]` (start, end, name), `known_from`, `known_to`, `fetched_at` (UTC), `failures` | Cache je Quelle in Benutzung (Installation und Bewohner, #1); frühere Jahre bleiben erhalten; ungenutzte Quellen werden beim Abruf entfernt | — (öffentliche Daten, ODbL) |
 | `house.residents` | `History[frozenset[str] \| None]` | explizit gewählte Hausbewohner; `None`-Schritt = nach Rolle (P30, #11) | — |
 
 **Config-Eintrag** (`const.py`): Land, Region, Wochenende, Schulferienquelle (`openholidays` · `calendar` · `none`) und Kalender-Entität, zusätzliche und entfernte Feiertage, Hausrollen, Haus-Morgen-/Abendregel, `admin_only`. Daten sind lokale Kalendertage; nur `fetched_at` ist ein UTC-Zeitpunkt. Namen kommen zur Laufzeit aus dem HA-Personenregister und werden nie gespeichert.

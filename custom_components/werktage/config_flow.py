@@ -247,12 +247,13 @@ class WerktagsConfigFlow(_Steps, ConfigFlow, domain=DOMAIN):
         return WerktagsOptionsFlow()
 
 
-def resident_schema() -> vol.Schema:
+def resident_schema(source_options: list[SelectOptionDict]) -> vol.Schema:
     return vol.Schema({
         vol.Required("person"): EntitySelector(EntitySelectorConfig(domain="person")),
         vol.Required("role", default=Role.ADULT.value): _select([r.value for r in Role], translation_key="role"),
         vol.Optional("short_name"): TextSelector(),
         vol.Optional("off_weekdays"): _select(WEEKDAYS, multiple=True, translation_key="weekday"),
+        vol.Optional("school_holiday_source", default=""): _select(source_options),
         vol.Optional("valid_from"): DateSelector(),
     })
 
@@ -333,7 +334,8 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
             valid_from = _date_or_today(user_input.get("valid_from"), c.today())
             try:
                 await c.async_set_role(person_id, Role(user_input["role"]), valid_from,
-                                       (user_input.get("short_name") or "").strip() or None)
+                                       (user_input.get("short_name") or "").strip() or None,
+                                       user_input.get("school_holiday_source") or None)
             except WerktagsError as err:
                 errors["short_name"] = err.key            # short_name_taken or short_name_length
             else:
@@ -343,7 +345,8 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                 elif c.data.residents[person_id].off_weekdays.steps:
                     await c.async_set_weekly(person_id, None, valid_from)
                 return self.async_abort(reason="resident_saved")
-        return self.async_show_form(step_id=STEP_RESIDENT, data_schema=resident_schema(), errors=errors)
+        options = [SelectOptionDict(value=o["value"], label=o["label"]) for o in c.school_holiday_source_options()]
+        return self.async_show_form(step_id=STEP_RESIDENT, data_schema=resident_schema(options), errors=errors)
 
     async def async_step_room(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         c, errors = self._coordinator, {}

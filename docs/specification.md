@@ -55,7 +55,7 @@ type.
 | P20 | Date ranges | Own card: `day_off` · `workday` · `default`, people, from–to; applies to **every day** in the range, including weekends and public holidays |
 | P21 | Entities | **Two sensors** per resident, room and house (`morning`, `evening`) plus a read-only calendar per resident; no separate workday binary sensors |
 | P22 | Role key for pupils | `pupil` (displayed *Pupil* / *Schüler*) |
-| P23 | School holidays | **One school holiday calendar per installation**, shared by all pupils; individual school days off are exceptions |
+| P23 | School holidays | **One school holiday calendar per installation**, shared by all pupils; individual school days off are exceptions. Since 0.3.0 a resident may name another source (region or calendar, #1); caches are kept per source, public holidays stay per installation |
 | P24 | School on Saturdays | Not supported; the weekend is the same for everyone; single school Saturdays are exceptions |
 | P25 | Christmas Eve, New Year's Eve | Workdays unless they are public holidays in the subdivision |
 | P26 | Exceptions on role or room change | **Kept** — exceptions belong to person and day |
@@ -203,7 +203,7 @@ installation language.
 | Service | Fields | Effect |
 |---|---|---|
 | `werktage.set_days` | `person` (one or more), `start`, `end`, `status` (`day_off`/`workday`/`default`) | exceptions for a day or range |
-| `werktage.set_role` | `person`, `role` (`pupil`/`adult`/`none`), `valid_from`, `short_name` | adds a role step |
+| `werktage.set_role` | `person`, `role` (`pupil`/`adult`/`none`), `valid_from`, `short_name`, `school_holiday_source` | adds a role step; sets the resident's own school holiday source (`openholidays:<country>-<subdivision>` · `calendar:<entity_id>` · empty = the installation's) |
 | `werktage.remove_role` | `person`, `valid_from` | removes a role step |
 | `werktage.set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | adds an assignment step or sets rules |
 | `werktage.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |

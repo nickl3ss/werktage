@@ -391,3 +391,43 @@ async def test_the_house_has_a_school_holidays_calendar(hass: HomeAssistant, hou
         blocking=True, return_response=True)
     events = [(e["start"], e["end"], e["summary"]) for e in response["calendar.house_school_holidays"]["events"]]
     assert events == [("2026-10-05", "2026-10-17", "Autumn Holidays"), ("2026-12-23", "2027-01-09", "Christmas Holidays")]
+
+
+async def test_a_resident_may_have_another_school_holiday_source(hass: HomeAssistant, household, call_service, persons,
+                                                                fake_api):
+    """#1: Clara goes to school in another region; her holidays come from that source, everyone else is unchanged."""
+    from custom_components.werktage.openholidays import Holiday
+    hesse = [Holiday("x1", d("2026-10-12"), d("2026-10-23"), {"EN": "Autumn Holidays"}, "School", False, ("DE-HE",)),
+             Holiday("x2", d("2026-06-29"), d("2026-08-07"), {"EN": "Summer Holidays"}, "School", False, ("DE-HE",)),
+             Holiday("x3", d("2027-07-05"), d("2027-08-13"), {"EN": "Summer Holidays"}, "School", False, ("DE-HE",))]
+    default = list(fake_api.school_holidays.return_value)
+
+    async def by_region(country, subdivision, first, last):
+        return hesse if subdivision == "DE-HE" else default
+
+    fake_api.school_holidays.side_effect = by_region
+    await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                       school_holiday_source="openholidays:DE-HE")
+    await hass.async_block_till_done()
+    days = await call_service("get_days", start="2026-10-05", weeks=2)
+    assert days["days"][0]["persons"]["p_clara"]["reason"] == "workday"              # 5 Oct: a break in NW, not in HE
+    assert days["days"][7]["persons"]["p_clara"]["reason"] == "school_holiday"        # 12 Oct: her own source
+    assert days["days"][0]["school_holiday"] == "Autumn Holidays"                      # the installation's source
+    assert hass.states.get("sensor.clara_morning").state == "workday"
+    overview = await call_service("get_overview")
+    clara = next(p for p in overview["persons"] if p["name"] == "Clara")
+    assert clara["school_holiday_source"] == "openholidays:DE-HE"
+    assert {o["value"] for o in overview["school_holiday_sources"]} >= {"", "openholidays:DE-HE"}
+    assert set(overview["status"]["sources"]) == {"openholidays:DE-NW", "openholidays:DE-HE"}
+    assert fake_api.school_holidays.await_count == 2                                   # one fetch per source
+    assert fake_api.school_holidays.await_args_list[1].args[:2] == ("DE", "DE-HE")
+
+    await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                       school_holiday_source="")                                       # back to the installation's
+    days = await call_service("get_days", start="2026-10-05", weeks=1)
+    assert days["days"][0]["persons"]["p_clara"]["reason"] == "school_holiday"
+    await call_service("refresh_school_holidays")
+    assert set((await call_service("get_overview"))["status"]["sources"]) == {"openholidays:DE-NW"}   # pruned
+    with pytest.raises(ServiceValidationError):
+        await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                           school_holiday_source="moon:far")

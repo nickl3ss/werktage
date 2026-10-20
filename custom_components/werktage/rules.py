@@ -134,6 +134,9 @@ class SchoolHolidays:
         return self.known_from <= day <= self.known_to
 
 
+UNKNOWN_SCHOOL_HOLIDAYS = SchoolHolidays(known_from=dt.date.max, known_to=dt.date.max)   # nothing known yet
+
+
 @dataclass(frozen=True, slots=True)
 class Calendar:
     """Everything that applies to all persons alike: weekend and holidays.
@@ -143,10 +146,17 @@ class Calendar:
     """
 
     public_holidays: Mapping[dt.date, str] = field(default_factory=dict)
-    school_holidays: SchoolHolidays = field(default_factory=SchoolHolidays)
+    school_holidays: SchoolHolidays = field(default_factory=SchoolHolidays)      # the installation's source
     weekend: frozenset[int] = DEFAULT_WEEKEND
     extra_holidays: Mapping[dt.date, str] = field(default_factory=dict)
     removed_holidays: frozenset[dt.date] = frozenset()
+    school_holidays_by_source: Mapping[str, SchoolHolidays] = field(default_factory=dict)   # per source key (#1)
+
+    def school_holidays_for(self, source_key: str | None) -> SchoolHolidays:
+        """The school holidays of a resident's source; ``None`` is the installation's, an unfetched key is unknown."""
+        if source_key is None:
+            return self.school_holidays
+        return self.school_holidays_by_source.get(source_key, UNKNOWN_SCHOOL_HOLIDAYS)
 
     def public_holiday_on(self, day: dt.date) -> str | None:
         if day in self.removed_holidays:
@@ -174,29 +184,33 @@ class DayInfo:
         return self.reason is not Reason.UNKNOWN
 
 
-def default_day(role: Role, day: dt.date, calendar: Calendar, weekend: frozenset[int] | None = None) -> DayInfo:
+def default_day(role: Role, day: dt.date, calendar: Calendar, weekend: frozenset[int] | None = None,
+                school_holidays: SchoolHolidays | None = None) -> DayInfo:
     """Section 3.1: weekend and public holidays for everyone, school holidays for pupils.
 
     ``weekend`` overrides the household's weekend for one person (part-time,
-    "Fridays off"). Order matters only for the reason: a public holiday on a
-    weekend is reported as ``public_holiday``, one inside school holidays likewise.
+    "Fridays off"); ``school_holidays`` the installation's source for one pupil
+    (#1). Order matters only for the reason: a public holiday on a weekend is
+    reported as ``public_holiday``, one inside school holidays likewise.
     """
     if holiday := calendar.public_holiday_on(day):
         return DayInfo(DayType.DAY_OFF, Reason.PUBLIC_HOLIDAY, holiday, role)
     if day.weekday() in (calendar.weekend if weekend is None else weekend):
         return DayInfo(DayType.DAY_OFF, Reason.WEEKEND, None, role)
     if role is Role.PUPIL:
-        if not calendar.school_holidays.is_known(day):
+        holidays = calendar.school_holidays if school_holidays is None else school_holidays
+        if not holidays.is_known(day):
             return DayInfo(DayType.WORKDAY, Reason.UNKNOWN, None, role)
-        if name := calendar.school_holidays.name_on(day):
+        if name := holidays.name_on(day):
             return DayInfo(DayType.DAY_OFF, Reason.SCHOOL_HOLIDAY, name, role)
     return DayInfo(DayType.WORKDAY, Reason.WORKDAY, None, role)
 
 
 def effective_day(role: Role, day: dt.date, calendar: Calendar,
-                  exception: DayType | None = None, weekend: frozenset[int] | None = None) -> DayInfo:
+                  exception: DayType | None = None, weekend: frozenset[int] | None = None,
+                  school_holidays: SchoolHolidays | None = None) -> DayInfo:
     """Section 3.2: an exception replaces the default; unknown days count as workdays."""
-    default = default_day(role, day, calendar, weekend)
+    default = default_day(role, day, calendar, weekend, school_holidays)
     if exception is None:
         return default
     reason = Reason.EXCEPTION_DAY_OFF if exception is DayType.DAY_OFF else Reason.EXCEPTION_WORKDAY
@@ -204,7 +218,8 @@ def effective_day(role: Role, day: dt.date, calendar: Calendar,
 
 
 def normalize_exception(role: Role, day: dt.date, calendar: Calendar,
-                        wanted: DayType | None, weekend: frozenset[int] | None = None) -> DayType | None:
+                        wanted: DayType | None, weekend: frozenset[int] | None = None,
+                        school_holidays: SchoolHolidays | None = None) -> DayType | None:
     """The exception to *store* for a wanted day type: ``None`` if it equals the default.
 
     Section 3.2: an exception equal to the default is deleted instead of stored.
@@ -213,7 +228,7 @@ def normalize_exception(role: Role, day: dt.date, calendar: Calendar,
     """
     if wanted is None:
         return None
-    default = default_day(role, day, calendar, weekend)
+    default = default_day(role, day, calendar, weekend, school_holidays)
     return None if default.day_type is wanted else wanted
 
 
@@ -255,6 +270,9 @@ class Resident:
     # replaces the household's weekend for this person. No entry, or a step with
     # ``None``, → household weekend from that date on (the past keeps its steps).
     off_weekdays: History[frozenset[int] | None] = field(default_factory=History)
+    # Another school holiday source than the installation's (a source key, see sources.make_source_key); None: the
+    # installation's. A pupil at a school in another region (#1).
+    school_holiday_source: str | None = None
 
     def role_on(self, day: dt.date) -> Role | None:
         role = self.roles.value_on(day)
@@ -320,13 +338,15 @@ class Household:
         resident = self.residents.get(resident_id)
         if resident is None or (role := resident.role_on(day)) is None:
             return None
-        return effective_day(role, day, self.calendar, self.exception_for(resident_id, day), resident.weekend_on(day))
+        return effective_day(role, day, self.calendar, self.exception_for(resident_id, day), resident.weekend_on(day),
+                             self.calendar.school_holidays_for(resident.school_holiday_source))
 
     def default_of(self, resident_id: str, day: dt.date) -> DayInfo | None:
         resident = self.residents.get(resident_id)
         if resident is None or (role := resident.role_on(day)) is None:
             return None
-        return default_day(role, day, self.calendar, resident.weekend_on(day))
+        return default_day(role, day, self.calendar, resident.weekend_on(day),
+                           self.calendar.school_holidays_for(resident.school_holiday_source))
 
     def next_day(self, resident_id: str, start: dt.date, workday: bool) -> dt.date | None:
         """First day after ``start`` that is a workday (or a day off); ``None`` if not found.
@@ -402,7 +422,8 @@ class Household:
                 role = resident.role_on(day) if resident else None
                 if resident is None or role is None:
                     continue
-                stored = normalize_exception(role, day, self.calendar, wanted, resident.weekend_on(day))
+                stored = normalize_exception(role, day, self.calendar, wanted, resident.weekend_on(day),
+                                             self.calendar.school_holidays_for(resident.school_holiday_source))
                 per_day = exceptions.setdefault(day, {})
                 if stored is None:
                     per_day.pop(rid, None)

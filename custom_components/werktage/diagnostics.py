@@ -17,6 +17,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: Werktag
                   "evening_rule": c.house.evening_rule.value, "admin_only": c.admin_only},
         "counts": {
             "residents": len(data.residents),
+            "school_holiday_sources": len(data.school_holidays),
             "role_steps": sum(len(r.roles.steps) for r in data.residents.values()),
             "rooms": len(data.rooms),
             "assignment_steps": sum(len(r.residents.steps) for r in data.rooms.values()),

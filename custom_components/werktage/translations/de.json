@@ -153,7 +153,8 @@
           "role": "Rolle",
           "short_name": "Kürzel",
           "off_weekdays": "Persönliche freie Wochentage",
-          "valid_from": "Gültig ab"
+          "valid_from": "Gültig ab",
+          "school_holiday_source": "Schulferien wie"
         },
         "data_description": {
           "person": "Jede Person dieses Home Assistant.",
@@ -357,6 +358,10 @@
         "short_name": {
           "name": "Kürzel",
           "description": "Ein bis zwei Zeichen für die Kalenderkarte."
+        },
+        "school_holiday_source": {
+          "name": "Schulferienquelle",
+          "description": "Eigene Quelle dieser Person, z. B. „openholidays:DE-HE“ (andere Region) oder „calendar:calendar.schule“; leer = wie die Installation. Fehlt das Feld, bleibt die Quelle unverändert."
         }
       }
     },
@@ -569,6 +574,9 @@
     },
     "room_without_residents": {
       "message": "Ein Raum braucht Bewohner. Mindestens einen zuordnen; die Regeln gelten für sie."
+    },
+    "source_unknown": {
+      "message": "Die Schulferienquelle „{source}“ ist unbekannt. Erlaubt sind „openholidays:LAND-REGION“ und „calendar:<Kalender>“."
     }
   },
   "issues": {
@@ -578,7 +586,7 @@
     },
     "school_holidays_incomplete": {
       "title": "Schulferien für {year} fehlen",
-      "description": "Schulferien sind bis {known_to} bekannt. Tage ohne Daten gelten für Schüler als Werktag. Die Quelle hat das nächste Jahr vielleicht noch nicht veröffentlicht; später erneut versuchen oder die Termine als Ausnahme eintragen."
+      "description": "Die Quelle „{source}“ kennt Schulferien bis {known_to}. Tage ohne Daten zählen für Schüler als Werktage. Die Quelle hat das nächste Jahr vielleicht noch nicht veröffentlicht; später erneut versuchen oder die Termine als Ausnahmen eintragen."
     },
     "person_missing": {
       "title": "Bewohner ohne Person",

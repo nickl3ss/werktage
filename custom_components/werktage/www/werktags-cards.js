@@ -207,7 +207,7 @@ const TEXTS = {
     add: "Add", no_residents: "no residents", house: "House", house_hint: "House roles and rules are set in the integration options.",
     house_by_role: "by role — remove everyone to return to it", house_chosen: "chosen residents",
     weekly: "Days off every week", weekly_household: "household weekend", weekly_personal: "personal",
-    weekly_reset: "Household weekend",
+    weekly_reset: "Household weekend", school_holidays_as: "School holidays as",
     loading: "Loading…", not_set_up: "Werktage is not set up.", school_holidays: "School holidays",
     known_to: "known until", fetched: "fetched", never: "never", no_role: "No role", order: "Order",
   },
@@ -238,7 +238,7 @@ const TEXTS = {
     add: "Hinzufügen", no_residents: "keine Bewohner", house: "Haus", house_hint: "Rollen und Regeln des Hauses werden in den Optionen der Integration eingestellt.",
     house_by_role: "nach Rolle — alle entfernen, um dorthin zurückzukehren", house_chosen: "gewählte Bewohner",
     weekly: "Freie Wochentage", weekly_household: "Wochenende des Haushalts", weekly_personal: "persönlich",
-    weekly_reset: "Wochenende des Haushalts",
+    weekly_reset: "Wochenende des Haushalts", school_holidays_as: "Schulferien wie",
     loading: "Lade…", not_set_up: "Werktage ist nicht eingerichtet.", school_holidays: "Schulferien",
     known_to: "bekannt bis", fetched: "abgerufen", never: "nie", no_role: "Keine Rolle", order: "Reihenfolge",
   },
@@ -533,7 +533,7 @@ class WerktagsCalendarCard extends WerktagsCard {
     const classes = ["tg", off ? "off" : "on"];
     if (info.exception) classes.push("exc");
     if (info.reason === "unknown") classes.push("unk");
-    if (info.role === "pupil" && day.school_holiday) classes.push("sh");
+    if (info.role === "pupil" && (day.school_holiday || (info.holiday_name && !day.public_holiday))) classes.push("sh");   // own source too
     const title = `${resident.name}: ${this.t[info.effective]} — ${this.t.reason[info.reason] || info.reason}`;
     return `<button class="${classes.join(" ")}" role="switch" aria-checked="${off}" aria-label="${esc(title)}" data-action="toggle" data-on="click" data-date="${day.date}" data-person="${esc(resident.id)}" title="${esc(title)}">${esc(resident.short_name)}</button>`;
   }
@@ -750,7 +750,8 @@ class WerktagsResidentsCard extends WerktagsCard {
       const resident = person.role_today && person.role_today !== "none";
       this._forms[id] = { role: resident ? person.role_today : "adult", valid_from: this.today,
         short_name: person.short_name || proposeShortName(person.name, taken),
-        weekly: this._effectiveWeekly(person).slice(), confirm: false, dirty: false };
+        weekly: this._effectiveWeekly(person).slice(), source: person.school_holiday_source || "",
+        confirm: false, dirty: false };
     }
     return this._forms[id];
   }
@@ -768,6 +769,7 @@ class WerktagsResidentsCard extends WerktagsCard {
   on_form_weekly_reset(el) { this._touch(el).weekly = (this._overview.weekend || [5, 6]).slice(); this.render(); }
   on_form_date(el) { this._touch(el).valid_from = el.value; this.render(); }
   on_form_short(el) { this._touch(el).short_name = el.value; }
+  on_form_source(el) { this._touch(el).source = el.value; this.render(); }
   on_form_cancel(el) { delete this._forms[el.dataset.id]; this.render(); }
   on_cancel_confirm(el) { this._form(el.dataset.id).confirm = false; this.render(); }
 
@@ -777,6 +779,7 @@ class WerktagsResidentsCard extends WerktagsCard {
     const isResident = person.role_today && person.role_today !== "none";
     const roleChanged = !isResident || form.role !== person.role_today;
     const shortChanged = form.short_name.trim() !== (person.short_name || "");
+    const sourceChanged = form.source !== (person.school_holiday_source || "");
     const weeklyChanged = this._weeklyChanged(person, form);
     if (roleChanged || weeklyChanged) {
       const retro = retroactiveDays(form.valid_from, this.today);
@@ -786,11 +789,12 @@ class WerktagsResidentsCard extends WerktagsCard {
     if (sameMembers(form.weekly, this._overview.weekend || [5, 6])) weekly.household = true;
     else weekly.weekdays = [...form.weekly].sort();
     delete this._forms[person.id];
-    if (roleChanged || shortChanged || !isResident) {
+    if (roleChanged || shortChanged || sourceChanged || !isResident) {
       const data = { person: person.entity_id };
       if (roleChanged) { data.role = form.role; data.valid_from = form.valid_from; }
-      else { const first = person.roles[0]; data.role = first.role; data.valid_from = first.valid_from; }   // short name only
+      else { const first = person.roles[0]; data.role = first.role; data.valid_from = first.valid_from; }   // short name or source only
       if (shortChanged || !isResident) data.short_name = form.short_name.trim();
+      if (sourceChanged) data.school_holiday_source = form.source;
       if (!weeklyChanged) { await this.write("set_role", data, this.t.applied); return; }
       try { await this.callService("set_role", data); } catch (err) { this.fail(err); return; }
     }
@@ -825,9 +829,12 @@ class WerktagsResidentsCard extends WerktagsCard {
     const weekly = `<div class="field"><span>${esc(t.weekly)} <span class="muted">(${esc(personal ? t.weekly_personal : t.weekly_household)})</span></span>
       <span class="days">${names.map((n, i) => `<button class="tg ${form.weekly.includes(i) ? "off" : ""}" data-action="form_day" data-on="click" data-id="${id}" data-day="${i}" aria-pressed="${form.weekly.includes(i)}">${esc(n)}</button>`).join("")}
       ${personal ? `<button class="icon" data-action="form_weekly_reset" data-on="click" data-id="${id}" title="${esc(t.weekly_reset)}">↺</button>` : ""}</span></div>`;
+    const sources = this._overview.school_holiday_sources || [];
+    const sourceSelect = sources.length && (form.role === "pupil" || form.source) ? `<label class="field">${esc(t.school_holidays_as)}<select data-action="form_source" data-on="change" data-id="${id}">${sources.map((s) => `<option value="${esc(s.value)}" ${form.source === s.value ? "selected" : ""}>${esc(s.label)}</option>`).join("")}</select></label>` : "";
     const editor = `<label class="field">${esc(t.short_name)}<input size="2" maxlength="2" value="${esc(form.short_name)}" data-action="form_short" data-on="input" data-id="${id}"></label>
       <label class="field">${esc(t.new_role)}<select data-action="form_role" data-on="change" data-id="${id}">${roleOptions}</select></label>
       ${isResident || form.dirty ? weekly : ""}
+      ${sourceSelect}
       ${roleChanged || weeklyChanged ? `<label class="field">${esc(t.valid_from)}<input type="date" value="${form.valid_from}" data-action="form_date" data-on="change" data-id="${id}"></label>` : ""}
       ${form.dirty ? `<button class="primary" data-action="set_role" data-on="click" data-id="${id}">${esc(t.apply)}</button>
       <button data-action="form_cancel" data-on="click" data-id="${id}">${esc(t.cancel)}</button>` : ""}`;

@@ -194,7 +194,7 @@ Everything the cards do is an action of the `werktage` domain; the
 | Action | Fields | Effect |
 |---|---|---|
 | `set_days` | `person` (one or more), `start`, `end` (default: `start`), `status` (`day_off`, `workday`, `default`) | exceptions for a day or range, weekends included; `default` removes exceptions |
-| `set_role` | `person`, `role` (`pupil`, `adult`, `none`), `valid_from` (default: today), `short_name` | makes a person a resident or changes the role from a date on |
+| `set_role` | `person`, `role` (`pupil`, `adult`, `none`), `valid_from` (default: today), `short_name`, `school_holiday_source` | makes a person a resident or changes the role from a date on |
 | `remove_role` | `person`, `valid_from` | removes one role entry (not the last) |
 | `set_weekly` | `person`, `weekdays` (0 = Monday … 6 = Sunday), `valid_from`, `household` | personal days off every week; `household: true` returns to the household weekend from `valid_from` on (earlier days keep the pattern) |
 | `set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | residents of a room from a date on and/or its rules |
@@ -229,6 +229,18 @@ the language of the installation (`sensor.anna_morgen` in German).
 
 A person without a role, or a room without residents, makes its entities
 unavailable; their devices can then be deleted.
+
+## School holidays per person
+
+School holidays are configured once for the installation. A pupil who goes to
+school in another region, or whose school has its own calendar, can have an
+own source: in the residents card or under *Werktage → Configure → Add or
+change a resident*, choose *School holidays as* — another region of the
+configured country or any calendar entity whose all-day events are school
+holidays. Public holidays always follow the installation (the place of
+residence). Each source is fetched once a month on its own; the status in
+`get_overview` lists every source in use, and the calendar card marks a
+pupil's holidays from the pupil's own source.
 
 ## Data updates
 

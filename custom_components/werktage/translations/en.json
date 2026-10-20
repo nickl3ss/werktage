@@ -153,7 +153,8 @@
           "role": "Role",
           "short_name": "Short name",
           "off_weekdays": "Personal days off every week",
-          "valid_from": "Valid from"
+          "valid_from": "Valid from",
+          "school_holiday_source": "School holidays as"
         },
         "data_description": {
           "person": "Any person of this Home Assistant.",
@@ -357,6 +358,10 @@
         "short_name": {
           "name": "Short name",
           "description": "One or two characters shown in the calendar card."
+        },
+        "school_holiday_source": {
+          "name": "School holiday source",
+          "description": "The person's own source, e.g. “openholidays:DE-HE” (another region) or “calendar:calendar.school”; empty = as the installation. Left out, the source stays as it is."
         }
       }
     },
@@ -569,6 +574,9 @@
     },
     "room_without_residents": {
       "message": "A room needs residents. Assign at least one; the rules apply to them."
+    },
+    "source_unknown": {
+      "message": "The school holiday source “{source}” is unknown. Use “openholidays:COUNTRY-REGION” or “calendar:<entity>”."
     }
   },
   "issues": {
@@ -578,7 +586,7 @@
     },
     "school_holidays_incomplete": {
       "title": "School holidays for {year} are missing",
-      "description": "School holidays are known until {known_to}. Days without data count as workdays for pupils. The source may not have published next year yet; try again later or add the dates as exceptions."
+      "description": "The source “{source}” knows school holidays until {known_to}. Days without data count as workdays for pupils. The source may not have published next year yet; try again later or add the dates as exceptions."
     },
     "person_missing": {
       "title": "Residents without a person",

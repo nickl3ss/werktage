@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from dataclasses import replace
 
 import pytest
 
@@ -369,3 +370,17 @@ def test_a_derived_household_answers_next_day_afresh(household):
     after = household.with_exceptions(["anna"], d("2026-10-02"), d("2026-10-02"), DayType.DAY_OFF)
     assert after._next_day_cache is not household._next_day_cache
     assert after.next_day("anna", thursday, workday=False) == d("2026-10-02")
+
+
+def test_a_resident_with_another_source_uses_its_holidays(household):
+    """#1: the calendar carries the holidays of every source in use; an unfetched source is unknown."""
+    other = SchoolHolidays(((d("2026-10-12"), d("2026-10-23"), "Autumn HE"),), d("2026-01-01"), d("2026-12-31"))
+    calendar = replace(household.calendar, school_holidays_by_source={"openholidays:DE-HE": other})
+    clara = replace(household.residents["clara"], school_holiday_source="openholidays:DE-HE")
+    h = replace(household, calendar=calendar, residents={**household.residents, "clara": clara})
+    assert h.day_of("clara", d("2026-10-05")).reason is Reason.WORKDAY
+    assert h.day_of("clara", d("2026-10-12")).reason is Reason.SCHOOL_HOLIDAY
+    assert h.day_of("clara", d("2026-10-12")).holiday_name == "Autumn HE"
+    unfetched = replace(h, residents={**h.residents, "clara": replace(clara, school_holiday_source="calendar:calendar.x")})
+    assert unfetched.day_of("clara", d("2026-10-12")).reason is Reason.UNKNOWN
+    assert calendar.school_holidays_for(None) is household.calendar.school_holidays

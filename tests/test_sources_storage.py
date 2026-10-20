@@ -76,9 +76,9 @@ def data() -> storage.StoredData:
                                  CombineRule.WORKDAY_WINS, CombineRule.WORKDAY_WINS)},
         exceptions={d("2026-10-10"): {"p_anna": DayType.WORKDAY}, d("2026-10-20"): {"p_clara": DayType.DAY_OFF}},
         house_residents=History((Step(d("2026-10-01"), frozenset({"p_anna"})),)),
-        school_holidays=storage.SchoolHolidayCache(
-            "openholidays", (SchoolHolidayPeriod(d("2026-10-05"), d("2026-10-16"), "Autumn"),),
-            d("2026-01-01"), d("2027-12-31"), dt.datetime(2026, 9, 29, 21, 0, tzinfo=dt.UTC), 0),
+        school_holidays={"openholidays:DE-NW": storage.SchoolHolidayCache(
+            "openholidays:DE-NW", (SchoolHolidayPeriod(d("2026-10-05"), d("2026-10-16"), "Autumn"),),
+            d("2026-01-01"), d("2027-12-31"), dt.datetime(2026, 9, 29, 21, 0, tzinfo=dt.UTC), 0)},
     )
 
 
@@ -99,7 +99,7 @@ def test_serialized_form_is_readable_and_sorted(data):
     assert raw["exceptions"] == {"2026-10-10": {"p_anna": "workday"}, "2026-10-20": {"p_clara": "day_off"}}
     assert raw["residents"]["p_anna"]["off_weekdays"] == [{"valid_from": "2026-10-01", "value": [4, 5, 6]}]
     assert raw["house"] == {"residents": [{"valid_from": "2026-10-01", "value": ["p_anna"]}]}
-    assert raw["school_holidays"]["fetched_at"] == "2026-09-29T21:00:00+00:00"
+    assert raw["school_holidays"]["openholidays:DE-NW"]["fetched_at"] == "2026-09-29T21:00:00+00:00"
 
 
 def test_empty_and_missing_data():
@@ -121,6 +121,12 @@ def test_older_data_reads_as_the_current_version():
     data = storage.from_dict(v2)
     assert data.residents["p"].weekend_on(d("2026-10-01")) == frozenset({4})
     assert data.house_residents.value_on(d("2026-10-05")) == frozenset({"p"})
+    # the single cache of version 2 waits under a placeholder key until the coordinator knows the configuration
+    v2["school_holidays"] = {"source": "openholidays", "periods": [], "known_from": "2026-01-01", "known_to": "2026-12-31",
+                             "fetched_at": "2026-09-29T21:00:00+00:00", "failures": 0}
+    data = storage.from_dict(v2)
+    assert set(data.school_holidays) == {storage.INSTALLATION_KEY}
+    assert data.school_holidays[storage.INSTALLATION_KEY].source == "openholidays"
 
 
 def test_default_steps_are_stored_as_null_and_read_back():

@@ -8,6 +8,7 @@ periods, so this module needs no network and no Home Assistant.
 from __future__ import annotations
 
 import datetime as dt
+import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -95,6 +96,32 @@ class SchoolHolidayPeriod:
     @classmethod
     def from_dict(cls, data: dict[str, str]) -> SchoolHolidayPeriod:
         return cls(dt.date.fromisoformat(data["start"]), dt.date.fromisoformat(data["end"]), str(data["name"]))
+
+
+SOURCE_OPENHOLIDAYS, SOURCE_CALENDAR, SOURCE_NONE = "openholidays", "calendar", "none"   # as in const.py
+_REGION = re.compile(r"^[A-Z]{2}(-[A-Z0-9]{1,3})?$")
+
+
+def make_source_key(source: str, parameter: str | None) -> str:
+    """``openholidays`` + ``DE-NW`` → ``openholidays:DE-NW``; ``calendar`` + entity id → ``calendar:<id>``;
+    else ``none``.
+
+    A key names one school holiday source completely; the installation has one, a
+    resident may have another (#1). Caches are kept per key.
+    """
+    if source in (SOURCE_OPENHOLIDAYS, SOURCE_CALENDAR) and parameter:
+        return f"{source}:{parameter}"
+    return SOURCE_NONE
+
+
+def parse_source_key(key: str) -> tuple[str, str | None]:
+    source, _, parameter = key.partition(":")
+    return source, (parameter or None)
+
+
+def is_region_code(code: str) -> bool:
+    """``DE`` or ``DE-NW``: a supported country, optionally with a subdivision."""
+    return bool(_REGION.match(code)) and code[:2] in supported_countries()
 
 
 def school_holidays_from_periods(periods: Sequence[SchoolHolidayPeriod], known_from: dt.date,

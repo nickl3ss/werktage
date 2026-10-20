@@ -31,7 +31,7 @@ from .const import (
     SOURCE_NONE,
     STATUS_DEFAULT,
 )
-from .coordinator import WerktagsCoordinator, WerktagsError
+from .coordinator import UNCHANGED, WerktagsCoordinator, WerktagsError
 from .rules import ONE_DAY, CombineRule, DayType, Role
 
 MAX_RANGE_DAYS = 366
@@ -48,6 +48,7 @@ SET_DAYS_SCHEMA = vol.Schema({
 SET_ROLE_SCHEMA = vol.Schema({
     vol.Required("person"): cv.entity_domain("person"), vol.Required("role"): vol.In([r.value for r in Role]),
     vol.Optional("valid_from"): cv.date, vol.Optional("short_name"): cv.string,
+    vol.Optional("school_holiday_source"): cv.string,      # a source key; "" returns to the installation's
 })
 REMOVE_ROLE_SCHEMA = vol.Schema({
     vol.Required("person"): cv.entity_domain("person"), vol.Required("valid_from"): cv.date,
@@ -142,7 +143,7 @@ async def _set_days(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCa
 async def _set_role(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
     person_id = _person_ids(c, [call.data["person"]])[0]
     await c.async_set_role(person_id, Role(call.data["role"]), call.data.get("valid_from", c.today()),
-                           call.data.get("short_name"))
+                           call.data.get("short_name"), call.data.get("school_holiday_source", UNCHANGED))
     return None
 
 
@@ -256,6 +257,7 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
             "roles": [{"valid_from": s.valid_from.isoformat(), "role": s.value.value} for s in resident.roles.steps]
             if resident else [],
             "off_weekdays": sorted(weekend) if weekend is not None else None,
+            "school_holiday_source": resident.school_holiday_source if resident else None,
             "off_weekdays_history": [{"valid_from": s.valid_from.isoformat(),
                                       "weekdays": None if s.value is None else sorted(s.value)}   # None: household
                                      for s in resident.off_weekdays.steps] if resident else [],
@@ -272,6 +274,7 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
                             for s in room.residents.steps] if room else [],
         })
     return {"today": today.isoformat(), "weekend": sorted(c.weekend), "persons": persons, "rooms": rooms,
+            "school_holiday_sources": c.school_holiday_source_options(),
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
                       "by_role": c.house.assigned_on(today) is None,

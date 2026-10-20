@@ -33,6 +33,21 @@ Testumgebung: ein Home Assistant ≥ 2026.1 mit der installierten Version aus de
 |---|---|---|
 | N4-1 | Kalenderkarte, Zeile unter der Legende | Nennt Quelle, „bekannt bis“ und den Zeitpunkt des letzten Abrufs |
 
+### N5 · Schulferienquelle je Bewohner (#1)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N5-1 | Bewohnerkarte: bei einem Schüler *Schulferien wie* auf eine andere Region stellen, *Übernehmen* | Kalenderkarte markiert für diesen Schüler die Ferien der anderen Region; die übrigen Bewohner unverändert; Statuszeile unverändert (Quelle der Installation) |
+| N5-2 | *Werktage → Konfigurieren → Bewohner*: Feld *Schulferien wie* zeigt Regionen des Landes und Kalender-Entitäten (nicht die eigenen Werktage-Kalender) | Auswahl wird gespeichert; Reparaturhinweise nennen die Quelle |
+| N5-3 | Quelle wieder auf *wie die Installation* | Ferien folgen wieder der Installation; nach *Schulferien aktualisieren* verschwindet die Quelle aus `get_overview` → `status.sources` |
+
+### N6 · Schulferien-Kalender am Haus (#14)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N6-1 | `calendar.<haus>_school_holidays` in der Kalender-Ansicht von Home Assistant | ganztägige Ereignisse mit den Ferien-Namen der Quelle der Installation |
+| N6-2 | Quelle *keine* in den Einstellungen | Entität verschwindet nach dem Neuladen |
+
 ## Regressionssuite
 
 Vor jedem Release vollständig, nach jedem Push die betroffenen Abschnitte.

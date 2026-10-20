@@ -82,6 +82,9 @@ class _DataStore(Store[dict[str, Any]]):
         return storage.migrate(old_data)
 
 
+UNCHANGED = "\0unchanged"       # "leave this field as it is" for optional service fields
+
+
 class WerktagsError(ValueError):
     """A rejected change. ``key`` names the translated message (``exceptions`` in strings.json)."""
 
@@ -123,7 +126,7 @@ class WerktagsCoordinator:
         self._unsub: list[CALLBACK_TYPE] = []
         self._unsub_started: CALLBACK_TYPE | None = None     # the one-time start listener, until it fired
         self._fetching = False
-        self._source_down = False      # for log-when-unavailable: one line on failure, one on recovery
+        self._source_down: set[str] = set()   # log-when-unavailable per source: one line down, one up
 
     # -- configuration (options win over data) ---------------------------------
     def _conf(self, key: str, default: Any = None) -> Any:
@@ -182,7 +185,49 @@ class WerktagsCoordinator:
 
     @property
     def attribution(self) -> str | None:
-        return ATTRIBUTION_OPENHOLIDAYS if self.source == SOURCE_OPENHOLIDAYS else None
+        return self.attribution_for(self.source_key)
+
+    # -- school holiday sources: the installation's and the residents' (#1) -----------
+    @property
+    def source_key(self) -> str:
+        """The installation's source as a key: ``openholidays:DE-NW`` · ``calendar:calendar.x`` · ``none``."""
+        parameter = (self.subdivision or self.country) if self.source == SOURCE_OPENHOLIDAYS else self.calendar_entity
+        return sources.make_source_key(self.source, parameter)
+
+    def source_keys(self) -> list[str]:
+        """Every distinct source in use: the installation's and the residents' overrides; ``none`` excluded."""
+        keys = {self.source_key} | {r.school_holiday_source for r in self.data.residents.values()
+                                    if r.school_holiday_source}
+        return sorted(key for key in keys if key != SOURCE_NONE)
+
+    @staticmethod
+    def attribution_for(key: str) -> str | None:
+        return ATTRIBUTION_OPENHOLIDAYS if key.startswith(f"{SOURCE_OPENHOLIDAYS}:") else None
+
+    def school_holiday_source_options(self) -> list[dict[str, str]]:
+        """Choices for a resident's source: the installation's, every region of the country, every calendar."""
+        german = (self.hass.config.language or "en").lower().startswith("de")
+        options = [{"value": "", "label": "wie die Installation" if german else "as the installation"}]
+        names = sources.subdivision_names(self.country)
+        options += [{"value": f"{SOURCE_OPENHOLIDAYS}:{self.country}-{code}", "label": name}
+                    for code, name in sorted(names.items(), key=lambda item: item[1])]
+        registry = er.async_get(self.hass)
+        calendars = [state for state in self.hass.states.async_all("calendar")
+                     if (entry := registry.async_get(state.entity_id)) is None or entry.platform != DOMAIN]
+        options += [{"value": f"{SOURCE_CALENDAR}:{state.entity_id}", "label": state.name}
+                    for state in sorted(calendars, key=lambda state: state.name.lower())]
+        return options
+
+    def _check_source_key(self, key: str) -> None:
+        source, parameter = sources.parse_source_key(key)
+        if source == SOURCE_OPENHOLIDAYS and parameter and sources.is_region_code(parameter):
+            return
+        if source == SOURCE_CALENDAR and parameter and self.hass.states.get(parameter) is not None:
+            return
+        raise WerktagsError("source_unknown", source=key)
+
+    def cache_for(self, key: str) -> SchoolHolidayCache | None:
+        return self.data.school_holidays.get(key)
 
     def today(self) -> dt.date:
         return dt_util.now().date()
@@ -197,6 +242,12 @@ class WerktagsCoordinator:
         rooms = {area_id: room for area_id, room in self.data.rooms.items() if room.ever_assigned}
         if len(rooms) != len(self.data.rooms):   # written by versions that let a rule alone create a room
             self.data = replace(self.data, rooms=rooms)
+            await self._store.async_save(storage.to_dict(self.data))
+        if (old := self.data.school_holidays.get(storage.INSTALLATION_KEY)) is not None:   # written before 0.3.0
+            caches = {key: cache for key, cache in self.data.school_holidays.items() if key != storage.INSTALLATION_KEY}
+            if old.source == self.source and self.source_key != SOURCE_NONE:
+                caches[self.source_key] = replace(old, source=self.source_key)
+            self.data = replace(self.data, school_holidays=caches)
             await self._store.async_save(storage.to_dict(self.data))
         await self._async_public_holidays()
         self._rebuild()
@@ -272,18 +323,20 @@ class WerktagsCoordinator:
                                    translation_placeholders={"error": str(err)}) from err
         self._public_holidays_span = span
 
-    def _school_holidays(self) -> SchoolHolidays:
-        cache = self.data.school_holidays
-        if self.source == SOURCE_NONE:
+    def _school_holidays(self, key: str) -> SchoolHolidays:
+        if key == SOURCE_NONE:
             return SchoolHolidays(attribution=None)
-        if cache is None or cache.source != self.source or cache.known_from is None or cache.known_to is None:
-            return SchoolHolidays(known_from=dt.date.max, known_to=dt.date.max, attribution=self.attribution)
-        return sources.school_holidays_from_periods(cache.periods, cache.known_from, cache.known_to, self.attribution)
+        cache = self.cache_for(key)
+        if cache is None or cache.known_from is None or cache.known_to is None:
+            return SchoolHolidays(known_from=dt.date.max, known_to=dt.date.max, attribution=self.attribution_for(key))
+        return sources.school_holidays_from_periods(cache.periods, cache.known_from, cache.known_to,
+                                                    self.attribution_for(key))
 
     @callback
     def _rebuild(self) -> None:
         extra, removed = self.holiday_corrections()
-        calendar = Calendar(self._public_holidays, self._school_holidays(), self.weekend, extra, removed)
+        calendar = Calendar(self._public_holidays, self._school_holidays(self.source_key), self.weekend, extra, removed,
+                            school_holidays_by_source={key: self._school_holidays(key) for key in self.source_keys()})
         self.household = Household(calendar, self.data.residents, self.data.rooms, self.house, self.data.exceptions)
         self._check_registry_issues()
         self._notify()
@@ -343,10 +396,10 @@ class WerktagsCoordinator:
         self._issue(ISSUE_AREA_MISSING, bool(missing_areas), {"ids": ", ".join(missing_areas)})
 
     def _issue(self, issue_id: str, active: bool, placeholders: dict[str, str] | None = None,
-               severity: ir.IssueSeverity = ir.IssueSeverity.WARNING) -> None:
+               severity: ir.IssueSeverity = ir.IssueSeverity.WARNING, translation_key: str | None = None) -> None:
         if active:
             ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False, severity=severity,
-                                  translation_key=issue_id, translation_placeholders=placeholders)
+                                  translation_key=translation_key or issue_id, translation_placeholders=placeholders)
         else:
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
 
@@ -365,7 +418,9 @@ class WerktagsCoordinator:
         return next((c for c in candidates if c and c not in taken), name[:1].upper())
 
     async def async_set_role(self, person_id: str, role: Role, valid_from: dt.date,
-                             short_name: str | None = None) -> None:
+                             short_name: str | None = None, school_holiday_source: str | None = UNCHANGED) -> None:
+        """Add a role step; ``school_holiday_source`` sets (or with ``""``/``None`` clears) the resident's own
+        source (#1); left out, it stays as it is."""
         residents = dict(self.data.residents)
         current = residents.get(person_id)
         if current is None:
@@ -374,8 +429,18 @@ class WerktagsCoordinator:
         if short_name:
             self._check_short_name(person_id, short_name)
             current = replace(current, short_name=short_name)
+        if school_holiday_source != UNCHANGED:
+            key = (school_holiday_source or "").strip() or None
+            if key is not None and key != self.source_key:
+                self._check_source_key(key)
+            else:
+                key = None
+            current = replace(current, school_holiday_source=key)
         residents[person_id] = replace(current, roles=current.roles.with_step(valid_from, role))
         await self._async_commit(replace(self.data, residents=residents))
+        if any(not self.cache_is_fresh(key) for key in self.source_keys()):
+            self.entry.async_create_background_task(self.hass, self.async_refresh_school_holidays(),
+                                                    "werktage school holidays")
 
     def _check_short_name(self, person_id: str, short_name: str) -> None:
         if not 1 <= len(short_name) <= 2:
@@ -471,64 +536,94 @@ class WerktagsCoordinator:
         return False
 
     # -- school holidays -----------------------------------------------------------------
-    def cache_is_fresh(self) -> bool:
-        cache = self.data.school_holidays
-        if cache is None or cache.fetched_at is None or cache.source != self.source:
+    def cache_is_fresh(self, key: str | None = None) -> bool:
+        cache = self.cache_for(key or self.source_key)
+        if cache is None or cache.fetched_at is None:
             return False
         return dt_util.utcnow() - cache.fetched_at < dt.timedelta(days=FETCH_INTERVAL_DAYS)
 
     async def async_refresh_school_holidays(self, force: bool = False) -> bool:
-        """Fetch school holidays if due (or ``force``). Returns whether new data arrived."""
-        if self.source == SOURCE_NONE or self._fetching or (not force and self.cache_is_fresh()):
+        """Fetch every source in use that is due (or all with ``force``). Returns whether new data arrived."""
+        if self._fetching:
             return False
         self._fetching = True
         try:
-            periods = await self._fetch_periods()
-        except FetchFailed as err:
-            if not self._source_down:
-                _LOGGER.warning("School holidays could not be fetched from %s: %s", self.source, err)
-                self._source_down = True
-            periods = None
+            arrived = False
+            for key in self.source_keys():
+                if force or not self.cache_is_fresh(key):
+                    arrived = await self._refresh_source(key) or arrived
+            await self._prune_caches()
         finally:
             self._fetching = False
+        return arrived
 
-        old = self.data.school_holidays or SchoolHolidayCache(self.source)
+    async def _refresh_source(self, key: str) -> bool:
+        try:
+            periods = await self._fetch_periods(key)
+        except FetchFailed as err:
+            if key not in self._source_down:
+                _LOGGER.warning("School holidays could not be fetched from %s: %s", key, err)
+                self._source_down.add(key)
+            periods = None
+
+        old = self.cache_for(key) or SchoolHolidayCache(key)
         if periods is None:
-            cache = replace(old, source=self.source, failures=old.failures + 1)
+            cache = replace(old, source=key, failures=old.failures + 1)
         else:
-            if self._source_down:
-                _LOGGER.info("School holidays from %s are available again", self.source)
-                self._source_down = False
+            if key in self._source_down:
+                _LOGGER.info("School holidays from %s are available again", key)
+                self._source_down.discard(key)
             first, last = sources.fetch_span(self.today())
             known_to = min(last, max((p.end for p in periods), default=first))
             # earlier years are not fetched again: keep what the same source told us about them
-            kept = tuple(p for p in old.periods if p.end < first) if old.source == self.source else ()
+            kept = tuple(p for p in old.periods if p.end < first)
             contiguous = bool(kept) and old.known_from is not None and old.known_to is not None \
                 and old.known_to >= first - dt.timedelta(days=1)
             known_from = old.known_from if contiguous else first
-            cache = SchoolHolidayCache(self.source, kept + tuple(periods), known_from, known_to, dt_util.utcnow(), 0)
-        await self._async_commit(replace(self.data, school_holidays=cache))
-        self._issue(ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE, cache.failures >= MAX_FETCH_FAILURES,
-                    {"source": self.source, "failures": str(cache.failures)})
+            cache = SchoolHolidayCache(key, kept + tuple(periods), known_from, known_to, dt_util.utcnow(), 0)
+        await self._async_commit(replace(self.data, school_holidays={**self.data.school_holidays, key: cache}))
+        self._issue(self._issue_id(ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE, key), cache.failures >= MAX_FETCH_FAILURES,
+                    {"source": key, "failures": str(cache.failures)}, translation_key=ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE)
         self._check_completeness()
         return periods is not None
 
-    def _check_completeness(self) -> None:
-        """From October, next year's summer holidays must be known (specification 5.5)."""
-        today = self.today()
-        cache = self.data.school_holidays
-        needed = dt.date(today.year + 1, 8, 31)
-        incomplete = (self.source != SOURCE_NONE and today.month >= 10
-                      and (cache is None or cache.known_to is None or cache.known_to < needed))
-        known_to = cache.known_to.isoformat() if cache and cache.known_to else "-"
-        self._issue(ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE, incomplete, {"year": str(today.year + 1), "known_to": known_to})
+    async def _prune_caches(self) -> None:
+        """Drop the caches (and hints) of sources nobody uses any more."""
+        unused = set(self.data.school_holidays) - set(self.source_keys())
+        if not unused:
+            return
+        for key in unused:
+            for base in (ISSUE_SCHOOL_HOLIDAYS_UNREACHABLE, ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE):
+                self._issue(self._issue_id(base, key), False)
+        await self._async_commit(replace(self.data, school_holidays={
+            key: cache for key, cache in self.data.school_holidays.items() if key not in unused}))
 
-    async def _fetch_periods(self) -> list[SchoolHolidayPeriod]:
+    def _issue_id(self, base: str, key: str) -> str:
+        """The installation's source keeps the plain id; a resident's source gets its own."""
+        return base if key == self.source_key else f"{base}_{key}"
+
+    def _check_completeness(self) -> None:
+        """From October, next year's summer holidays must be known for every source in use (specification 5.5)."""
+        today = self.today()
+        needed = dt.date(today.year + 1, 8, 31)
+        for key in self.source_keys():
+            cache = self.cache_for(key)
+            incomplete = today.month >= 10 and (cache is None or cache.known_to is None or cache.known_to < needed)
+            known_to = cache.known_to.isoformat() if cache and cache.known_to else "-"
+            self._issue(self._issue_id(ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE, key), incomplete,
+                        {"year": str(today.year + 1), "known_to": known_to, "source": key},
+                        translation_key=ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE)
+        if self.source == SOURCE_NONE:
+            self._issue(ISSUE_SCHOOL_HOLIDAYS_INCOMPLETE, False)
+
+    async def _fetch_periods(self, key: str) -> list[SchoolHolidayPeriod]:
         first, last = sources.fetch_span(self.today())
-        if self.source == SOURCE_OPENHOLIDAYS:
+        source, parameter = sources.parse_source_key(key)
+        if source == SOURCE_OPENHOLIDAYS and parameter:
+            country, _, subdivision = parameter.partition("-")
             client = OpenHolidaysClient(async_get_clientsession(self.hass), user_agent=USER_AGENT)
             try:
-                holidays = await client.school_holidays(self.country, self.subdivision, first, last)
+                holidays = await client.school_holidays(country, parameter if subdivision else None, first, last)
             except OpenHolidaysError as err:
                 raise FetchFailed(str(err)) from err
             # the year after next may not be published yet; this year and next must be complete
@@ -536,12 +631,12 @@ class WerktagsCoordinator:
                 raise FetchFailed("answer not plausible (missing summer holidays)")
             language = (self.hass.config.language or "en").split("-")[0].upper()
             return [SchoolHolidayPeriod(h.start, h.end, h.name(language)) for h in holidays]
-        if self.source == SOURCE_CALENDAR and self.calendar_entity:
+        if source == SOURCE_CALENDAR and parameter:
             try:
-                return await self._fetch_from_calendar(self.calendar_entity, first, last)
+                return await self._fetch_from_calendar(parameter, first, last)
             except Exception as err:  # noqa: BLE001 — a calendar integration may raise anything
                 raise FetchFailed(str(err)) from err
-        raise FetchFailed(f"no school holiday source configured ({self.source})")
+        raise FetchFailed(f"no school holiday source configured ({key})")
 
     async def _fetch_from_calendar(self, entity_id: str, first: dt.date, last: dt.date) -> list[SchoolHolidayPeriod]:
         tz = dt_util.get_default_time_zone()
@@ -563,14 +658,17 @@ class WerktagsCoordinator:
 
     # -- read-outs for services and cards ----------------------------------------------
     def status(self) -> dict[str, Any]:
-        cache = self.data.school_holidays
-        return {
-            "country": self.country, "subdivision": self.subdivision, "weekend": sorted(self.weekend),
-            "school_holiday_source": self.source, "attribution": self.attribution,
-            "school_holidays": None if cache is None or cache.source != self.source else {
+        def describe(key: str) -> dict[str, Any] | None:
+            cache = self.cache_for(key)
+            return None if cache is None else {
                 "fetched_at": cache.fetched_at.isoformat() if cache.fetched_at else None,
                 "known_from": cache.known_from.isoformat() if cache.known_from else None,
                 "known_to": cache.known_to.isoformat() if cache.known_to else None,
                 "periods": len(cache.periods), "failures": cache.failures,
-            },
+            }
+        return {
+            "country": self.country, "subdivision": self.subdivision, "weekend": sorted(self.weekend),
+            "school_holiday_source": self.source, "attribution": self.attribution,
+            "school_holidays": describe(self.source_key),                       # the installation's source
+            "sources": {key: describe(key) for key in self.source_keys()},     # every source in use (#1)
         }

@@ -94,7 +94,7 @@ async def test_school_holidays_are_fetched_after_boot_and_checked_daily(hass: Ho
     await hass.async_block_till_done()
     fake_api.school_holidays.assert_awaited_once()
     coordinator = config_entry.runtime_data
-    coordinator.data = coordinator.data.__class__(school_holidays=None)   # as if nothing was cached
+    coordinator.data = coordinator.data.__class__(school_holidays={})     # as if nothing was cached
     assert coordinator._unsub_started is None                             # the one-time listener is spent
     async_fire_time_changed(hass, (dt_util.now() + dt.timedelta(days=2)).replace(hour=3, minute=30, second=0, microsecond=0))
     await hass.async_block_till_done()
@@ -120,14 +120,15 @@ async def test_refresh_keeps_earlier_years_from_the_cache(hass: HomeAssistant, h
     fake_api.school_holidays.assert_awaited_once()
     assert fake_api.school_holidays.await_args[0][2:4] == (d("2026-01-01"), d("2028-12-31"))
     old = SchoolHolidayPeriod(d("2025-07-07"), d("2025-08-15"), "Summer 2025")
-    cache = coordinator.data.school_holidays
+    key = coordinator.source_key
+    cache = coordinator.data.school_holidays[key]
     coordinator.data = coordinator.data.__class__(
         residents=coordinator.data.residents, rooms=coordinator.data.rooms,
-        school_holidays=SchoolHolidayCache(cache.source, (old, *cache.periods), d("2025-01-01"), cache.known_to,
-                                           cache.fetched_at, 0))
+        school_holidays={key: SchoolHolidayCache(key, (old, *cache.periods), d("2025-01-01"), cache.known_to,
+                                                 cache.fetched_at, 0)})
     fake_api.school_holidays.return_value = [h for h in school_holidays if h.start.year >= 2026]
     await call_service("refresh_school_holidays")
-    cache = coordinator.data.school_holidays
+    cache = coordinator.data.school_holidays[key]
     assert cache.periods[0] == old and cache.known_from == d("2025-01-01")       # last year survives
     assert len(cache.periods) == 1 + 5
     days = await call_service("get_days", start="2025-07-14", weeks=1)
@@ -337,9 +338,9 @@ async def test_a_store_with_missing_keys_fails_the_setup_with_the_translated_rea
 async def test_incomplete_school_holidays_are_reported_without_a_fetch(hass: HomeAssistant, config_entry: MockConfigEntry,
                                                                        persons, areas, hass_storage, fake_api):
     """From October the hint must appear when loading, even though a fresh cache skips the fetch (review PhD-4)."""
-    cache = SchoolHolidayCache("openholidays", (), d("2026-01-01"), d("2026-12-31"), dt_util.utcnow(), 0)
+    cache = SchoolHolidayCache("openholidays:DE-NW", (), d("2026-01-01"), d("2026-12-31"), dt_util.utcnow(), 0)
     hass_storage[f"{DOMAIN}.data"] = {"version": storage.DATA_VERSION, "minor_version": 1, "key": f"{DOMAIN}.data",
-                                      "data": storage.to_dict(storage.StoredData(school_holidays=cache))}
+                                      "data": storage.to_dict(storage.StoredData(school_holidays={cache.source: cache}))}
     assert await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     fake_api.school_holidays.assert_not_awaited()                                  # the cache is fresh
@@ -378,13 +379,19 @@ async def test_a_version_2_store_is_migrated_when_loading(hass: HomeAssistant, c
                  "residents": {"p_anna": {"short_name": "A", "order": 0,
                                           "roles": [{"valid_from": "2010-01-01", "value": "adult"}],
                                           "off_weekdays": [{"valid_from": "2026-09-28", "value": [4]}]}},
-                 "house": {"residents": [{"valid_from": "2026-10-05", "value": ["p_anna"]}]}},
+                 "house": {"residents": [{"valid_from": "2026-10-05", "value": ["p_anna"]}]},
+                 "school_holidays": {"source": "openholidays", "periods": [{"start": "2026-10-05", "end": "2026-10-16",
+                                                                             "name": "Autumn"}],
+                                     "known_from": "2026-01-01", "known_to": "2027-12-31",
+                                     "fetched_at": dt_util.utcnow().isoformat(), "failures": 0}},
     }
     assert await async_setup_component(hass, DOMAIN, {})
     await hass.async_block_till_done()
     assert config_entry.state.name == "LOADED"
     coordinator = config_entry.runtime_data
     assert coordinator.data.residents["p_anna"].weekend_on(d("2026-10-01")) == frozenset({4})
+    assert set(coordinator.data.school_holidays) == {"openholidays:DE-NW"}    # the old cache, under the real key
+    assert coordinator.data.school_holidays["openholidays:DE-NW"].periods[0].name == "Autumn"
     await coordinator.async_set_order(["p_anna"])                                  # any write
     assert hass_storage[f"{DOMAIN}.data"]["version"] == storage.DATA_VERSION == 3
 
