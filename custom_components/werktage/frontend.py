@@ -37,16 +37,23 @@ async def async_register(hass: HomeAssistant) -> None:
         _LOGGER.debug("Frontend not loaded — cards not served")
         return
     www = Path(__file__).parent / "www"
-    if not (www / CARDS_FILE).is_file():
+    digest = await hass.async_add_executor_job(_content_hash, www / CARDS_FILE)   # every file access off the loop
+    if digest is None:
         _LOGGER.debug("No %s in %s — cards not served", CARDS_FILE, www)
         return
-    digest = await hass.async_add_executor_job(_content_hash, www / CARDS_FILE)
     await hass.http.async_register_static_paths([StaticPathConfig(URL_BASE, str(www), cache_headers=True)])
     add_extra_js_url(hass, f"{URL_BASE}/{CARDS_FILE}?v={digest}")
     hass.data[_REGISTERED_KEY] = True
 
 
-def _content_hash(path: Path) -> str:
-    """Eight hex digits of the bundle's SHA-256: a new build gets a new URL and bypasses old caches."""
-    return hashlib.sha256(path.read_bytes()).hexdigest()[:8]
+def _content_hash(path: Path) -> str | None:
+    """Eight hex digits of the bundle's SHA-256, or ``None`` without a bundle.
+
+    A new build gets a new URL and bypasses old caches. Runs in the executor;
+    the existence check is part of the read so that no ``stat`` runs on the loop.
+    """
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()[:8]
+    except FileNotFoundError:
+        return None
 

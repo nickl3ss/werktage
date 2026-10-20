@@ -64,13 +64,10 @@ patterns, and combines people into rooms and the house by a rule you choose.
 
 Requires Home Assistant 2026.1 or newer.
 
-1. **With HACS** (recommended):
+1. **With HACS** (recommended): Werktags is in the HACS default list. In
+   HACS, search for *Werktags*, download it and restart Home Assistant.
 
    [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktage&category=integration)
-
-   Or in HACS: *⋮ → Custom repositories*, add
-   `https://github.com/nickl3ss/werktage` with type *Integration*. Then
-   download *Werktags* and restart Home Assistant.
 
    **Manually:** copy `custom_components/werktage/` into the
    `custom_components/` folder of your Home Assistant configuration (or run

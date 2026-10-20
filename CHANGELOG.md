@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Werktags is in the HACS default list (hacs/default#11521): install it from
+  the HACS search; the custom repository step is gone from the README.
+- The check whether the card bundle exists was a `stat` call on the event
+  loop; it now runs in the executor job that hashes the bundle (review hint
+  from the HACS submission).
+- Repository notes: product decisions go up to P34.
+
 ## 0.2.2 — 2026-10-10
 
 - `next_workday` and `next_day_off` are computed once per household and

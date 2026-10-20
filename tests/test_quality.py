@@ -37,7 +37,7 @@ async def test_cards_are_registered_once_when_the_frontend_is_loaded(hass: HomeA
     hass.config.components.update({"frontend", "http"})
     hass.http = MagicMock(async_register_static_paths=AsyncMock())
     with patch.object(frontend, "add_extra_js_url") as add_url:
-        with patch.object(Path, "is_file", return_value=False):          # bundle missing: nothing is served
+        with patch.object(frontend, "CARDS_FILE", "missing.js"):         # bundle missing: nothing is served
             await frontend.async_register(hass)
         add_url.assert_not_called()
         await frontend.async_register(hass)
