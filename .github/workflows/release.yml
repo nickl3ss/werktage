@@ -1,0 +1,36 @@
+name: Release asset
+
+# HACS installs from the ZIP asset (hacs.json "zip_release"); GitHub counts asset downloads (#7).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+      - name: The tag must equal the manifest version
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('custom_components/werktage/manifest.json'))['version'])")
+          if [ "$version" != "${{ github.event.release.tag_name }}" ]; then
+            echo "tag ${{ github.event.release.tag_name }} != manifest.json version $version"; exit 1
+          fi
+      - name: Vendored library and card bundle are current
+        run: |
+          python3 tools/sync_vendor.py --check
+          python3 tools/build_cards.py && git diff --exit-code custom_components/werktage/www
+      - name: Zip the integration (files at the archive root, as HACS expects)
+        run: cd custom_components/werktage && zip -r ../../werktage.zip . -x '*__pycache__*' -x '*.pyc'
+      - name: Upload the asset to the release
+        run: gh release upload "${{ github.event.release.tag_name }}" werktage.zip --clobber
+        env:
+          GH_TOKEN: ${{ github.token }}
