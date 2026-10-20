@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: pip            # requirements-dev.txt (test harness = Home Assistant version, mypy, ruff)
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [CI, P4]
+  - package-ecosystem: github-actions # pinned commits in .github/workflows
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [CI, P4]

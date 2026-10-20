@@ -6,51 +6,43 @@ on:
   pull_request:
 
 jobs:
+  # The one quality gate (bin/check): tests, lint, types, build sync, publication check.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0   # tools/check_publication.py searches the whole history
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+      - run: pip install -r requirements-dev.txt
+      - run: bin/check
+
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: home-assistant/actions/hassfest@master
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: home-assistant/actions/hassfest@master   # branch ref as upstream recommends (standards.yaml SEC-10)
 
   hacs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: hacs/action@main
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: hacs/action@main                         # branch ref as upstream recommends (standards.yaml SEC-10)
         with:
           category: integration
-
-  python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-      # the integration's own requirements (manifest.json) plus the test tooling
-      - run: pip install -e lib/openholidays "holidays>=0.60" pytest-homeassistant-custom-component==0.13.367 pytest-cov mypy ruff
-      - run: ruff check .
-      - run: python -m mypy
-      - run: python tools/check_publication.py --areas
-      - run: python -m pytest -q --cov=custom_components/werktage --cov-report=term-missing --cov-fail-under=95
 
   # The oldest Home Assistant release in hacs.json ("homeassistant"); keep both in step.
   minimum-ha:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
       - run: pip install -e lib/openholidays "holidays>=0.60" pytest-homeassistant-custom-component==0.13.308
       - run: python -m pytest -q tests
-
-  cards:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22"
-      - run: python3 tools/build_cards.py && git diff --exit-code custom_components/werktage/www
-      - run: node --test frontend/test/*.test.mjs
