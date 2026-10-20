@@ -1,17 +1,17 @@
 blueprint:
-  name: "Werktags: open a cover in the morning"
+  name: "Werktage: open a cover in the morning"
   description: >-
     Opens a cover (shutter, blind, curtain) at one time on workday mornings and
     at a later time when the resident, room or house sleeps in — never before
     sunrise. The later time opens in any case, so a workday opening that Home
-    Assistant missed is caught up. Uses a Werktags "morning" sensor.
+    Assistant missed is caught up. Uses a Werktage "morning" sensor.
   domain: automation
   author: nickl3ss
   source_url: https://github.com/nickl3ss/werktage/blob/main/blueprints/automation/werktage/open_cover_in_the_morning.yaml
   input:
     morning_sensor:
       name: Morning sensor
-      description: A Werktags morning sensor, e.g. sensor.anna_morning or sensor.bedroom_morning.
+      description: A Werktage morning sensor, e.g. sensor.anna_morning or sensor.bedroom_morning.
       selector:
         entity:
           filter:

@@ -45,7 +45,7 @@ modes for people, rooms and the whole house.
   asks "is it a workday?" and gets the same answer for the whole household.
 
 How it differs from the built-in *Workday* integration: Workday answers once
-for the whole installation and knows weekends and public holidays. Werktags
+for the whole installation and knows weekends and public holidays. Werktage
 answers **per person**, adds school holidays, personal exceptions and weekly
 patterns, and combines people into rooms and the house by a rule you choose.
 
@@ -64,15 +64,15 @@ patterns, and combines people into rooms and the house by a rule you choose.
 
 Requires Home Assistant 2026.1 or newer.
 
-1. **With HACS** (recommended): Werktags is in the HACS default list. In
-   HACS, search for *Werktags*, download it and restart Home Assistant.
+1. **With HACS** (recommended): Werktage is in the HACS default list. In
+   HACS, search for *Werktage*, download it and restart Home Assistant.
 
    [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktage&category=integration)
 
    **Manually:** copy `custom_components/werktage/` into the
    `custom_components/` folder of your Home Assistant configuration (or run
    `./deploy.sh <config dir>`), and restart Home Assistant.
-2. *Settings → Devices & services → Add integration → Werktags*. Five short
+2. *Settings → Devices & services → Add integration → Werktage*. Five short
    steps; every field can be changed later under *Configure → Settings*.
 
    | Step | Field | Meaning | Default |
@@ -89,7 +89,7 @@ Requires Home Assistant 2026.1 or newer.
    | Access | Only administrators may change data | Cards and services refuse writes from other users | off |
 
 3. Add residents: either with the dashboard cards below or via
-   *Werktags → Configure*, which offers a menu:
+   *Werktage → Configure*, which offers a menu:
 
    | Menu item | Fields |
    |---|---|
@@ -100,11 +100,11 @@ Requires Home Assistant 2026.1 or newer.
 
 ### Removal
 
-*Settings → Devices & services → Werktags → ⋮ → Delete*. This removes the
+*Settings → Devices & services → Werktage → ⋮ → Delete*. This removes the
 entities and devices and deletes the integration's store
 (`.storage/werktage.data`: residents, rooms, exceptions, cached school
 holidays). Persons, areas, automations and dashboards stay; automations that
-use Werktags entities then need a new condition. To remove the files as well,
+use Werktage entities then need a new condition. To remove the files as well,
 delete `custom_components/werktage/` and restart Home Assistant.
 
 See the [specification](docs/specification.md) for rules, entities and
@@ -116,7 +116,7 @@ The integration serves four cards; no Lovelace resource has to be added by
 hand. A dashboard with one card per view:
 
 ```yaml
-title: Werktags
+title: Werktage
 views:
   - title: Kalender
     path: kalender
@@ -178,8 +178,8 @@ without any template — import them under *Settings → Automations → Bluepri
 
 | Blueprint | Inputs |
 |---|---|
-| *Werktags: open a cover in the morning* | a morning sensor, a cover, the time on workdays and on days off (never before sunrise) |
-| *Werktags: switch off in the evening* | an evening sensor, lights or switches, the time before a workday and before a day off |
+| *Werktage: open a cover in the morning* | a morning sensor, a cover, the time on workdays and on days off (never before sunrise) |
+| *Werktage: switch off in the evening* | an evening sensor, lights or switches, the time before a workday and before a day off |
 
 The later time of each blueprint acts in any case, so a run that Home
 Assistant missed (restart, power cut) is caught up. Both are validated
@@ -272,7 +272,7 @@ unavailable; their devices can then be deleted.
 | A card shows *Configuration error* / *Custom element doesn't exist* | The page was loaded before the integration was set up or restarted: the list of scripts is part of the page. Reload the browser once. The Companion app keeps an older page in its cache: *Settings → Companion app → Troubleshooting → Clear cache*, then open the dashboard again. The script is served at `/werktage_static/werktags-cards.js`; it needs the `frontend` integration, which `default_config` includes. |
 | An entity is called `sensor.bedroom_morning_2` | An entity with that id existed before. Rename it under *Settings → Entities*. |
 
-Diagnostics (*Devices & services → Werktags → ⋮ → Download diagnostics*)
+Diagnostics (*Devices & services → Werktage → ⋮ → Download diagnostics*)
 contain the configuration and counts, never names of persons.
 
 ## Repository layout

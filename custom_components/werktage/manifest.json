@@ -1,6 +1,6 @@
 {
   "domain": "werktage",
-  "name": "Werktags",
+  "name": "Werktage",
   "after_dependencies": [
     "calendar",
     "frontend",

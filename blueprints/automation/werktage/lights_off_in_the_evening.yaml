@@ -1,9 +1,9 @@
 blueprint:
-  name: "Werktags: switch off in the evening"
+  name: "Werktage: switch off in the evening"
   description: >-
     Switches lights or switches off at one time on evenings before a workday
     and at a later time before a day off. The later time switches off in any
-    case, so an evening Home Assistant missed is caught up. Uses a Werktags
+    case, so an evening Home Assistant missed is caught up. Uses a Werktage
     "evening" sensor, which refers to tomorrow.
   domain: automation
   author: nickl3ss
@@ -11,7 +11,7 @@ blueprint:
   input:
     evening_sensor:
       name: Evening sensor
-      description: A Werktags evening sensor, e.g. sensor.house_evening.
+      description: A Werktage evening sensor, e.g. sensor.house_evening.
       selector:
         entity:
           filter:

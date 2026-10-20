@@ -1,5 +1,5 @@
 /**
- * Werktags dashboard cards: calendar, period, residents, rooms.
+ * Werktage dashboard cards: calendar, period, residents, rooms.
  *
  * Plain custom elements, no framework, no external library. They talk to the
  * integration only through its services (get_days, get_overview, preview_days
@@ -101,7 +101,7 @@ class WerktagsCard extends HTMLElement {
     this._hass = null;
     this._message = null;
     this._narrow = false;
-    this._seen = null;                      // change stamp of the Werktags sensors when we loaded
+    this._seen = null;                      // change stamp of the Werktage sensors when we loaded
     this._tracked = null;                   // their entity ids, found once from hass.entities
     this._observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect?.width || 0;
@@ -124,7 +124,7 @@ class WerktagsCard extends HTMLElement {
     this.render();
   }
 
-  /** Every change rebuilds all Werktags sensors; the newest last_updated among them says "reload".
+  /** Every change rebuilds all Werktage sensors; the newest last_updated among them says "reload".
    *  Entity ids depend on the installation language, so the sensors are found by platform. */
   _changeStamp(hass) {
     if (!this._tracked || this._trackedFrom !== hass.entities) {

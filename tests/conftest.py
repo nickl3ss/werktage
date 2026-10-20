@@ -98,7 +98,7 @@ async def areas(hass: HomeAssistant) -> dict[str, str]:
 
 @pytest.fixture
 def config_entry(hass: HomeAssistant) -> MockConfigEntry:
-    entry = MockConfigEntry(domain=DOMAIN, title="Werktags", data=CONFIG, unique_id=DOMAIN, entry_id="test_entry")
+    entry = MockConfigEntry(domain=DOMAIN, title="Werktage", data=CONFIG, unique_id=DOMAIN, entry_id="test_entry")
     entry.add_to_hass(hass)
     return entry
 

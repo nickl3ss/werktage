@@ -38,7 +38,7 @@ async def test_user_flow_five_steps(hass: HomeAssistant, fake_api):
     result = await hass.config_entries.flow.async_configure(result["flow_id"], HOUSE)
     assert result["step_id"] == "access"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"admin_only": True})
-    assert result["type"] is FlowResultType.CREATE_ENTRY and result["title"] == "Werktags"
+    assert result["type"] is FlowResultType.CREATE_ENTRY and result["title"] == "Werktage"
     data = result["data"]
     assert data["subdivision"] == "DE-NW" and data["house_morning_rule"] == "workday_wins" and data["admin_only"] is True
     assert data["calendar_entity"] is None

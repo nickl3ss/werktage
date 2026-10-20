@@ -1,9 +1,9 @@
-# Werktags — Specification
+# Werktage — Specification
 
 **Status:** implemented (released as 0.2.x, quality scale Platinum) ·
-**Version:** 3 (2026-10-10) — all open questions decided (P21–P34)
+**Version:** 4 (2026-10-20) — all open questions decided (P21–P35)
 
-Werktags tells Home Assistant, **per person**, whether a day is a workday or a
+Werktage tells Home Assistant, **per person**, whether a day is a workday or a
 day off. From that it derives a **morning mode** (*workday* / *day off*) and an
 **evening mode** (*before a workday* / *before a day off*) for every person,
 every room and the whole house. Automations use these modes, for example to
@@ -16,7 +16,7 @@ particular household; examples use fictitious people (Anna, Ben, Clara).
 
 ## 1. Scope
 
-Werktags consists of three parts that live in this repository and can later be
+Werktage consists of three parts that live in this repository and can later be
 split without changes:
 
 | Part | Content | Later |
@@ -67,6 +67,7 @@ type.
 | P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
 | P33 | Public holidays fail at midnight | The error is logged and the day still changes with the holidays already known; sensors never keep yesterday's date (see P5: missing data is never silently a day off) |
 | P34 | Library version | `lib/openholidays` carries its own version, which only changes with the library; the integration's `manifest.json` version is what the User-Agent reports |
+| P35 | Display name | The integration is called **Werktage** wherever users see it (HACS, the integrations list, titles, texts, blueprints), the same word as the domain. Technical identifiers keep `werktags`: the card element names `custom:werktags-*`, the bundle `werktags-cards.js`, class names — changing them would break every dashboard (#6, 0.3.0) |
 
 ## 3. Rules
 

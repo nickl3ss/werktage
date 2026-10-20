@@ -27,7 +27,7 @@ def bundle() -> str:
     cards = (SRC / "cards.js").read_text(encoding="utf-8")
     logic = re.sub(r"^export (?=(function|const|let|class) )", "", logic, flags=re.MULTILINE)
     cards = re.sub(r"^import \{[^}]*\} from \"\./logic\.js\";\n", "", cards, flags=re.MULTILINE | re.DOTALL)
-    return (f"/* Werktags cards v{version} — built from frontend/src by tools/build_cards.py. Do not edit. */\n"
+    return (f"/* Werktage cards v{version} — built from frontend/src by tools/build_cards.py. Do not edit. */\n"
             f"(() => {{\n\"use strict\";\n{logic}\n{cards}\n}})();\n")
 
 

@@ -1,4 +1,4 @@
-"""Rules of Werktags: which day is a workday for whom, and what follows from it.
+"""Rules of Werktage: which day is a workday for whom, and what follows from it.
 
 Pure functions and small immutable data types, no Home Assistant imports.
 Section numbers refer to docs/specification.md.

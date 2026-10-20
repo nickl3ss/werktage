@@ -253,10 +253,10 @@ test("a missing integration is reported in words", async () => {
   card.setConfig({});
   card.hass = { locale: { language: "de" }, connection: { sendMessagePromise: async () => { throw new Error("Werktags is not set up yet."); } } };
   await tick(); await tick();
-  assert.match(card.shadowRoot.innerHTML, /Werktags ist nicht eingerichtet/);
+  assert.match(card.shadowRoot.innerHTML, /Werktage ist nicht eingerichtet/);
 });
 
-test("cards reload when any Werktags sensor changes, whatever its language", async () => {
+test("cards reload when any Werktage sensor changes, whatever its language", async () => {
   const calls = [];
   const card = new defined["werktags-rooms"]();
   card.setConfig({});
@@ -271,6 +271,6 @@ test("cards reload when any Werktags sensor changes, whatever its language", asy
   assert.equal(calls.filter((c) => c.service === "get_overview").length, 1);        // foreign sensor: nothing
   card.hass = { ...hass, states: { ...hass.states, "sensor.haus_abend": { last_updated: "2026-10-01T09:06:00" } } };
   await tick(); await tick();
-  assert.equal(calls.filter((c) => c.service === "get_overview").length, 2);        // a Werktags sensor: reload
+  assert.equal(calls.filter((c) => c.service === "get_overview").length, 2);        // a Werktage sensor: reload
 });
 

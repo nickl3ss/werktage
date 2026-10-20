@@ -72,13 +72,13 @@
       "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen."
     },
     "abort": {
-      "already_configured": "Werktags ist bereits eingerichtet. Ändere die Einstellungen in den Optionen."
+      "already_configured": "Werktage ist bereits eingerichtet. Ändere die Einstellungen in den Optionen."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Werktags",
+        "title": "Werktage",
         "menu_options": {
           "settings": "Einstellungen (Land, Schulferien, Haus, Zugriff)",
           "resident": "Bewohner anlegen oder ändern",
@@ -508,10 +508,10 @@
   },
   "exceptions": {
     "not_loaded": {
-      "message": "Werktags ist noch nicht eingerichtet."
+      "message": "Werktage ist noch nicht eingerichtet."
     },
     "admin_only": {
-      "message": "Nur Administratoren dürfen Werktags-Daten ändern."
+      "message": "Nur Administratoren dürfen Werktage-Daten ändern."
     },
     "unknown_person": {
       "message": "{entity_id} ist keine Person."
@@ -556,7 +556,7 @@
       "message": "An diesem Datum gibt es keine Raumzuordnung."
     },
     "store_unreadable": {
-      "message": "Die gespeicherten Werktags-Daten sind nicht lesbar: {error}"
+      "message": "Die gespeicherten Werktage-Daten sind nicht lesbar: {error}"
     },
     "country_unsupported": {
       "message": "Land oder Region wird nicht unterstützt: {error}"

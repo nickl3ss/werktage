@@ -1,4 +1,4 @@
-Werktags uses data from the following sources. The data is fetched at run time
+Werktage uses data from the following sources. The data is fetched at run time
 and cached locally in the Home Assistant installation; it is not part of this
 repository.
 

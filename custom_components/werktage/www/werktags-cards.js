@@ -1,8 +1,8 @@
-/* Werktags cards v0.2.3 — built from frontend/src by tools/build_cards.py. Do not edit. */
+/* Werktage cards v0.2.3 — built from frontend/src by tools/build_cards.py. Do not edit. */
 (() => {
 "use strict";
 /**
- * Pure logic of the Werktags cards: dates, grid, "All" state, texts.
+ * Pure logic of the Werktage cards: dates, grid, "All" state, texts.
  * No DOM, no Home Assistant — testable with plain Node.
  */
 
@@ -208,7 +208,7 @@ const TEXTS = {
     house_by_role: "by role — remove everyone to return to it", house_chosen: "chosen residents",
     weekly: "Days off every week", weekly_household: "household weekend", weekly_personal: "personal",
     weekly_reset: "Household weekend",
-    loading: "Loading…", not_set_up: "Werktags is not set up.", school_holidays: "School holidays",
+    loading: "Loading…", not_set_up: "Werktage is not set up.", school_holidays: "School holidays",
     known_to: "known until", fetched: "fetched", never: "never", no_role: "No role", order: "Order",
   },
   de: {
@@ -239,7 +239,7 @@ const TEXTS = {
     house_by_role: "nach Rolle — alle entfernen, um dorthin zurückzukehren", house_chosen: "gewählte Bewohner",
     weekly: "Freie Wochentage", weekly_household: "Wochenende des Haushalts", weekly_personal: "persönlich",
     weekly_reset: "Wochenende des Haushalts",
-    loading: "Lade…", not_set_up: "Werktags ist nicht eingerichtet.", school_holidays: "Schulferien",
+    loading: "Lade…", not_set_up: "Werktage ist nicht eingerichtet.", school_holidays: "Schulferien",
     known_to: "bekannt bis", fetched: "abgerufen", never: "nie", no_role: "Keine Rolle", order: "Reihenfolge",
   },
 };
@@ -254,7 +254,7 @@ function esc(value) {
 }
 
 /**
- * Werktags dashboard cards: calendar, period, residents, rooms.
+ * Werktage dashboard cards: calendar, period, residents, rooms.
  *
  * Plain custom elements, no framework, no external library. They talk to the
  * integration only through its services (get_days, get_overview, preview_days
@@ -351,7 +351,7 @@ class WerktagsCard extends HTMLElement {
     this._hass = null;
     this._message = null;
     this._narrow = false;
-    this._seen = null;                      // change stamp of the Werktags sensors when we loaded
+    this._seen = null;                      // change stamp of the Werktage sensors when we loaded
     this._tracked = null;                   // their entity ids, found once from hass.entities
     this._observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect?.width || 0;
@@ -374,7 +374,7 @@ class WerktagsCard extends HTMLElement {
     this.render();
   }
 
-  /** Every change rebuilds all Werktags sensors; the newest last_updated among them says "reload".
+  /** Every change rebuilds all Werktage sensors; the newest last_updated among them says "reload".
    *  Entity ids depend on the installation language, so the sensors are found by platform. */
   _changeStamp(hass) {
     if (!this._tracked || this._trackedFrom !== hass.entities) {

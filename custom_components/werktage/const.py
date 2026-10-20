@@ -1,8 +1,8 @@
-"""Constants of the Werktags integration."""
+"""Constants of the Werktage integration."""
 from __future__ import annotations
 
 DOMAIN = "werktage"
-NAME = "Werktags"
+NAME = "Werktage"
 VERSION = "0.2.3"  # must match manifest.json, see test_quality
 USER_AGENT = f"{DOMAIN}/{VERSION} (+https://github.com/nickl3ss/werktage)"
 

@@ -1,5 +1,5 @@
 /**
- * Pure logic of the Werktags cards: dates, grid, "All" state, texts.
+ * Pure logic of the Werktage cards: dates, grid, "All" state, texts.
  * No DOM, no Home Assistant — testable with plain Node.
  */
 
@@ -205,7 +205,7 @@ const TEXTS = {
     house_by_role: "by role — remove everyone to return to it", house_chosen: "chosen residents",
     weekly: "Days off every week", weekly_household: "household weekend", weekly_personal: "personal",
     weekly_reset: "Household weekend",
-    loading: "Loading…", not_set_up: "Werktags is not set up.", school_holidays: "School holidays",
+    loading: "Loading…", not_set_up: "Werktage is not set up.", school_holidays: "School holidays",
     known_to: "known until", fetched: "fetched", never: "never", no_role: "No role", order: "Order",
   },
   de: {
@@ -236,7 +236,7 @@ const TEXTS = {
     house_by_role: "nach Rolle — alle entfernen, um dorthin zurückzukehren", house_chosen: "gewählte Bewohner",
     weekly: "Freie Wochentage", weekly_household: "Wochenende des Haushalts", weekly_personal: "persönlich",
     weekly_reset: "Wochenende des Haushalts",
-    loading: "Lade…", not_set_up: "Werktags ist nicht eingerichtet.", school_holidays: "Schulferien",
+    loading: "Lade…", not_set_up: "Werktage ist nicht eingerichtet.", school_holidays: "Schulferien",
     known_to: "bekannt bis", fetched: "abgerufen", never: "nie", no_role: "Keine Rolle", order: "Reihenfolge",
   },
 };

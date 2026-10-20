@@ -72,13 +72,13 @@
       "holiday_format": "Use YYYY-MM-DD, optionally followed by a name."
     },
     "abort": {
-      "already_configured": "Werktags is already set up. Use its options to change settings."
+      "already_configured": "Werktage is already set up. Use its options to change settings."
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Werktags",
+        "title": "Werktage",
         "menu_options": {
           "settings": "Settings (country, school holidays, house, access)",
           "resident": "Add or change a resident",
@@ -508,10 +508,10 @@
   },
   "exceptions": {
     "not_loaded": {
-      "message": "Werktags is not set up yet."
+      "message": "Werktage is not set up yet."
     },
     "admin_only": {
-      "message": "Only administrators may change Werktags data."
+      "message": "Only administrators may change Werktage data."
     },
     "unknown_person": {
       "message": "{entity_id} is not a person."
@@ -556,7 +556,7 @@
       "message": "There is no room assignment on that date."
     },
     "store_unreadable": {
-      "message": "The stored Werktags data cannot be read: {error}"
+      "message": "The stored Werktage data cannot be read: {error}"
     },
     "country_unsupported": {
       "message": "The country or region is not supported: {error}"
