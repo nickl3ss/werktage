@@ -1,4 +1,4 @@
-# Werktags
+# Werktage
 
 **Workdays per person for Home Assistant** — weekends, public holidays and
 school holidays by default, exceptions per person and day, and morning/evening
