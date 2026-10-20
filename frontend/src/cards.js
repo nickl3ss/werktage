@@ -797,10 +797,10 @@ class WerktagsCardEditor extends HTMLElement {
 // --- registration ---------------------------------------------------------------------------
 
 const CARDS = [
-  ["werktags-calendar", WerktagsCalendarCard, "Werktags: calendar", "Weeks of days off per resident; tap to change."],
-  ["werktags-period", WerktagsPeriodCard, "Werktags: period", "Set days off or workdays for a date range."],
-  ["werktags-residents", WerktagsResidentsCard, "Werktags: residents", "Roles and short names of the residents."],
-  ["werktags-rooms", WerktagsRoomsCard, "Werktags: rooms", "Which residents belong to which room."],
+  ["werktags-calendar", WerktagsCalendarCard, "Werktage: calendar", "Weeks of days off per resident; tap to change."],
+  ["werktags-period", WerktagsPeriodCard, "Werktage: period", "Set days off or workdays for a date range."],
+  ["werktags-residents", WerktagsResidentsCard, "Werktage: residents", "Roles and short names of the residents."],
+  ["werktags-rooms", WerktagsRoomsCard, "Werktage: rooms", "Which residents belong to which room."],
 ];
 customElements.define("werktags-card-editor", WerktagsCardEditor);
 window.customCards = window.customCards || [];
