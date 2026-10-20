@@ -171,6 +171,16 @@ actions:
 **tomorrow**; note that after midnight it already refers to the day after.
 `binary_sensor.<x>_workday` is `on` on a workday, for plain state conditions.
 
+`next_workday` and `next_day_off` on the morning sensors say when the next
+change comes, for example in a Markdown card:
+
+```yaml
+type: markdown
+content: >-
+  {% set next = state_attr('sensor.anna_morning', 'next_day_off') %}
+  Anna's next day off: {{ next }} (in {{ (as_datetime(next).date() - now().date()).days }} days)
+```
+
 ### Blueprints
 
 Two blueprints in `blueprints/automation/werktage/` cover the common cases

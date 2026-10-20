@@ -1,5 +1,95 @@
 # Changelog
 
+All changes in plain words, so that it is clear what an update does (Keep a Changelog 1.1.0). Releases are tags `X.Y.Z`; only tags are installed. Lines starting with *Decision:* record a direction taken (`docs/specification.md`, `docs/PROJECT.md § 7`).
+
+## Unreleased
+
+### Added
+### Changed
+### Fixed
+### Removed
+### Security
+
+## 0.3.0 — 2026-10-21
+
+The milestone "calendars per resident" (#1, #2, #3), the review of
+2026-10-20 and the quality standard `nickl3ss/standards` (level gold).
+Store version 3; 0.2.x files are migrated when loading, so a rollback
+needs the store from the backup (see `docs/BETRIEB.md § 3`).
+
+### Added
+- A resident may have an own **school holiday source**: another region of
+  the country or a calendar entity (`set_role` field `school_holiday_source`,
+  the residents card, the options menu). Each source is fetched once a
+  month on its own; repair hints name the source (#1).
+- **Personal calendars as a source of days off**: a days-off calendar and
+  a workdays calendar per resident with an optional keyword
+  (`set_calendars`, the residents card, the options menu). All-day events
+  become days off or extra workdays with the reasons `calendar_day_off`
+  and `calendar_workday`; a manual exception still wins. Read at start,
+  daily and half a minute after a calendar changes; an unreadable calendar
+  keeps its last days (#2).
+- **Export into a shared calendar**: *Configure → Export into a calendar*
+  writes the days off of the coming weeks as all-day events into a
+  CalDAV, Google or local calendar and keeps them current; only its own
+  events (marker `werktage:` in the description) are created or removed;
+  a refusing calendar raises a repair issue (#3).
+- `calendar.<house>_school_holidays`: the school holidays of the source as
+  all-day events on the house device (#14).
+- The calendar card marks days from a personal calendar with a dotted
+  outline and shows when the school holidays were last fetched; a pupil's
+  own source is marked as well.
+- Performance budgets for the three core flows as tests
+  (`tests/test_perf.py`, `docs/PROJECT.md § 6`).
+- Release assets: every release carries `werktage.zip`, HACS installs
+  from it and GitHub counts the downloads (#7). Releases before 0.3.0 have
+  no asset and can no longer be installed through HACS.
+- The repository follows `nickl3ss/standards` (level gold): `standards.yaml`,
+  `bin/check` as the one quality gate for `pre-push` and the CI,
+  `CLAUDE.md` after the template, `docs/PROJECT.md` (architecture, ADRs,
+  invariants with tests, deletion concept, threat model),
+  `docs/TESTING.md`, `docs/BETRIEB.md`, `SECURITY.md`, `VERSIONS.md`,
+  issue and pull request templates, labels and milestones, Conventional
+  Commits with a `commit-msg` hook. The deep review is saved as
+  `docs/REVIEW-2026-10-20.md`.
+- Development on Windows: `tools/windows_dev.py` and a root `conftest.py`
+  let the Home Assistant tests run there (18 s).
+
+### Changed
+- Decision: the display name is **Werktage** everywhere users see it
+  (HACS, the integrations list, titles, texts, blueprints); the card
+  element names `custom:werktags-*` and the bundle file keep their names
+  so that dashboards keep working (P35, #6).
+- Decision: returning to the household weekend (`set_weekly` with
+  `household`) or to the house roles (`set_house` with `by_role`) is a step
+  from `valid_from` on; earlier days keep their pattern or assignment
+  instead of being rewritten (#11, specification 3.4).
+- Decision: calendar days sit between the default and a manual exception,
+  `effective = exception ?? calendar ?? default` (P36); the export is an
+  export, not a synchronisation, and the integration never speaks CalDAV
+  itself (P37).
+- The repair hint about missing school holidays is checked when loading
+  and every midnight, not only after a fetch; it names the source.
+- Tap targets in the cards are at least 24 × 24 px (WCAG 2.5.8), day
+  toggles 32 px high.
+- The CI installs the pinned `requirements-dev.txt`, generic actions are
+  pinned to commits, Dependabot proposes updates monthly; secret scanning
+  and private vulnerability reporting are switched on.
+- Documentation drift fixed: `get_days` takes 1–26 weeks, the five setup
+  steps, `set_order` in the specification, the brand images.
+
+### Fixed
+- A store damaged by hand (missing keys) names `store_unreadable` instead
+  of a traceback.
+- The options dialog says "one or two characters" for a three-letter short
+  name instead of "already used".
+- `with_exceptions` no longer shares the `next_day` cache with the
+  household it came from.
+
+### Removed
+- `logo.png` and `logo@2x.png` (440 KB): Home Assistant derives the logo
+  from the icon.
+
 ## 0.2.3 — 2026-10-20
 
 - Werktags is in the HACS default list (hacs/default#11521): install it from
