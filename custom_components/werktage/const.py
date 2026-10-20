@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "werktage"
 NAME = "Werktage"
-VERSION = "0.2.3"  # must match manifest.json, see test_quality
+VERSION = "0.3.0"  # must match manifest.json, see test_quality
 USER_AGENT = f"{DOMAIN}/{VERSION} (+https://github.com/nickl3ss/werktage)"
 
 # Config entry / options keys

@@ -4,7 +4,7 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: 0.2.3.** Integration and cards are tested against Home Assistant
+> **Status: 0.3.0.** Integration and cards are tested against Home Assistant
 > 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
 > [issues](https://github.com/nickl3ss/werktage/issues).
 
@@ -371,7 +371,7 @@ kann jeder Schüler eine eigene Schulferienquelle haben, persönliche Kalender
 liefern freie Tage und zusätzliche Werktage, und die freien Tage lassen sich in
 einen geteilten Kalender exportieren (Abschnitte oben, auf Englisch).
 
-> **Stand: 0.2.3.** Integration und Karten sind gegen Home Assistant 2026.1
+> **Stand: 0.3.0.** Integration und Karten sind gegen Home Assistant 2026.1
 > (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
 > beschrieben; Ideen und Fehler als
 > [Issue](https://github.com/nickl3ss/werktage/issues).

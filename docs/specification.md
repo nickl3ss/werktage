@@ -1,6 +1,6 @@
 # Werktage — Specification
 
-**Status:** implemented (released as 0.2.x, quality scale Platinum) ·
+**Status:** implemented (released as 0.3.0, quality scale Platinum) ·
 **Version:** 4 (2026-10-21) — all open questions decided (P21–P37)
 
 Werktage tells Home Assistant, **per person**, whether a day is a workday or a
