@@ -67,6 +67,12 @@ Testumgebung: ein Home Assistant ≥ 2026.1 mit der installierten Version aus de
 | N8-3 | Schreibgeschützten Kalender wählen | Fehltext „kann keine Termine anlegen und löschen“; bei späterem Fehler Reparaturhinweis *Freie Tage konnten nicht exportiert werden* |
 | N8-4 | Export abschalten (Kalender leeren) | Keine neuen Termine; bestehende bleiben (dokumentiert) |
 
+### N9 · Fehltext der Schulferienquelle (hassfest)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N9-1 | `werktage.set_role` mit `school_holiday_source: moon:far` aufrufen | Fehltext nennt die erlaubten Formen mit ausgeschriebenen Beispielen (openholidays:DE-HE, calendar:calendar.schule), ohne spitze Klammern |
+
 ## Regressionssuite
 
 Vor jedem Release vollständig, nach jedem Push die betroffenen Abschnitte.
