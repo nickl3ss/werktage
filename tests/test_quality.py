@@ -10,11 +10,12 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
-from custom_components.werktage import async_remove_config_entry_device, frontend, rules, sources
+from custom_components.werktage import async_remove_config_entry_device, frontend, rules, sources, storage
 from custom_components.werktage.const import DOMAIN
 from custom_components.werktage.coordinator import WerktagsError, async_probe_openholidays
 from custom_components.werktage.diagnostics import async_get_config_entry_diagnostics
@@ -170,14 +171,18 @@ async def test_rejected_changes_name_their_reason(hass: HomeAssistant, household
 async def test_every_error_key_is_translated():
     import json
     base = Path(frontend.__file__).parent
-    source = (base / "coordinator.py").read_text() + (base / "services.py").read_text()
+    source = (base / "coordinator.py").read_text(encoding="utf-8") + (base / "services.py").read_text(encoding="utf-8")
     import re
     keys = set(re.findall(r'WerktagsError\("(\w+)"', source)) | set(re.findall(r'translation_key="(\w+)"', source))
+    flow = (base / "config_flow.py").read_text(encoding="utf-8")
+    option_keys = set(re.findall(r'errors\["\w+"\] = "(\w+)"', flow))
+    option_keys |= {"short_name_taken", "short_name_length"}         # err.key of async_set_role (review UX-1)
     for name in ("strings.json", "translations/en.json", "translations/de.json"):
-        translated = json.loads((base / name).read_text())
+        translated = json.loads((base / name).read_text(encoding="utf-8"))
         missing = keys - set(translated["exceptions"]) - set(translated.get("issues", {}))
         assert not missing, f"{name}: {missing}"
         assert all(isinstance(v, dict) and v.get("message") for v in translated["exceptions"].values()), name
+        assert option_keys <= set(translated["options"]["error"]), (name, option_keys - set(translated["options"]["error"]))
 
 
 # --- services: the remaining branches ----------------------------------------------------------
@@ -310,5 +315,55 @@ def test_user_agent_reports_the_manifest_version():
     from custom_components.werktage.const import USER_AGENT, VERSION
 
     manifest = Path(__file__).parent.parent / "custom_components" / "werktage" / "manifest.json"
-    assert json.loads(manifest.read_text())["version"] == VERSION
+    assert json.loads(manifest.read_text(encoding="utf-8"))["version"] == VERSION
     assert f"/{VERSION} " in USER_AGENT
+
+
+async def test_a_store_with_missing_keys_fails_the_setup_with_the_translated_reason(hass: HomeAssistant,
+                                                                                    config_entry: MockConfigEntry,
+                                                                                    persons, areas, hass_storage):
+    """A store damaged by hand raises KeyError or TypeError, not only ValueError; the reason must still be named."""
+    hass_storage[f"{DOMAIN}.data"] = {
+        "version": storage.DATA_VERSION, "minor_version": 1, "key": f"{DOMAIN}.data",
+        "data": {"version": storage.DATA_VERSION,
+                 "residents": {"p_anna": {"short_name": "A", "order": 0, "roles": [{"value": "adult"}],
+                                          "off_weekdays": []}}},                      # role step without valid_from
+    }
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert config_entry.state.name == "SETUP_ERROR" and config_entry.error_reason_translation_key == "store_unreadable"
+
+
+async def test_incomplete_school_holidays_are_reported_without_a_fetch(hass: HomeAssistant, config_entry: MockConfigEntry,
+                                                                       persons, areas, hass_storage, fake_api):
+    """From October the hint must appear when loading, even though a fresh cache skips the fetch (review PhD-4)."""
+    cache = SchoolHolidayCache("openholidays", (), d("2026-01-01"), d("2026-12-31"), dt_util.utcnow(), 0)
+    hass_storage[f"{DOMAIN}.data"] = {"version": storage.DATA_VERSION, "minor_version": 1, "key": f"{DOMAIN}.data",
+                                      "data": storage.to_dict(storage.StoredData(school_holidays=cache))}
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    fake_api.school_holidays.assert_not_awaited()                                  # the cache is fresh
+    assert ir.async_get(hass).async_get_issue(DOMAIN, "school_holidays_incomplete") is not None
+
+
+def test_pure_modules_and_library_import_nothing_from_home_assistant():
+    """Invariant 3 (docs/PROJECT.md): rules, sources, storage and the library stay free of Home Assistant,
+    and the integration reaches the API only through the library."""
+    base = Path(frontend.__file__).parent
+    pure = [base / name for name in ("rules.py", "sources.py", "storage.py")]
+    pure += sorted((base.parent.parent / "lib" / "openholidays" / "src").rglob("*.py"))
+    for path in pure:
+        assert "homeassistant" not in path.read_text(encoding="utf-8"), path
+    for path in base.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "import aiohttp" not in text and "from aiohttp" not in text, path
+
+
+def test_frontend_is_the_only_delivery_and_there_is_no_websocket_api():
+    """Invariant 7: the cards are served by frontend.py alone; no own websocket API, no panel."""
+    base = Path(frontend.__file__).parent
+    for path in base.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        if path.name != "frontend.py":
+            assert "add_extra_js_url" not in text and "async_register_static_paths" not in text, path
+        assert "websocket_api" not in text and "async_register_panel" not in text, path

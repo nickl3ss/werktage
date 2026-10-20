@@ -201,6 +201,7 @@
       "holiday_format": "JJJJ-MM-TT verwenden, optional gefolgt von einem Namen.",
       "not_resident": "Diese Person ist noch kein Bewohner. Zuerst den Bewohner anlegen.",
       "short_name_taken": "Dieses Kürzel ist bereits vergeben.",
+      "short_name_length": "Das Kürzel muss ein oder zwei Zeichen haben.",
       "unknown_area": "Diesen Bereich gibt es nicht.",
       "room_without_residents": "Mindestens einen Bewohner zuordnen. Die Regeln gehören zu einem Raum mit Bewohnern."
     },

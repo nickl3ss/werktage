@@ -360,3 +360,12 @@ def test_holiday_corrections(calendar):
     assert (added.day_type, added.reason, added.holiday_name) == (DayType.DAY_OFF, Reason.PUBLIC_HOLIDAY, "Company holiday")
     assert default_day(Role.ADULT, d("2026-12-25"), corrected).is_workday       # a Friday, holiday removed
     assert default_day(Role.ADULT, d("2026-10-03"), corrected).reason is Reason.PUBLIC_HOLIDAY   # untouched
+
+
+def test_a_derived_household_answers_next_day_afresh(household):
+    """``with_exceptions`` must not share the cache with the household it came from (review PhD-2)."""
+    thursday = d("2026-10-01")
+    assert household.next_day("anna", thursday, workday=False) == d("2026-10-03")      # the public holiday
+    after = household.with_exceptions(["anna"], d("2026-10-02"), d("2026-10-02"), DayType.DAY_OFF)
+    assert after._next_day_cache is not household._next_day_cache
+    assert after.next_day("anna", thursday, workday=False) == d("2026-10-02")

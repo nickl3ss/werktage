@@ -201,6 +201,7 @@
       "holiday_format": "Use YYYY-MM-DD, optionally followed by a name.",
       "not_resident": "This person is not a resident yet. Add the resident first.",
       "short_name_taken": "This short name is already used.",
+      "short_name_length": "The short name must have one or two characters.",
       "unknown_area": "This area does not exist.",
       "room_without_residents": "Assign at least one resident. The rules belong to a room that has residents."
     },

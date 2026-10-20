@@ -307,8 +307,8 @@ class Household:
     house: House = field(default_factory=House)
     exceptions: Exceptions = field(default_factory=dict)
     # next_day results; a household is rebuilt whenever its data changes, so the cache lives as long as the data
-    _next_day_cache: dict[tuple[str, dt.date, bool], dt.date | None] = field(default_factory=dict, repr=False,
-                                                                              compare=False)
+    _next_day_cache: dict[tuple[str, dt.date, bool], dt.date | None] = field(default_factory=dict, init=False,
+                                                                              repr=False, compare=False)
 
     # -- one person -------------------------------------------------------
     def exception_for(self, resident_id: str, day: dt.date) -> DayType | None:

@@ -177,7 +177,7 @@ class WerktagsCoordinator:
     async def async_load(self) -> None:
         try:
             self.data = storage.from_dict(await self._store.async_load())
-        except ValueError as err:
+        except (ValueError, KeyError, TypeError) as err:   # damaged by hand or by a newer version
             raise ConfigEntryError(translation_domain=DOMAIN, translation_key="store_unreadable",
                                    translation_placeholders={"error": str(err)}) from err
         rooms = {area_id: room for area_id, room in self.data.rooms.items() if room.ever_assigned}
@@ -186,6 +186,7 @@ class WerktagsCoordinator:
             await self._store.async_save(storage.to_dict(self.data))
         await self._async_public_holidays()
         self._rebuild()
+        self._check_completeness()                # a fresh cache skips the fetch, the hint must not wait for it
         self._unsub.append(async_track_time_change(self.hass, self._at_midnight, hour=0, minute=0, second=10))
         self._unsub.append(async_track_time_change(self.hass, self._daily_check, hour=3, minute=30, second=0))
         if self.hass.is_running:
@@ -210,6 +211,7 @@ class WerktagsCoordinator:
             # keep the holidays already known: the sensors must still move to the new day
             _LOGGER.error("Public holidays could not be updated at midnight, keeping the known ones: %s", err)
         self._rebuild()
+        self._check_completeness()                # October may have begun, or the source may have changed
 
     async def _daily_check(self, _now: dt.datetime) -> None:
         await self.async_refresh_school_holidays()

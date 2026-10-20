@@ -334,8 +334,8 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
             try:
                 await c.async_set_role(person_id, Role(user_input["role"]), valid_from,
                                        (user_input.get("short_name") or "").strip() or None)
-            except ValueError:
-                errors["short_name"] = "short_name_taken"
+            except WerktagsError as err:
+                errors["short_name"] = err.key            # short_name_taken or short_name_length
             else:
                 weekdays = user_input.get("off_weekdays")
                 if weekdays:

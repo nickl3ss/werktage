@@ -239,3 +239,10 @@ async def test_the_holidays_library_never_runs_in_the_event_loop(hass: HomeAssis
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"country": "DE"})
     assert result["step_id"] == "region" and len(seen) >= 2 and loop_thread not in seen
 
+
+async def test_options_menu_names_the_short_name_problem(hass: HomeAssistant, setup_integration: MockConfigEntry, persons):
+    """A three-letter short name is reported as too long, not as taken (review UX-1)."""
+    result = await _options(hass, setup_integration, "resident")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"person": persons["p_anna"], "role": "adult", "short_name": "ABC"})
+    assert result["type"] is FlowResultType.FORM and result["errors"] == {"short_name": "short_name_length"}
