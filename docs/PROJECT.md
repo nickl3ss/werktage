@@ -1,6 +1,6 @@
 # PROJECT — Werktage
 
-> Das **Ist**: Architektur, Datenmodell, Zustände, Entscheidungen, Invarianten, Löschkonzept, Bedrohungsmodell. Das **Soll** steht in `specification.md` (englisch, Entscheidungen P1–P35). Vorlage aus `nickl3ss/standards` (ARC-21, PRO-12). Stand: 0.3.0.
+> Das **Ist**: Architektur, Datenmodell, Zustände, Entscheidungen, Invarianten, Löschkonzept, Bedrohungsmodell. Das **Soll** steht in `specification.md` (englisch, Entscheidungen P1–P37). Vorlage aus `nickl3ss/standards` (ARC-21, PRO-12). Stand: 0.3.0.
 
 ---
 
@@ -10,11 +10,11 @@
 Bewohner am Handy ──► Dashboard-Karten (custom:werktags-*) ──┐
 Administrator      ──► Optionen-Menü, Dienste (werktage.*)   ├──► Integration werktage ──► OpenHolidays API (HTTPS, nur lesen)
 Automationen       ──► Sensoren, Binärsensoren, Kalender     ┘          │                  python-holidays (lokal, Executor)
-                                                                        ▼                  calendar.* (optional: Schulferienquelle)
+                                                                        ▼                  calendar.* (lesen: Schulferien, persönliche Kalender; schreiben: Export)
                                                         .storage/werktage.data · Config-Eintrag
 ```
 
-Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 läuft (HACS-Standardliste). Sie entscheidet je Person, ob ein Tag ein Werktag oder frei ist, und leitet daraus Morgen- und Abendmodus für Person, Raum und Haus ab. Es gibt keinen Server des Autors, keine Konten, keine Telemetrie; der einzige Netzzugriff ist der monatliche Abruf der Schulferien.
+Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 läuft (HACS-Standardliste). Sie entscheidet je Person, ob ein Tag ein Werktag oder frei ist, und leitet daraus Morgen- und Abendmodus für Person, Raum und Haus ab. Es gibt keinen Server des Autors, keine Konten, keine Telemetrie; der einzige eigene Netzzugriff ist der monatliche Abruf der Schulferien. Kalender werden ausschließlich über Home-Assistant-Entitäten gelesen (Schulferienquelle, persönliche Kalender) und beschrieben (Export).
 
 ## 2 · Module und Verträge
 
@@ -53,7 +53,7 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 | `school_holidays[<key>]` | je Quellenschlüssel: `source`, `periods[]` (start, end, name), `known_from`, `known_to`, `fetched_at` (UTC), `failures` | Cache je Quelle in Benutzung (Installation und Bewohner, #1); frühere Jahre bleiben erhalten; ungenutzte Quellen werden beim Abruf entfernt | — (öffentliche Daten, ODbL) |
 | `house.residents` | `History[frozenset[str] \| None]` | explizit gewählte Hausbewohner; `None`-Schritt = nach Rolle (P30, #11) | — |
 
-**Config-Eintrag** (`const.py`): Land, Region, Wochenende, Schulferienquelle (`openholidays` · `calendar` · `none`) und Kalender-Entität, zusätzliche und entfernte Feiertage, Hausrollen, Haus-Morgen-/Abendregel, `admin_only`. Daten sind lokale Kalendertage; nur `fetched_at` ist ein UTC-Zeitpunkt. Namen kommen zur Laufzeit aus dem HA-Personenregister und werden nie gespeichert.
+**Config-Eintrag** (`const.py`): Land, Region, Wochenende, Schulferienquelle (`openholidays` · `calendar` · `none`) und Kalender-Entität, zusätzliche und entfernte Feiertage, Hausrollen, Haus-Morgen-/Abendregel, `admin_only`; Export (#3): `export_calendar`, `export_weeks`, `export_persons`, `export_weekends`. Daten sind lokale Kalendertage; nur `fetched_at` ist ein UTC-Zeitpunkt. Namen kommen zur Laufzeit aus dem HA-Personenregister und werden nie gespeichert.
 
 **Entitäten** je Bewohner, Raum, Haus: `sensor.<x>_morning` (`workday` · `day_off`), `sensor.<x>_evening` (`before_workday` · `before_day_off`), `binary_sensor.<x>_workday`, je Bewohner `calendar.<x>_days_off`, am Haus `calendar.<haus>_school_holidays` (nur mit Schulferienquelle, #14); Attribute `reason`, `holiday_name`, `next_workday`, `next_day_off`, bei Raum und Haus `residents`, `rule`. `unique_id` = `<entry_id>_<resident|room|house>_<key>`. Raum-Geräte tragen den Bereichsnamen, liegen aber nicht im Bereich (sonst doppelte IDs).
 
@@ -61,10 +61,11 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 
 | Zustand | Bedeutung | Übergänge (von → nach, Auslöser) | Ablauf / Watchdog |
 |---|---|---|---|
-| Tag je Person: `workday` / `day_off` mit `reason` (`weekday`, `weekend`, `public_holiday`, `school_holiday`, `exception`, `unknown`, `none`) | Ergebnis der Regeln für einen Kalendertag | rechnet jeder Rebuild neu | Mitternacht 00:00:10 (P33: Fehler protokolliert, Tag wechselt mit bekannten Daten) |
+| Tag je Person: `workday` / `day_off` mit `reason` (`workday`, `weekend`, `public_holiday`, `school_holiday`, `exception_day_off`, `exception_workday`, `calendar_day_off`, `calendar_workday`, `unknown`) | Ergebnis der Regeln für einen Kalendertag | rechnet jeder Rebuild neu | Mitternacht 00:00:10 (P33: Fehler protokolliert, Tag wechselt mit bekannten Daten) |
 | Schulferien-Cache: `fresh` (fetched_at < 30 Tage) · `due` · `down` (`failures` ≥ 3 → Reparaturhinweis `school_holidays_unreachable`) · `incomplete` (ab Oktober fehlt der Sommer des Folgejahres → `school_holidays_incomplete`) | Verfügbarkeit der Quelle | `due` → Abruf 03:30 oder nach dem Start; Erfolg → `fresh`, Misserfolg → `failures + 1`; Vollständigkeit wird beim Laden, um Mitternacht und nach jedem Abruf geprüft | Tage außerhalb `known_from`–`known_to` → `unknown` → Werktag (P5) |
 | Config-Eintrag: `loaded` · `setup_error` (`store_unreadable`, `country_unsupported`) | Lebenszyklus | Laden → Fehler bei beschädigtem Store oder unbekanntem Land; Entladen ohne Neustart | Reload über HA |
 | Reparaturhinweise `person_missing`, `area_missing` | Person oder Bereich in HA gelöscht, aber im Store | jeder Rebuild prüft; Hinweis verschwindet, wenn der Eintrag entfernt ist | — |
+| Reparaturhinweise `school_holidays_unreachable`, `school_holidays_incomplete` (Installation: schlichte ID; Bewohnerquelle: Suffix `_<key>`), `export_failed` | Quelle nicht erreichbar oder unvollständig; Zielkalender nimmt Termine nicht an | nach Abruf, beim Laden, um Mitternacht bzw. nach jedem Export; gelöscht beim nächsten Erfolg oder wenn die Quelle nicht mehr benutzt wird | — |
 
 ## 5 · Fremdsysteme und ihre Regeln (REC-07)
 
@@ -119,15 +120,16 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 9. **Diagnose enthält Zählungen und Konfiguration, nie Namen oder IDs** — `tests/test_quality.py::test_diagnostics_hold_counts_but_no_names`.
 10. **Blockierendes läuft im Executor** (python-holidays, Dateizugriff) — `tests/test_config_flow.py::test_the_holidays_library_never_runs_in_the_event_loop`, `tests/test_quality.py::test_cards_are_registered_once_when_the_frontend_is_loaded` (Bundle-Prüfung im Executor).
 11. **Version an genau einer Stelle** — `tests/test_quality.py::test_user_agent_reports_the_manifest_version`, `tests/test_cards_build.py`.
-12. **Der Store ist versioniert; Migrationen sind additiv; ein neuerer Store wird abgelehnt, nie überschrieben** — `tests/test_sources_storage.py::test_version_1_data_reads_as_version_2`, `::test_newer_version_is_refused`, `tests/test_quality.py::test_unreadable_store_and_unsupported_country_fail_the_setup`, `::test_a_store_with_missing_keys_fails_the_setup_with_the_translated_reason`.
+12. **Der Store ist versioniert; Migrationen sind additiv; ein neuerer Store wird abgelehnt, nie überschrieben** — `tests/test_sources_storage.py::test_older_data_reads_as_the_current_version`, `::test_newer_version_is_refused`, `tests/test_quality.py::test_unreadable_store_and_unsupported_country_fail_the_setup`, `::test_a_store_with_missing_keys_fails_the_setup_with_the_translated_reason`.
 13. **Ein Raum ist seine Bewohner: ohne Zuweisung keine Entitäten** — `tests/test_quality.py::test_a_rule_alone_does_not_create_a_room`, `::test_rooms_without_residents_are_dropped_when_loading`.
-14. **Jeder Fehlerschlüssel ist in DE und EN übersetzt** — `tests/test_quality.py::test_every_error_key_is_translated`.
+14. **Jeder Fehler-, Options- und Hinweisschlüssel ist in DE und EN übersetzt** — `tests/test_quality.py::test_every_error_key_is_translated`.
+15. **Jeder in diesem Dokument zitierte Test existiert** — `tests/test_quality.py::test_every_test_named_in_project_md_exists`.
 
 ## 9 · Löschkonzept (REC-02)
 
 | Daten | Inhalt | Frist | Durchsetzung |
 |---|---|---|---|
-| Store `.storage/werktage.data` | Bewohner, Räume, Ausnahmen, Haus, Schulferien-Cache | bis zum Entfernen der Integration | `async_remove_entry` löscht die Datei — `tests/test_quality.py::test_removing_the_integration_deletes_the_store` |
+| Store `.storage/werktage.data` | Bewohner, Räume, Ausnahmen, Haus, Schulferien-Caches, Kalendertage (`calendar_days`, Abwesenheitsmuster) | bis zum Entfernen der Integration | `async_remove_entry` löscht die Datei — `tests/test_quality.py::test_removing_the_integration_deletes_the_store` |
 | Ausnahmen (manuelle Tage) | Datum → Person → Typ | bis der Nutzer sie zurücksetzt (`set_days status: default`) oder die Person `none` wird (Einträge bleiben, Entität wird `unavailable`) | Nutzer; keine automatische Frist, weil Historie (3.4) |
 | Historienschritte (Rollen, Räume, Wochenmuster, Haus) | `valid_from` + Wert | unbegrenzt (prüfbare Vergangenheit); Schritt entfernbar über `remove_role`, `remove_room_assignment` | Nutzer |
 | Schulferien-Cache | Perioden (öffentliche Daten), `fetched_at` | frühere Jahre bleiben; Quelle wechseln verwirft den Cache der alten Quelle | monatlicher Abruf ersetzt die drei aktuellen Jahre |
@@ -146,7 +148,7 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | Config-Flow und Optionen | — | nur HA-Administratoren (HA-Regel); Eingaben validiert (Land, Region, Datumsformat, Kalender existiert) |
 | OpenHolidays-Antwort | manipulierte oder fehlerhafte Daten | Schema-Prüfung in `lib/openholidays/models.py`; Plausibilität (Sommerferien je Jahr) vor Übernahme; Namen werden in den Karten maskiert (`esc()`) |
 | Kalender-Entität als Quelle | Fremdtitel aus geteilten Kalendern | nur ganztägige Ereignisse; Titel maskiert; Fehler an der Grenze gefangen (`FetchFailed`) |
-| Zielkalender des Exports | geteilter Familienkalender, andere Mitglieder | Werktage schreibt nur Termine mit eigenem Marker und löscht nur solche; Zugangsdaten hält die Kalender-Integration, nie Werktage |
+| Zielkalender des Exports | geteilter Familienkalender, andere Mitglieder | Werktage schreibt nur Termine mit eigenem Marker und löscht nur solche; der Marker nennt einen Hash der Personen-ID, nie die ID; Zugangsdaten hält die Kalender-Integration, nie Werktage |
 | Statischer Pfad `/werktage_static/` | Fremder ohne Login | liefert nur das Bundle (ohne Daten); kein Verzeichnis-Listing; Cache-Header |
 | Diagnose-Download | Mitbewohner mit Adminrechten | enthält keine Namen, keine IDs (Invariante 9) |
 | Store-Datei | Mitbewohner mit Dateizugriff | außerhalb des Modells (wer `.storage` lesen kann, hat alle HA-Daten); beschädigte Datei → `store_unreadable`, nie Teilzustand |

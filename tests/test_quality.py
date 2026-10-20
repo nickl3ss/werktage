@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -173,8 +174,8 @@ async def test_every_error_key_is_translated():
     import json
     base = Path(frontend.__file__).parent
     source = (base / "coordinator.py").read_text(encoding="utf-8") + (base / "services.py").read_text(encoding="utf-8")
-    import re
     keys = set(re.findall(r'WerktagsError\("(\w+)"', source)) | set(re.findall(r'translation_key="(\w+)"', source))
+    issue_keys = set(re.findall(r'^ISSUE_\w+ = "(\w+)"', (base / "const.py").read_text(encoding="utf-8"), re.MULTILINE))
     flow = (base / "config_flow.py").read_text(encoding="utf-8")
     option_keys = set(re.findall(r'errors\["\w+"\] = "(\w+)"', flow))
     option_keys |= {"short_name_taken", "short_name_length"}         # err.key of async_set_role (review UX-1)
@@ -184,6 +185,7 @@ async def test_every_error_key_is_translated():
         assert not missing, f"{name}: {missing}"
         assert all(isinstance(v, dict) and v.get("message") for v in translated["exceptions"].values()), name
         assert option_keys <= set(translated["options"]["error"]), (name, option_keys - set(translated["options"]["error"]))
+        assert issue_keys <= set(translated["issues"]), (name, issue_keys - set(translated["issues"]))
 
 
 # --- services: the remaining branches ----------------------------------------------------------
@@ -403,3 +405,39 @@ async def test_no_school_holidays_calendar_without_a_source(hass: HomeAssistant,
     await hass.async_block_till_done()
     assert hass.states.get("calendar.house_school_holidays") is None
     assert hass.states.get("sensor.house_morning") is not None
+
+
+async def test_source_checks_and_options_run_in_the_executor(hass: HomeAssistant, household: MockConfigEntry,
+                                                             call_service, persons):
+    """Invariant 10 (review PhD-1): set_role with a source and get_overview call the holidays library off the loop.
+    The autouse fixture holidays_library_off_the_loop asserts the thread; this test just exercises both paths."""
+    await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                       school_holiday_source="openholidays:DE-HE")
+    overview = await call_service("get_overview")
+    assert any(o["value"] == "openholidays:DE-HE" for o in overview["school_holiday_sources"])
+    with pytest.raises(ServiceValidationError):                                       # our own calendar is no source
+        await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                           school_holiday_source="calendar:calendar.clara_days_off")
+
+
+async def test_diagnostics_hide_calendar_entity_ids(hass: HomeAssistant, household: MockConfigEntry, call_service,
+                                                    persons):
+    """Invariant 9 (review PhD-3): a resident's calendar source names a person's calendar; diagnostics mask it."""
+    hass.states.async_set("calendar.anna_privat", "off", {"friendly_name": "Anna privat"})
+    await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
+                       school_holiday_source="calendar:calendar.anna_privat")
+    result = await async_get_config_entry_diagnostics(hass, household)
+    assert "anna_privat" not in str(result)
+    assert "calendar:<calendar 1>" in result["status"]["sources"] and result["counts"]["school_holiday_sources"] >= 1
+
+
+def test_every_test_named_in_project_md_exists():
+    """Befund → Regel (review ME-2): docs/PROJECT.md cites tests as evidence; every citation must exist."""
+    root = Path(frontend.__file__).parent.parent.parent
+    text = (root / "docs" / "PROJECT.md").read_text(encoding="utf-8")
+    citations = re.findall(r"`((?:tests|lib)/[\w/.-]+\.py)::(test_\w+)`", text)
+    citations += [(path, name) for path, name in re.findall(r"`((?:tests|lib)/[\w/.-]+\.py)`[^`\n]*?`::(test_\w+)`", text)]
+    assert len(citations) >= 20
+    for path, name in citations:
+        source = (root / path).read_text(encoding="utf-8")
+        assert re.search(rf"^(async )?def {name}\(", source, re.MULTILINE), f"{path}::{name} cited in PROJECT.md"

@@ -293,7 +293,7 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
                             for s in room.residents.steps] if room else [],
         })
     return {"today": today.isoformat(), "weekend": sorted(c.weekend), "persons": persons, "rooms": rooms,
-            "school_holiday_sources": c.school_holiday_source_options(), "calendars": c.calendar_entities(),
+            "school_holiday_sources": await c.school_holiday_source_options(), "calendars": c.calendar_entities(),
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
                       "by_role": c.house.assigned_on(today) is None,

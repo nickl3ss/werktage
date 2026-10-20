@@ -1,6 +1,6 @@
 # CLAUDE.md — Werktage
 
-Custom Integration für Home Assistant: Werktage je Person (Wochenende, Feiertage, Schulferien, Ausnahmen) mit Morgen- und Abendmodus für Personen, Räume und Haus. Soll-Verhalten: `docs/specification.md` (Entscheidungen `P1`–`P35`). Architektur, ADRs und Invarianten: `docs/PROJECT.md`. Das Repo ist **öffentlich** (MIT, HACS-Standardliste); alles darin kann jederzeit von jedem gelesen werden.
+Custom Integration für Home Assistant: Werktage je Person (Wochenende, Feiertage, Schulferien, Ausnahmen) mit Morgen- und Abendmodus für Personen, Räume und Haus. Soll-Verhalten: `docs/specification.md` (Entscheidungen `P1`–`P37`). Architektur, ADRs und Invarianten: `docs/PROJECT.md`. Das Repo ist **öffentlich** (MIT, HACS-Standardliste); alles darin kann jederzeit von jedem gelesen werden.
 
 Es gilt der zentrale Qualitätsstandard `nickl3ss/standards` (Stufe und Ausnahmen in `standards.yaml`). Regeln nachschlagen: `/standards:standard <kapitel|regel-id>`; Review: `/standards:review`.
 

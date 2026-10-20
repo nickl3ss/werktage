@@ -17,7 +17,7 @@ kernmodule:                 # Änderungen hier sind nie Schnellweg; Abdeckung �
   - lib/openholidays/src/
 tor: bin/check              # das eine Qualitätstor (CLAUDE.md, pre-push und CI rufen nur das)
 docs:                       # abweichende Dateinamen
-  anforderungen: docs/specification.md   # englisch, Entscheidungen P1–P35
+  anforderungen: docs/specification.md   # englisch, Entscheidungen P1–P37
   projekt: docs/PROJECT.md
   testing: docs/TESTING.md
 fremdsysteme: [openholidays-api, python-holidays, home-assistant-calendar]   # Regeln in docs/PROJECT.md § 5

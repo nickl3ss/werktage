@@ -232,7 +232,7 @@ may not edit (see *Access*); the fetch raises when the source is down.
 | School holidays (house only) | `calendar.<house>_school_holidays` | the periods of the school holiday source with their names, all-day, read-only; absent with source *none* |
 
 Sensor attributes: `reason` (`workday`, `weekend`, `public_holiday`,
-`school_holiday`, `exception_day_off`, `exception_workday`, `unknown`),
+`school_holiday`, `exception_day_off`, `exception_workday`, `calendar_day_off`, `calendar_workday`, `unknown`),
 `holiday_name`, `date`; residents also `role`, `next_workday`,
 `next_day_off`; rooms and the house `residents` and `rule`. Resident entities
 are named after the person, room entities after the area. Entity ids follow
@@ -284,9 +284,12 @@ weekends are included (default no, they would flood the calendar). The
 integration then writes one all-day event per resident and day off, titled
 `<name>: <reason>`, and keeps them current after every change and once a
 day: events that are no longer true are removed, events it did not write are
-never touched (they carry a `werktage:` marker in the description). This is
-an export, nothing flows back; reading personal calendars is the section
-above. A calendar that refuses writes raises a repair issue.
+never touched (they carry a `werktage:` marker in the description, with a
+hash instead of the person id). A personal weekly day off is always
+exported, only the household weekend is left out. This is an export, nothing
+flows back: exported events are never read as a source, even if the same
+calendar is also a personal calendar. A calendar that refuses writes raises a
+repair issue.
 
 ## Data updates
 
@@ -363,7 +366,10 @@ je Person und Tag setzen, dazu persönliche freie Wochentage (Teilzeit) und
 Feiertagskorrekturen. Für Personen, Räume und das Haus gibt es einen
 Morgen- und einen Abendmodus sowie einen Werktag-Binärsensor; zwei Blueprints
 decken Rollladen morgens und Licht abends ab. Bewohner, Räume und Haus lassen
-sich über die Karten oder das Optionen-Menü der Integration pflegen.
+sich über die Karten oder das Optionen-Menü der Integration pflegen. Seit 0.3.0
+kann jeder Schüler eine eigene Schulferienquelle haben, persönliche Kalender
+liefern freie Tage und zusätzliche Werktage, und die freien Tage lassen sich in
+einen geteilten Kalender exportieren (Abschnitte oben, auf Englisch).
 
 > **Stand: 0.2.3.** Integration und Karten sind gegen Home Assistant 2026.1
 > (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben

@@ -39,7 +39,7 @@ Alle Daten der Integration liegen in `.storage/werktage.data` (Bewohner, Räume,
 
 | Logger | Inhalt |
 |---|---|
-| `custom_components.werktage` | Warnungen: Schulferien nicht abrufbar (einmal, bis wieder erreichbar), ignorierte Feiertagseinträge; Fehler: Feiertage zu Mitternacht nicht berechenbar (Tag wechselt trotzdem, P33) |
+| `custom_components.werktage` | Warnungen (je einmal, bis es wieder geht): Schulferienquelle nicht abrufbar, persönliche Kalender nicht lesbar, Export in den Zielkalender fehlgeschlagen; ignorierte Feiertagseinträge; Fehler: Feiertage zu Mitternacht nicht berechenbar (Tag wechselt trotzdem, P33) |
 | `custom_components.werktage.frontend` | Debug: Karten nicht ausgeliefert (kein Frontend, kein Bundle) |
 | `openholidays` (Bibliothek) | Debug: Anfragen mit Zeitraum |
 
@@ -64,6 +64,8 @@ Logs enthalten Personen-IDs und Bereichs-IDs, nie Namen oder freie Tage (REC-05)
 | Eintrag *Fehler*: `store_unreadable` | Store von einer neueren Version oder von Hand beschädigt | Rollback-Tabelle oben; Datei aus dem Backup |
 | Eintrag *Fehler*: `country_unsupported` | `holidays` kennt Land/Region nicht (nach HA-Update entfallen) | Region in den Einstellungen prüfen |
 | Raum ohne Entitäten | Raum hat keinen zugewiesenen Bewohner („ein Raum ist seine Bewohner“) | Bewohner zuweisen |
+| Reparaturhinweis *Freie Tage konnten nicht exportiert werden* | Zielkalender nimmt Termine nicht an (schreibgeschützte Freigabe, abgelaufene Zugangsdaten, Integration nicht geladen) | Freigabe und Zugangsdaten der Kalender-Integration prüfen oder in den Optionen einen anderen Kalender wählen; der Export wird nach jeder Änderung und täglich wiederholt |
+| Persönlicher Kalender liefert keine freien Tage | Termine haben eine Uhrzeit, das Stichwort passt nicht, oder die Termine stammen aus dem eigenen Export (Marker) | ganztägige Termine ohne Marker; Stichwort prüfen; bei unlesbarem Kalender Warnung im Protokoll, letzte Tage bleiben |
 
 ## 7 · Release-Ablauf (OPS-16, PRO-16)
 

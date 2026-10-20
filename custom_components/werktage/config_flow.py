@@ -375,7 +375,8 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                     await c.async_set_calendars(person_id, calendars[0], calendars[1],
                                                 user_input.get("calendar_keyword"))
                 return self.async_abort(reason="resident_saved")
-        options = [SelectOptionDict(value=o["value"], label=o["label"]) for o in c.school_holiday_source_options()]
+        options = [SelectOptionDict(value=o["value"], label=o["label"])
+                   for o in await c.school_holiday_source_options()]
         return self.async_show_form(step_id=STEP_RESIDENT, data_schema=resident_schema(options), errors=errors)
 
     async def async_step_room(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

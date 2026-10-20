@@ -11,8 +11,14 @@ from .coordinator import WerktagsConfigEntry
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: WerktagsConfigEntry) -> dict[str, Any]:
     c = entry.runtime_data
     data = c.data
+    status = c.status()
+    sources = status.get("sources") or {}
+    status["sources"] = {                                  # a calendar entity id names a person's calendar
+        (f"calendar:<calendar {n}>" if key.startswith("calendar:") else key): value
+        for n, (key, value) in enumerate(sorted(sources.items()), start=1)
+    }
     return {
-        "status": c.status(),
+        "status": status,
         "house": {"roles": sorted(r.value for r in c.house.roles), "morning_rule": c.house.morning_rule.value,
                   "evening_rule": c.house.evening_rule.value, "admin_only": c.admin_only},
         "export": {"enabled": bool(c.export_calendar), "weeks": c.export_weeks, "persons": len(c.export_persons),

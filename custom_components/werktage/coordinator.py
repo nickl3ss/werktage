@@ -247,11 +247,11 @@ class WerktagsCoordinator:
     def attribution_for(key: str) -> str | None:
         return ATTRIBUTION_OPENHOLIDAYS if key.startswith(f"{SOURCE_OPENHOLIDAYS}:") else None
 
-    def school_holiday_source_options(self) -> list[dict[str, str]]:
+    async def school_holiday_source_options(self) -> list[dict[str, str]]:
         """Choices for a resident's source: the installation's, every region of the country, every calendar."""
         german = (self.hass.config.language or "en").lower().startswith("de")
         options = [{"value": "", "label": "wie die Installation" if german else "as the installation"}]
-        names = sources.subdivision_names(self.country)
+        names = await self.hass.async_add_executor_job(sources.subdivision_names, self.country)   # invariant 10
         options += [{"value": f"{SOURCE_OPENHOLIDAYS}:{self.country}-{code}", "label": name}
                     for code, name in sorted(names.items(), key=lambda item: item[1])]
         options += [{"value": f"{SOURCE_CALENDAR}:{c['entity_id']}", "label": c["name"]}
@@ -266,12 +266,17 @@ class WerktagsCoordinator:
         return [{"entity_id": state.entity_id, "name": state.name}
                 for state in sorted(states, key=lambda state: state.name.lower())]
 
-    def _check_source_key(self, key: str) -> None:
+    async def _check_source_key(self, key: str) -> None:
+        """Only a region of a supported country or a foreign calendar entity may be a source."""
         source, parameter = sources.parse_source_key(key)
-        if source == SOURCE_OPENHOLIDAYS and parameter and sources.is_region_code(parameter):
-            return
-        if source == SOURCE_CALENDAR and parameter and self.hass.states.get(parameter) is not None:
-            return
+        if source == SOURCE_OPENHOLIDAYS and parameter:
+            # the holidays library walks its country modules on first use: never in the event loop (invariant 10)
+            if await self.hass.async_add_executor_job(sources.is_region_code, parameter):
+                return
+        elif source == SOURCE_CALENDAR and parameter and self.hass.states.get(parameter) is not None:
+            entry = er.async_get(self.hass).async_get(parameter)
+            if entry is None or entry.platform != DOMAIN:             # our own calendars would feed back
+                return
         raise WerktagsError("source_unknown", source=key)
 
     def cache_for(self, key: str) -> SchoolHolidayCache | None:
@@ -494,7 +499,7 @@ class WerktagsCoordinator:
         if school_holiday_source != UNCHANGED:
             key = (school_holiday_source or "").strip() or None
             if key is not None and key != self.source_key:
-                self._check_source_key(key)
+                await self._check_source_key(key)
             else:
                 key = None
             current = replace(current, school_holiday_source=key)
@@ -573,8 +578,11 @@ class WerktagsCoordinator:
                     self._calendars_down.add(person_id)
                 continue
             self._calendars_down.discard(person_id)
-            caches[person_id] = CalendarDaysCache(tuple(sorted(days_off)), tuple(sorted(workdays)), first, last,
-                                                  dt_util.utcnow())
+            old = caches.get(person_id)
+            new = CalendarDaysCache(tuple(sorted(days_off)), tuple(sorted(workdays)), first, last, dt_util.utcnow())
+            if old is None or (old.days_off, old.workdays, old.known_from, old.known_to) != (new.days_off, new.workdays,
+                                                                                            first, last):
+                caches[person_id] = new                # unchanged days: no store write, no rebuild, no export
         for person_id in [pid for pid in caches if pid not in self.data.residents]:
             caches.pop(person_id)
         if caches != self.data.calendar_days:
@@ -860,6 +868,8 @@ class WerktagsCoordinator:
             start, end = str(event.get("start", "")), str(event.get("end", ""))
             if len(start) != 10 or len(end) != 10:
                 continue
+            if export.key_of(str(event.get("description") or "")):
+                continue                       # our own exported event: a source would feed back on itself (#3)
             end_date = dt.date.fromisoformat(end) - dt.timedelta(days=1)
             result.append((dt.date.fromisoformat(start), end_date, str(event.get("summary", ""))))
         return result

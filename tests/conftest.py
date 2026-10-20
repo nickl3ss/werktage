@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Generator
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -54,6 +54,34 @@ CONFIG = {
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Let the test Home Assistant load custom_components/werktage."""
+
+
+@pytest.fixture(autouse=True)
+def holidays_library_off_the_loop() -> Generator[None]:
+    """Invariant 10: the holidays library (it imports country modules) is never called while the event loop runs
+    in the calling thread, i.e. only in the executor; plain tests without a loop may call it directly."""
+    import asyncio
+
+    from custom_components.werktage import sources
+    real_countries, real_names = sources.supported_countries, sources.subdivision_names
+
+    def in_the_loop() -> bool:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return False
+        return True
+
+    def countries() -> list[str]:
+        assert not in_the_loop(), "holidays library called in the event loop"
+        return real_countries()
+
+    def names(country: str) -> dict[str, str]:
+        assert not in_the_loop(), "holidays library called in the event loop"
+        return real_names(country)
+
+    with patch.object(sources, "supported_countries", countries), patch.object(sources, "subdivision_names", names):
+        yield
 
 
 @pytest.fixture(autouse=True)

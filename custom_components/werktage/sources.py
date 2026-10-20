@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 import holidays as holidays_lib
 
+from .const import SOURCE_CALENDAR, SOURCE_NONE, SOURCE_OPENHOLIDAYS
 from .rules import DEFAULT_WEEKEND, Calendar, SchoolHolidays
 
 YEARS_BACK = 1      # public holidays are computed from January of last year …
@@ -98,7 +99,6 @@ class SchoolHolidayPeriod:
         return cls(dt.date.fromisoformat(data["start"]), dt.date.fromisoformat(data["end"]), str(data["name"]))
 
 
-SOURCE_OPENHOLIDAYS, SOURCE_CALENDAR, SOURCE_NONE = "openholidays", "calendar", "none"   # as in const.py
 _REGION = re.compile(r"^[A-Z]{2}(-[A-Z0-9]{1,3})?$")
 
 

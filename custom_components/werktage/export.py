@@ -8,12 +8,18 @@ never touches anything else; this is an export, not a synchronisation.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 
 from .rules import ONE_DAY, Household, Reason
 
-MARKER = "werktage:"      # description = "werktage:<person_id>/<date>"
+MARKER = "werktage:"      # description = "werktage:<person key>/<date>"
+
+
+def person_key(person_id: str) -> str:
+    """A stable stand-in for the person id in the shared calendar: the id itself never leaves Home Assistant."""
+    return hashlib.sha256(person_id.encode()).hexdigest()[:12]
 
 _LABELS = {
     "en": {Reason.WEEKEND: "Weekend", Reason.EXCEPTION_DAY_OFF: "Day off", Reason.CALENDAR_DAY_OFF: "Day off",
@@ -58,15 +64,21 @@ def key_of(description: str | None) -> str | None:
 
 def wanted_events(household: Household, resident_ids: Iterable[str], names: Mapping[str, str], first: dt.date,
                   last: dt.date, include_weekends: bool, language: str | None) -> dict[str, WantedEvent]:
-    """One event per resident and day off in ``first``..``last``; unknown days never (P5), weekends only on request."""
+    """One event per resident and day off in ``first``..``last``; unknown days never (P5).
+
+    Without ``include_weekends`` the days of the household weekend are left out
+    (they would flood the calendar); a personal weekly pattern (P29) is a day
+    off worth telling and is always exported.
+    """
     wanted: dict[str, WantedEvent] = {}
+    household_weekend = household.calendar.weekend
     for resident_id in resident_ids:
         day = first
         while day <= last:
             info = household.day_of(resident_id, day)
-            if (info is not None and not info.is_workday and info.is_known
-                    and (include_weekends or info.reason is not Reason.WEEKEND)):
-                key = f"{resident_id}/{day.isoformat()}"
+            weekend = info is not None and info.reason is Reason.WEEKEND and day.weekday() in household_weekend
+            if info is not None and not info.is_workday and info.is_known and (include_weekends or not weekend):
+                key = f"{person_key(resident_id)}/{day.isoformat()}"
                 label = info.holiday_name or reason_label(info.reason, language)
                 wanted[key] = WantedEvent(key, day, f"{names.get(resident_id, resident_id)}: {label}")
             day += ONE_DAY

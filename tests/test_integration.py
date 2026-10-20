@@ -295,6 +295,7 @@ async def test_calendar_source(hass: HomeAssistant, config_entry: MockConfigEntr
             {"start": "2026-10-05", "end": "2026-10-17", "summary": "Autumn"},
             {"start": "2026-06-29", "end": "2026-08-08", "summary": "Summer"},
             {"start": "2026-11-02T08:00:00+01:00", "end": "2026-11-02T09:00:00+01:00", "summary": "timed, ignored"},
+            {"start": "2026-11-09", "end": "2026-11-10", "summary": "Clara: Autumn", "description": "werktage:x/2026-11-09"},
         ]}}
 
     hass.services.async_register("calendar", "get_events", fake_get_events, supports_response="only")
@@ -307,6 +308,7 @@ async def test_calendar_source(hass: HomeAssistant, config_entry: MockConfigEntr
     await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01")
     days = await call_service("get_days", start="2026-10-05", weeks=2)
     assert days["days"][0]["school_holiday"] == "Autumn" and days["days"][12]["school_holiday"] is None
+    assert (await call_service("get_days", start="2026-11-09", weeks=1))["days"][0]["school_holiday"] is None   # exported
     assert hass.states.get("sensor.clara_morning").attributes.get("attribution") is None
 
 
@@ -439,7 +441,9 @@ async def test_personal_calendars_give_days_off_and_extra_workdays(hass: HomeAss
     events = {
         "calendar.anna": [{"start": "2026-10-07", "end": "2026-10-10", "summary": "Urlaub Nordsee"},      # Wed–Fri
                           {"start": "2026-10-20", "end": "2026-10-21", "summary": "Zahnarzt"},            # no keyword
-                          {"start": "2026-10-21T08:00:00+02:00", "end": "2026-10-21T09:00:00+02:00", "summary": "Urlaub?"}],
+                          {"start": "2026-10-21T08:00:00+02:00", "end": "2026-10-21T09:00:00+02:00", "summary": "Urlaub?"},
+                          {"start": "2026-10-13", "end": "2026-10-14", "summary": "Ben: Urlaub",
+                           "description": "werktage:0123456789ab/2026-10-13"}],                # our own export: ignored
         "calendar.shifts": [{"start": "2026-10-10", "end": "2026-10-11", "summary": "Samstagsdienst"}],   # Saturday
     }
     calls = []
@@ -463,6 +467,7 @@ async def test_personal_calendars_give_days_off_and_extra_workdays(hass: HomeAss
     assert days["2026-10-09"]["reason"] == "calendar_day_off"                              # end exclusive: 7, 8, 9
     assert days["2026-10-10"]["reason"] == "calendar_workday"                              # the shift (no keyword there)
     assert days["2026-10-20"]["reason"] == "workday" and days["2026-10-20"]["calendar"] is None   # no keyword, timed ignored
+    assert days["2026-10-13"]["reason"] == "workday"                                           # exported event: no feedback
     assert hass.states.get("sensor.ben_morning").attributes["reason"] == "workday"          # others unchanged
     overview = await call_service("get_overview")
     anna = next(p for p in overview["persons"] if p["name"] == "Anna")
@@ -536,22 +541,25 @@ async def test_days_off_are_exported_into_a_shared_calendar(hass: HomeAssistant,
     fake = FakeCalendar()
     hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
     coordinator = household.runtime_data
+    from custom_components.werktage.export import person_key
+    anna, clara = person_key("p_anna"), person_key("p_clara")
     with patch.object(WerktagsCoordinator, "_calendar_entity", lambda self, entity_id: fake if entity_id == "calendar.family" else None):
         hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": "calendar.family",
                                                                    "export_weeks": 2, "export_weekends": False})
         await coordinator.async_export_days_off()
         own = fake.own()
-        assert ("werktage:p_anna/2026-10-03", "Anna: Tag der Deutschen Einheit") in own      # Saturday, but a holiday
-        assert ("werktage:p_clara/2026-10-05", "Clara: Autumn Holidays") in own
+        assert (f"werktage:{anna}/2026-10-03", "Anna: Tag der Deutschen Einheit") in own    # Saturday, but a holiday
+        assert (f"werktage:{clara}/2026-10-05", "Clara: Autumn Holidays") in own
         assert not any(key.endswith("/2026-10-04") for key, _ in own)                       # Sunday: no weekends
-        assert all(key >= "werktage:p" and not key.endswith("/2026-10-15") for key, _ in own)   # two weeks: 1–14 Oct
+        assert not any(key.endswith("/2026-10-15") for key, _ in own)                       # two weeks: 1–14 Oct
+        assert "p_anna" not in str(fake.events)                                             # the id stays at home
         assert len([e for e in fake.events if e.uid == "foreign-1"]) == 1                    # foreign event untouched
         count = len(own)
 
         await call_service("set_days", person=persons["p_anna"], start="2026-10-07", status="day_off")   # a change …
         async_fire_time_changed(hass, dt_util.utcnow() + dt.timedelta(seconds=6))                      # … exported after 5 s
         await hass.async_block_till_done()
-        assert ("werktage:p_anna/2026-10-07", "Anna: Day off") in fake.own() and len(fake.own()) == count + 1
+        assert (f"werktage:{anna}/2026-10-07", "Anna: Day off") in fake.own() and len(fake.own()) == count + 1
         await call_service("set_days", person=persons["p_anna"], start="2026-10-07", status="default")
         async_fire_time_changed(hass, dt_util.utcnow() + dt.timedelta(seconds=12))
         await hass.async_block_till_done()
@@ -560,8 +568,8 @@ async def test_days_off_are_exported_into_a_shared_calendar(hass: HomeAssistant,
         hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": ["p_clara"],
                                                                    "export_weekends": True})
         await coordinator.async_export_days_off()
-        assert all(key.startswith("werktage:p_clara/") for key, _ in fake.own())             # only Clara, with weekends
-        assert ("werktage:p_clara/2026-10-04", "Clara: Weekend") in fake.own()
+        assert all(key.startswith(f"werktage:{clara}/") for key, _ in fake.own())            # only Clara, with weekends
+        assert (f"werktage:{clara}/2026-10-04", "Clara: Weekend") in fake.own()
 
         fake.fail = True
         hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": []})

@@ -36,11 +36,21 @@ def test_plan_creates_missing_deletes_stale_and_replaces_renamed():
 def test_wanted_events_skip_weekends_unknown_days_and_workdays(household):   # noqa: F811
     names = {"anna": "Anna", "clara": "Clara"}
     wanted = export.wanted_events(household, ["anna", "clara"], names, d("2026-10-01"), d("2026-10-07"), False, "de")
-    assert "anna/2026-10-03" in wanted and wanted["anna/2026-10-03"].summary == "Anna: German Unity Day"
-    assert "anna/2026-10-04" not in wanted                                       # Sunday: weekends not wanted
-    assert wanted["clara/2026-10-05"].summary == "Clara: Autumn break"      # school holidays by name
-    assert "anna/2026-10-05" not in wanted                                       # a workday
+    anna, clara = export.person_key("anna"), export.person_key("clara")
+    assert wanted[f"{anna}/2026-10-03"].summary == "Anna: German Unity Day"
+    assert f"{anna}/2026-10-04" not in wanted                                    # Sunday: weekends not wanted
+    assert wanted[f"{clara}/2026-10-05"].summary == "Clara: Autumn break"       # school holidays by name
+    assert f"{anna}/2026-10-05" not in wanted                                    # a workday
+    assert "anna" not in str(wanted) and len(anna) == 12                         # the person id stays at home
     with_weekends = export.wanted_events(household, ["anna"], names, d("2026-10-01"), d("2026-10-07"), True, "en")
-    assert with_weekends["anna/2026-10-04"].summary == "Anna: Weekend"
+    assert with_weekends[f"{anna}/2026-10-04"].summary == "Anna: Weekend"
+    # a personal weekly day off (Friday, P29) is always exported; the household weekend only on request
+    from dataclasses import replace
+
+    from custom_components.werktage.rules import History, Step
+    part_time = replace(household.residents["anna"], off_weekdays=History((Step(d("2026-01-01"), frozenset({4, 5, 6})),)))
+    h = replace(household, residents={**household.residents, "anna": part_time})
+    wanted = export.wanted_events(h, ["anna"], names, d("2026-10-01"), d("2026-10-07"), False, "en")
+    assert wanted[f"{anna}/2026-10-02"].summary == "Anna: Weekend" and f"{anna}/2026-10-04" not in wanted
     assert export.reason_label(Reason.EXCEPTION_DAY_OFF, "de-DE") == "Frei"
     assert export.reason_label(Reason.CALENDAR_DAY_OFF, None) == "Day off"

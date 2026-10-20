@@ -67,7 +67,7 @@ type.
 | P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
 | P33 | Public holidays fail at midnight | The error is logged and the day still changes with the holidays already known; sensors never keep yesterday's date (see P5: missing data is never silently a day off) |
 | P34 | Library version | `lib/openholidays` carries its own version, which only changes with the library; the integration's `manifest.json` version is what the User-Agent reports |
-| P37 | Export into a shared calendar | Options: target calendar entity (its integration must create and delete events), weeks ahead (default 8), residents (default all), weekends (default no). One all-day event per resident and day off, `<name>: <reason>`, marker `werktage:<person_id>/<date>` in the description; after every change (debounced) and daily the integration creates what is missing and deletes what is no longer true among its own events only. An export, not a synchronisation; the integration never speaks CalDAV itself (#3, 0.3.0) |
+| P37 | Export into a shared calendar | Options: target calendar entity (its integration must create and delete events), weeks ahead (default 8), residents (default all), weekends (default no: the days of the household weekend are left out, a personal weekly pattern is always exported). One all-day event per resident and day off, `<name>: <reason>`, marker `werktage:<hash of the person id>/<date>` in the description (the id itself never leaves Home Assistant); events with that marker are never read back as a source; after every change (debounced) and daily the integration creates what is missing and deletes what is no longer true among its own events only. An export, not a synchronisation; the integration never speaks CalDAV itself (#3, 0.3.0) |
 | P36 | Personal calendars | A resident may name a days-off calendar and a workdays calendar (all-day events, optional keyword). Calendar days replace the default but yield to a manual exception: `effective = exception ?? calendar ?? default` (reasons `calendar_day_off`, `calendar_workday`). An unreadable calendar keeps its last days, never makes them unknown. Nothing is written into personal calendars (#2, 0.3.0) |
 | P35 | Display name | The integration is called **Werktage** wherever users see it (HACS, the integrations list, titles, texts, blueprints), the same word as the domain. Technical identifiers keep `werktags`: the card element names `custom:werktags-*`, the bundle `werktags-cards.js`, class names — changing them would break every dashboard (#6, 0.3.0) |
 
@@ -185,7 +185,7 @@ installation language.
 
 | Entity (English installation) | States | Attributes |
 |---|---|---|
-| `sensor.anna_morning` | `workday` · `day_off` | `reason` (`weekend`, `public_holiday`, `school_holiday`, `exception_day_off`, `exception_workday`, `workday`, `unknown`), `holiday_name`, `role`, `next_workday`, `next_day_off` |
+| `sensor.anna_morning` | `workday` · `day_off` | `reason` (`weekend`, `public_holiday`, `school_holiday`, `exception_day_off`, `exception_workday`, `calendar_day_off`, `calendar_workday`, `workday`, `unknown`), `holiday_name`, `role`, `next_workday`, `next_day_off` |
 | `sensor.anna_evening` | `before_workday` · `before_day_off` | as above, for tomorrow |
 | `calendar.anna_days_off` | on when today is a day off | read-only, days off as all-day events |
 | `binary_sensor.anna_workday` | `on` on a workday | `reason`, `holiday_name`; also per room and for the house |
