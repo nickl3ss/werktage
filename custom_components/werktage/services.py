@@ -168,7 +168,7 @@ async def _remove_room(hass: HomeAssistant, c: WerktagsCoordinator, call: Servic
 async def _set_weekly(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
     person_id = _person_ids(c, [call.data["person"]])[0]
     if call.data.get("household") or "weekdays" not in call.data:
-        await c.async_set_weekly(person_id, None, c.today())
+        await c.async_set_weekly(person_id, None, call.data.get("valid_from", c.today()))
     else:
         await c.async_set_weekly(person_id, frozenset(call.data["weekdays"]), call.data.get("valid_from", c.today()))
     return None
@@ -176,7 +176,7 @@ async def _set_weekly(hass: HomeAssistant, c: WerktagsCoordinator, call: Service
 
 async def _set_house(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
     if call.data.get("by_role") or "person" not in call.data:
-        await c.async_set_house(None, c.today())
+        await c.async_set_house(None, call.data.get("valid_from", c.today()))
     else:
         await c.async_set_house(_person_ids(c, call.data["person"]), call.data.get("valid_from", c.today()))
     return None
@@ -256,7 +256,8 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
             "roles": [{"valid_from": s.valid_from.isoformat(), "role": s.value.value} for s in resident.roles.steps]
             if resident else [],
             "off_weekdays": sorted(weekend) if weekend is not None else None,
-            "off_weekdays_history": [{"valid_from": s.valid_from.isoformat(), "weekdays": sorted(s.value)}
+            "off_weekdays_history": [{"valid_from": s.valid_from.isoformat(),
+                                      "weekdays": None if s.value is None else sorted(s.value)}   # None: household
                                      for s in resident.off_weekdays.steps] if resident else [],
         })
     rooms = []
@@ -274,7 +275,8 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
                       "by_role": c.house.assigned_on(today) is None,
-                      "assignments": [{"valid_from": s.valid_from.isoformat(), "residents": sorted(s.value)}
+                      "assignments": [{"valid_from": s.valid_from.isoformat(),
+                                       "residents": None if s.value is None else sorted(s.value)}   # None: by role
                                       for s in c.house.residents.steps],
                       "morning_rule": c.house.morning_rule.value, "evening_rule": c.house.evening_rule.value},
             "status": c.status()}

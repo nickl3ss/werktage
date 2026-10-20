@@ -15,7 +15,7 @@ from typing import Any
 from .rules import CombineRule, DayType, History, Resident, Role, Room, Step
 from .sources import SchoolHolidayPeriod
 
-DATA_VERSION = 2
+DATA_VERSION = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,7 +34,7 @@ class StoredData:
     rooms: dict[str, Room] = field(default_factory=dict)
     exceptions: dict[dt.date, dict[str, DayType]] = field(default_factory=dict)
     school_holidays: SchoolHolidayCache | None = None
-    house_residents: History[frozenset[str]] = field(default_factory=History)   # version 2
+    house_residents: History[frozenset[str] | None] = field(default_factory=History)   # version 2; None steps: 3
 
 
 # --- to JSON ------------------------------------------------------------------
@@ -54,10 +54,11 @@ def to_dict(data: StoredData) -> dict[str, Any]:
         "residents": {
             rid: {"short_name": r.short_name, "order": r.order,
                   "roles": _history_to_list(r.roles, lambda role: role.value),
-                  "off_weekdays": _history_to_list(r.off_weekdays, lambda days: sorted(days))}
+                  "off_weekdays": _history_to_list(r.off_weekdays, lambda days: None if days is None else sorted(days))}
             for rid, r in sorted(data.residents.items())
         },
-        "house": {"residents": _history_to_list(data.house_residents, lambda ids: sorted(ids))},
+        "house": {"residents": _history_to_list(data.house_residents,
+                                                lambda ids: None if ids is None else sorted(ids))},
         "rooms": {
             aid: {"morning_rule": room.morning_rule.value, "evening_rule": room.evening_rule.value,
                   "residents": _history_to_list(room.residents, lambda ids: sorted(ids))}
@@ -92,7 +93,8 @@ def from_dict(raw: Mapping[str, Any] | None) -> StoredData:
     residents = {
         rid: Resident(rid, str(r.get("short_name", "")), _history_from_list(r.get("roles", []), Role),
                       int(r.get("order", 0)),
-                      _history_from_list(r.get("off_weekdays", []), lambda days: frozenset(int(d) for d in days)))
+                      _history_from_list(r.get("off_weekdays", []),
+                                         lambda days: None if days is None else frozenset(int(d) for d in days)))
         for rid, r in raw.get("residents", {}).items()
     }
     rooms = {
@@ -114,7 +116,8 @@ def from_dict(raw: Mapping[str, Any] | None) -> StoredData:
         fetched_at=dt.datetime.fromisoformat(cache_raw["fetched_at"]) if cache_raw.get("fetched_at") else None,
         failures=int(cache_raw.get("failures", 0)),
     )
-    house_residents = _history_from_list(raw.get("house", {}).get("residents", []), frozenset)
+    house_residents = _history_from_list(raw.get("house", {}).get("residents", []),
+                                         lambda ids: None if ids is None else frozenset(ids))
     return StoredData(residents, rooms, exceptions, cache, house_residents)
 
 
@@ -124,6 +127,9 @@ def migrate(raw: dict[str, Any]) -> dict[str, Any]:
     1 → 2: residents gain ``off_weekdays`` (empty = household weekend), the
     house gains an explicit resident assignment (empty = by role). Both are
     optional keys, so version 1 data reads unchanged.
+    2 → 3: a step of ``off_weekdays`` or ``house.residents`` may hold ``null``
+    (back to the household default from that date on). Older data never
+    contains ``null``, so it reads unchanged.
     """
     version = int(raw.get("version", DATA_VERSION))
     if version > DATA_VERSION:

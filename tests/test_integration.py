@@ -348,3 +348,33 @@ async def test_midnight_survives_a_public_holiday_error(hass: HomeAssistant, hou
     assert hass.states.get("sensor.anna_morning").state == "day_off"          # New Year's Day from the kept holidays
     assert household.state.name == "LOADED"
     assert "Public holidays could not be updated at midnight" in caplog.text
+
+
+async def test_returning_to_the_household_weekend_keeps_the_past(hass: HomeAssistant, household, call_service, persons):
+    """Invariant 2 (#11): the return to the household weekend is a step from a date on, not a deletion."""
+    await call_service("set_weekly", person=persons["p_anna"], weekdays=[4, 5, 6], valid_from="2026-09-28")
+    await call_service("set_weekly", person=persons["p_anna"], household=True, valid_from="2026-10-05")
+    days = await call_service("get_days", start="2026-09-28", weeks=2)
+    assert days["days"][4]["persons"]["p_anna"]["reason"] == "weekend"             # Friday 2 Oct: still her day off
+    assert days["days"][11]["persons"]["p_anna"]["reason"] == "workday"            # Friday 9 Oct: household weekend
+    overview = await call_service("get_overview")
+    anna = next(p for p in overview["persons"] if p["name"] == "Anna")
+    assert anna["off_weekdays_history"] == [{"valid_from": "2026-09-28", "weekdays": [4, 5, 6]},
+                                            {"valid_from": "2026-10-05", "weekdays": None}]
+    # a history that only ever says "household" is no history
+    await call_service("set_weekly", person=persons["p_ben"], household=True, valid_from="2026-10-05")
+    ben = next(p for p in overview["persons"] if p["name"] == "Ben")
+    assert ben["off_weekdays_history"] == []
+    assert household.runtime_data.data.residents["p_ben"].off_weekdays.steps == ()
+
+
+async def test_returning_to_the_house_roles_keeps_the_past(hass: HomeAssistant, household, call_service, persons):
+    """Invariant 2 (#11): "by role" from a date on leaves the earlier assignment in place."""
+    await call_service("set_house", person=[persons["p_clara"]], valid_from="2026-10-05")
+    await call_service("set_house", by_role=True, valid_from="2026-10-12")
+    coordinator = household.runtime_data
+    assert coordinator.household.house_day(d("2026-10-05")).is_workday is False   # Clara's autumn break ruled
+    assert coordinator.household.house_day(d("2026-10-12")).is_workday is True    # the adults again
+    overview = await call_service("get_overview")
+    assert overview["house"]["assignments"] == [{"valid_from": "2026-10-05", "residents": ["p_clara"]},
+                                                {"valid_from": "2026-10-12", "residents": None}]

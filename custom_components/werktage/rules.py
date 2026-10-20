@@ -252,8 +252,9 @@ class Resident:
     roles: History[Role] = field(default_factory=History)
     order: int = 0
     # Personal weekly days off (weekday numbers, Monday = 0), valid from a date;
-    # replaces the household's weekend for this person. No entry → household weekend.
-    off_weekdays: History[frozenset[int]] = field(default_factory=History)
+    # replaces the household's weekend for this person. No entry, or a step with
+    # ``None``, → household weekend from that date on (the past keeps its steps).
+    off_weekdays: History[frozenset[int] | None] = field(default_factory=History)
 
     def role_on(self, day: dt.date) -> Role | None:
         role = self.roles.value_on(day)
@@ -288,7 +289,7 @@ class House:
     roles: frozenset[Role] = DEFAULT_HOUSE_ROLES
     morning_rule: CombineRule = DEFAULT_MORNING_RULE
     evening_rule: CombineRule = DEFAULT_EVENING_RULE
-    residents: History[frozenset[str]] = field(default_factory=History)
+    residents: History[frozenset[str] | None] = field(default_factory=History)   # a None step: by role again
 
     def assigned_on(self, day: dt.date) -> frozenset[str] | None:
         return self.residents.value_on(day)

@@ -74,6 +74,14 @@ _LOGGER = logging.getLogger(__name__)
 type WerktagsConfigEntry = ConfigEntry[WerktagsCoordinator]
 
 
+class _DataStore(Store[dict[str, Any]]):
+    """The store file carries ``DATA_VERSION``; older files are upgraded by ``storage.migrate``."""
+
+    async def _async_migrate_func(self, old_major_version: int, old_minor_version: int,
+                                  old_data: dict[str, Any]) -> dict[str, Any]:
+        return storage.migrate(old_data)
+
+
 class WerktagsError(ValueError):
     """A rejected change. ``key`` names the translated message (``exceptions`` in strings.json)."""
 
@@ -85,6 +93,12 @@ class WerktagsError(ValueError):
 
 class FetchFailed(Exception):
     """A school holiday fetch did not yield usable data."""
+
+
+def _with_default_step[T](history: History[T | None], valid_from: dt.date, value: T | None) -> History[T | None]:
+    """Add a step; a history that only ever says "default" (``None``) collapses to no history at all."""
+    history = history.with_step(valid_from, value)
+    return History() if all(step.value is None for step in history.steps) else history
 
 
 async def async_probe_openholidays(hass: HomeAssistant, country: str, subdivision: str | None) -> int:
@@ -100,7 +114,7 @@ class WerktagsCoordinator:
     def __init__(self, hass: HomeAssistant, entry: WerktagsConfigEntry) -> None:
         self.hass = hass
         self.entry = entry
-        self._store: Store[dict[str, Any]] = Store(hass, storage.DATA_VERSION, f"{DOMAIN}.data")
+        self._store: Store[dict[str, Any]] = _DataStore(hass, storage.DATA_VERSION, f"{DOMAIN}.data")
         self.data = StoredData()
         self.household = Household(calendar=Calendar())
         self._public_holidays: dict[dt.date, str] = {}
@@ -381,27 +395,30 @@ class WerktagsCoordinator:
         await self._async_commit(replace(self.data, residents=residents))
 
     async def async_set_weekly(self, person_id: str, weekdays: frozenset[int] | None, valid_from: dt.date) -> None:
-        """Personal days off every week from a date on; ``None`` returns the person to the household weekend."""
+        """Personal days off every week from a date on; ``None`` returns the person to the
+        household weekend from that date on. Earlier days keep their pattern (3.4)."""
         resident = self.data.residents.get(person_id)
         if resident is None:
             raise WerktagsError("not_resident")
         if weekdays is not None and not all(0 <= d <= 6 for d in weekdays):
             raise WerktagsError("weekdays_range")
-        history = History() if weekdays is None else resident.off_weekdays.with_step(valid_from, frozenset(weekdays))
+        value = None if weekdays is None else frozenset(weekdays)
+        history = _with_default_step(resident.off_weekdays, valid_from, value)
         residents = {**self.data.residents, person_id: replace(resident, off_weekdays=history)}
         await self._async_commit(replace(self.data, residents=residents))
 
     async def async_set_house(self, person_ids: Iterable[str] | None, valid_from: dt.date) -> None:
-        """Residents that count for the house from a date on; ``None`` returns to the role-based default."""
-        history: History[frozenset[str]]
+        """Residents that count for the house from a date on; ``None`` returns to the role-based
+        default from that date on. Earlier days keep their assignment (3.4)."""
+        history: History[frozenset[str] | None]
         if person_ids is None:
-            history = History()
+            history = _with_default_step(self.data.house_residents, valid_from, None)
         else:
             ids = frozenset(person_ids)
             unknown = [pid for pid in ids if pid not in self.data.residents]
             if unknown:
                 raise WerktagsError("not_residents", persons=", ".join(sorted(unknown)))
-            history = self.data.house_residents.with_step(valid_from, ids)
+            history = _with_default_step(self.data.house_residents, valid_from, ids)
         await self._async_commit(replace(self.data, house_residents=history))
 
     async def async_set_order(self, person_ids: list[str]) -> None:

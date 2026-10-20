@@ -483,7 +483,7 @@
         },
         "household": {
           "name": "Back to household weekend",
-          "description": "Removes the personal pattern; the household weekend applies again."
+          "description": "From the date on, the household weekend applies again; earlier days keep the personal pattern."
         }
       }
     },
@@ -501,7 +501,7 @@
         },
         "by_role": {
           "name": "By role",
-          "description": "Back to the default: everyone with a house role."
+          "description": "From the date on, everyone with a house role counts again; earlier days keep their assignment."
         }
       }
     }

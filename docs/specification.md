@@ -61,8 +61,8 @@ type.
 | P26 | Exceptions on role or room change | **Kept** — exceptions belong to person and day |
 | P27 | Change log | **None** — only the current state is stored |
 | P28 | Editing the past | Single days without confirmation; past role and room steps ask for confirmation |
-| P29 | Weekly pattern per person | A resident may have personal days off every week (history, `valid_from`); they **replace** the household weekend for that person. Exceptions still win. |
-| P30 | Residents of the house | Explicitly chosen residents (history); empty means everyone with a house role as before |
+| P29 | Weekly pattern per person | A resident may have personal days off every week (history, `valid_from`); they **replace** the household weekend for that person. Exceptions still win. Returning to the household weekend is a step from a date on (3.4; since 0.3.0, store version 3). |
+| P30 | Residents of the house | Explicitly chosen residents (history); empty, or a "by role" step from a date on (3.4; since 0.3.0), means everyone with a house role as before |
 | P31 | Holiday corrections | Settings: added holidays (`YYYY-MM-DD [name]`) and removed ones (date or part of the name); an added holiday counts as a public holiday, a removed one as an ordinary day |
 | P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
 | P33 | Public holidays fail at midnight | The error is logged and the day still changes with the holidays already known; sensors never keep yesterday's date (see P5: missing data is never silently a day off) |
@@ -113,12 +113,15 @@ Example with defaults — room of Anna and Ben:
 
 A room without residents on a day counts as workday (P5).
 
-### 3.4 History of roles and rooms
+### 3.4 History of roles, rooms, weekly patterns and house residents
 
-Roles and room assignments are sequences of steps `(valid_from, value)`. Each
-day uses the step valid on it, so a change today never rewrites the past. A
-step may lie in the past (P11); the UI asks for confirmation. Exceptions are
-independent of roles and rooms.
+Roles, room assignments, personal weekly patterns (P29) and the residents of
+the house (P30) are sequences of steps `(valid_from, value)`. Each day uses
+the step valid on it, so a change today never rewrites the past. Returning to
+the household default (the household weekend, the house roles) is a step as
+well — its value is "default" — never a deletion of the history; a history
+that only ever says "default" is empty. A step may lie in the past (P11); the
+UI asks for confirmation. Exceptions are independent of roles and rooms.
 
 ## 4. Data sources
 
@@ -163,7 +166,10 @@ into the store so no dashboard card is needed.
 
 Residents with roles, rooms with assignments and rules, exceptions and the
 school holiday cache. No change log (P27). Keys are the internal ids of
-persons and areas, stable across renames. Versioned with migrations.
+persons and areas, stable across renames. Versioned with additive migrations
+(`storage.DATA_VERSION`: 1 first release, 2 weekly patterns and house
+residents, 3 "default" steps in those histories); a newer store is refused,
+never overwritten.
 
 ### 5.3 Devices and entities
 

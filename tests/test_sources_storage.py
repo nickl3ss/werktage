@@ -110,11 +110,34 @@ def test_empty_and_missing_data():
     assert storage.from_dict({"version": 1, "exceptions": {"2026-01-01": {}}}).exceptions == {}
 
 
-def test_version_1_data_reads_as_version_2():
+def test_older_data_reads_as_the_current_version():
     old = {"version": 1, "residents": {"p": {"short_name": "P", "order": 0, "roles": [{"valid_from": "2010-01-01", "value": "adult"}]}}}
     data = storage.from_dict(old)
     assert data.residents["p"].weekend_on(d("2026-01-01")) is None and data.house_residents.steps == ()
-    assert storage.to_dict(data)["version"] == 2
+    assert storage.to_dict(data)["version"] == storage.DATA_VERSION == 3
+    v2 = {"version": 2, "residents": {"p": {"short_name": "P", "order": 0, "roles": [{"valid_from": "2010-01-01", "value": "adult"}],
+                                            "off_weekdays": [{"valid_from": "2026-09-28", "value": [4]}]}},
+          "house": {"residents": [{"valid_from": "2026-10-05", "value": ["p"]}]}}
+    data = storage.from_dict(v2)
+    assert data.residents["p"].weekend_on(d("2026-10-01")) == frozenset({4})
+    assert data.house_residents.value_on(d("2026-10-05")) == frozenset({"p"})
+
+
+def test_default_steps_are_stored_as_null_and_read_back():
+    """Version 3: a step back to the household default is kept in the history (#11)."""
+    from custom_components.werktage.rules import History, Resident, Role, Step
+    anna = Resident("p", "P", History((Step(d("2010-01-01"), Role.ADULT),)),
+                    off_weekdays=History((Step(d("2026-09-28"), frozenset({4})), Step(d("2026-10-05"), None))))
+    data = storage.StoredData({"p": anna}, house_residents=History((Step(d("2026-10-05"), frozenset({"p"})),
+                                                                     Step(d("2026-10-12"), None))))
+    raw = storage.to_dict(data)
+    assert raw["residents"]["p"]["off_weekdays"][1] == {"valid_from": "2026-10-05", "value": None}
+    assert raw["house"]["residents"][1] == {"valid_from": "2026-10-12", "value": None}
+    back = storage.from_dict(raw)
+    assert back == data
+    assert back.residents["p"].weekend_on(d("2026-10-02")) == frozenset({4})      # the past keeps the pattern
+    assert back.residents["p"].weekend_on(d("2026-10-09")) is None                # household weekend again
+    assert back.house_residents.value_on(d("2026-10-12")) is None
 
 
 def test_newer_version_is_refused():

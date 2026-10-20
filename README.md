@@ -196,10 +196,10 @@ Everything the cards do is an action of the `werktage` domain; the
 | `set_days` | `person` (one or more), `start`, `end` (default: `start`), `status` (`day_off`, `workday`, `default`) | exceptions for a day or range, weekends included; `default` removes exceptions |
 | `set_role` | `person`, `role` (`pupil`, `adult`, `none`), `valid_from` (default: today), `short_name` | makes a person a resident or changes the role from a date on |
 | `remove_role` | `person`, `valid_from` | removes one role entry (not the last) |
-| `set_weekly` | `person`, `weekdays` (0 = Monday … 6 = Sunday), `valid_from`, `household` | personal days off every week; `household: true` returns to the household weekend |
+| `set_weekly` | `person`, `weekdays` (0 = Monday … 6 = Sunday), `valid_from`, `household` | personal days off every week; `household: true` returns to the household weekend from `valid_from` on (earlier days keep the pattern) |
 | `set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | residents of a room from a date on and/or its rules |
 | `remove_room_assignment` | `area`, `valid_from` | removes one assignment entry |
-| `set_house` | `person` (several), `valid_from`, `by_role` | residents whose days count for the house; `by_role: true` or no persons returns to the roles |
+| `set_house` | `person` (several), `valid_from`, `by_role` | residents whose days count for the house; `by_role: true` or no persons returns to the roles from `valid_from` on (earlier days keep the assignment) |
 | `set_order` | `person` (in the wanted order) | order of residents in the calendar card |
 | `refresh_school_holidays` | — | fetches the school holidays now |
 | `get_days` | `start` (any day of the first week), `weeks` (1–26) | **returns** every day with weekend, holidays and, per resident, the effective and default day, exception, reason, role |

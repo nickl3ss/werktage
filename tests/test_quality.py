@@ -367,3 +367,23 @@ def test_frontend_is_the_only_delivery_and_there_is_no_websocket_api():
         if path.name != "frontend.py":
             assert "add_extra_js_url" not in text and "async_register_static_paths" not in text, path
         assert "websocket_api" not in text and "async_register_panel" not in text, path
+
+
+async def test_a_version_2_store_is_migrated_when_loading(hass: HomeAssistant, config_entry: MockConfigEntry, persons,
+                                                        areas, hass_storage):
+    """The store file of 0.2.x (version 2) loads through the migration hook and is written back as version 3."""
+    hass_storage[f"{DOMAIN}.data"] = {
+        "version": 2, "minor_version": 1, "key": f"{DOMAIN}.data",
+        "data": {"version": 2,
+                 "residents": {"p_anna": {"short_name": "A", "order": 0,
+                                          "roles": [{"valid_from": "2010-01-01", "value": "adult"}],
+                                          "off_weekdays": [{"valid_from": "2026-09-28", "value": [4]}]}},
+                 "house": {"residents": [{"valid_from": "2026-10-05", "value": ["p_anna"]}]}},
+    }
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert config_entry.state.name == "LOADED"
+    coordinator = config_entry.runtime_data
+    assert coordinator.data.residents["p_anna"].weekend_on(d("2026-10-01")) == frozenset({4})
+    await coordinator.async_set_order(["p_anna"])                                  # any write
+    assert hass_storage[f"{DOMAIN}.data"]["version"] == storage.DATA_VERSION == 3

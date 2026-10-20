@@ -483,7 +483,7 @@
         },
         "household": {
           "name": "Zurück zum Haushalts-Wochenende",
-          "description": "Entfernt das persönliche Muster; das Wochenende des Haushalts gilt wieder."
+          "description": "Ab dem Datum gilt wieder das Wochenende des Haushalts; frühere Tage behalten das persönliche Muster."
         }
       }
     },
@@ -501,7 +501,7 @@
         },
         "by_role": {
           "name": "Nach Rolle",
-          "description": "Zurück zum Standard: alle mit einer Haus-Rolle."
+          "description": "Ab dem Datum zählen wieder alle mit einer Haus-Rolle; frühere Tage behalten ihre Zuordnung."
         }
       }
     }
