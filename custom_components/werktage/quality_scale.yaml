@@ -7,8 +7,9 @@ rules:
   brands:
     status: done
     comment: >-
-      Shipped as local brand images in brand/ (icon, icon@2x, logo, logo@2x), which Home Assistant
-      serves itself since 2026.3; the brands repository no longer accepts custom integrations.
+      Shipped as local brand images in brand/ (icon, icon@2x), which Home Assistant serves itself
+      since 2026.3 and from which it derives logo and dark variants; the brands repository no longer
+      accepts custom integrations.
   common-modules: done
   config-flow: done
   config-flow-test-coverage: done
