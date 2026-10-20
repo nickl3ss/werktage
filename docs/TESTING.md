@@ -48,6 +48,16 @@ Testumgebung: ein Home Assistant ≥ 2026.1 mit der installierten Version aus de
 | N6-1 | `calendar.<haus>_school_holidays` in der Kalender-Ansicht von Home Assistant | ganztägige Ereignisse mit den Ferien-Namen der Quelle der Installation |
 | N6-2 | Quelle *keine* in den Einstellungen | Entität verschwindet nach dem Neuladen |
 
+### N7 · Persönliche Kalender als Quelle freier Tage (#2)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N7-1 | Bewohnerkarte: *Freie Tage aus Kalender* auf einen eigenen Kalender stellen, Stichwort „Urlaub“, *Übernehmen* | Ganztägige Urlaubstermine erscheinen in der Kalenderkarte als frei mit gepunktetem Rand; Termine ohne Stichwort und Termine mit Uhrzeit nicht |
+| N7-2 | Einen Kalendertag in der Kalenderkarte antippen | Tag wird zur Ausnahme (Werktag, gelber Rand); erneut antippen → wieder Kalendertag, keine Ausnahme gespeichert |
+| N7-3 | Termin im Kalender verschieben, 30 s warten | Kalenderkarte folgt ohne Neuladen der Integration |
+| N7-4 | Kalender-Integration stoppen, Tag abwarten | Tage bleiben wie zuletzt gelesen, Warnung im Protokoll, kein „unbekannt“ |
+| N7-5 | *Werktage → Konfigurieren → Bewohner* ohne Kalenderfelder speichern | Kalender der Person entfernt |
+
 ## Regressionssuite
 
 Vor jedem Release vollständig, nach jedem Push die betroffenen Abschnitte.

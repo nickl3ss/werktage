@@ -189,3 +189,23 @@ preview_days:
 get_overview: {}
 
 refresh_school_holidays: {}
+
+
+set_calendars:
+  fields:
+    person:
+      required: true
+      selector:
+        entity:
+          domain: person
+    days_off_calendar:
+      selector:
+        entity:
+          domain: calendar
+    workdays_calendar:
+      selector:
+        entity:
+          domain: calendar
+    keyword:
+      selector:
+        text:

@@ -48,6 +48,7 @@ const STYLE = `
   .legend .sw.sh { border: 2px solid var(--info-color, #1e88e5); }
   .legend .sw.we { background: rgba(127, 127, 127, 0.25); }
   .legend .sw.unk { border-style: dashed; }
+  .legend .sw.cal { outline: 2px dotted var(--info-color, #1e88e5); outline-offset: -2px; }
   .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
   .grid .head { text-align: center; font-size: 0.8em; color: var(--secondary-text-color); padding: 2px 0; }
   .cell { border: 1px solid var(--divider-color, #ddd); border-radius: 6px; padding: 4px; min-height: 84px; font-size: 0.8em; }
@@ -63,6 +64,7 @@ const STYLE = `
   .tg.off { background: var(--primary-color); color: var(--text-primary-color, #fff); border-color: var(--primary-color); }
   .tg.exc { outline: 2px solid var(--warning-color, #ffa000); outline-offset: -2px; }
   .tg.unk { border-style: dashed; }
+  .tg.cal { outline: 2px dotted var(--info-color, #1e88e5); outline-offset: -2px; }
   .tg.all { min-width: 42px; }
   .tg.some { background: repeating-linear-gradient(45deg, var(--primary-color) 0 4px, transparent 4px 8px); color: var(--primary-text-color); }
   .tg.sh { background-color: rgba(30, 136, 229, 0.15); }
@@ -282,6 +284,7 @@ class WerktagsCalendarCard extends WerktagsCard {
     const off = info.effective === DAY_OFF;
     const classes = ["tg", off ? "off" : "on"];
     if (info.exception) classes.push("exc");
+    if (info.reason === "calendar_day_off" || info.reason === "calendar_workday") classes.push("cal");
     if (info.reason === "unknown") classes.push("unk");
     if (info.role === "pupil" && (day.school_holiday || (info.holiday_name && !day.public_holiday))) classes.push("sh");   // own source too
     const title = `${resident.name}: ${this.t[info.effective]} — ${this.t.reason[info.reason] || info.reason}`;
@@ -329,7 +332,7 @@ class WerktagsCalendarCard extends WerktagsCard {
   _legendHtml() {
     const t = this.t;
     const item = (cls, label) => `<span><span class="sw ${cls}"></span>${esc(label)}</span>`;
-    return `<div class="legend">${item("off", t.legend_off)}${item("", t.legend_work)}${item("exc", t.legend_exc)}${item("sh", t.legend_school)}${item("we", t.legend_weekend)}${item("unk", t.legend_unknown)}</div>`;
+    return `<div class="legend">${item("off", t.legend_off)}${item("", t.legend_work)}${item("exc", t.legend_exc)}${item("sh", t.legend_school)}${item("we", t.legend_weekend)}${item("cal", t.legend_calendar)}${item("unk", t.legend_unknown)}</div>`;
   }
 
   _statusHtml() {
@@ -501,6 +504,7 @@ class WerktagsResidentsCard extends WerktagsCard {
       this._forms[id] = { role: resident ? person.role_today : "adult", valid_from: this.today,
         short_name: person.short_name || proposeShortName(person.name, taken),
         weekly: this._effectiveWeekly(person).slice(), source: person.school_holiday_source || "",
+        cal_off: person.days_off_calendar || "", cal_work: person.workdays_calendar || "", keyword: person.calendar_keyword || "",
         confirm: false, dirty: false };
     }
     return this._forms[id];
@@ -520,6 +524,13 @@ class WerktagsResidentsCard extends WerktagsCard {
   on_form_date(el) { this._touch(el).valid_from = el.value; this.render(); }
   on_form_short(el) { this._touch(el).short_name = el.value; }
   on_form_source(el) { this._touch(el).source = el.value; this.render(); }
+  on_form_cal_off(el) { this._touch(el).cal_off = el.value; this.render(); }
+  on_form_cal_work(el) { this._touch(el).cal_work = el.value; this.render(); }
+  on_form_keyword(el) { this._touch(el).keyword = el.value; }
+  _calendarsChanged(person, form) {
+    return form.cal_off !== (person.days_off_calendar || "") || form.cal_work !== (person.workdays_calendar || "")
+      || form.keyword.trim() !== (person.calendar_keyword || "");
+  }
   on_form_cancel(el) { delete this._forms[el.dataset.id]; this.render(); }
   on_cancel_confirm(el) { this._form(el.dataset.id).confirm = false; this.render(); }
 
@@ -530,6 +541,7 @@ class WerktagsResidentsCard extends WerktagsCard {
     const roleChanged = !isResident || form.role !== person.role_today;
     const shortChanged = form.short_name.trim() !== (person.short_name || "");
     const sourceChanged = form.source !== (person.school_holiday_source || "");
+    const calendarsChanged = this._calendarsChanged(person, form);
     const weeklyChanged = this._weeklyChanged(person, form);
     if (roleChanged || weeklyChanged) {
       const retro = retroactiveDays(form.valid_from, this.today);
@@ -545,8 +557,16 @@ class WerktagsResidentsCard extends WerktagsCard {
       else { const first = person.roles[0]; data.role = first.role; data.valid_from = first.valid_from; }   // short name or source only
       if (shortChanged || !isResident) data.short_name = form.short_name.trim();
       if (sourceChanged) data.school_holiday_source = form.source;
-      if (!weeklyChanged) { await this.write("set_role", data, this.t.applied); return; }
+      if (!weeklyChanged && !calendarsChanged) { await this.write("set_role", data, this.t.applied); return; }
       try { await this.callService("set_role", data); } catch (err) { this.fail(err); return; }
+    }
+    if (calendarsChanged) {
+      const cal = { person: person.entity_id };
+      if (form.cal_off) cal.days_off_calendar = form.cal_off;
+      if (form.cal_work) cal.workdays_calendar = form.cal_work;
+      if (form.keyword.trim()) cal.keyword = form.keyword.trim();
+      if (!weeklyChanged) { await this.write("set_calendars", cal, this.t.applied); return; }
+      try { await this.callService("set_calendars", cal); } catch (err) { this.fail(err); return; }
     }
     await this.write("set_weekly", weekly, this.t.applied);
   }
@@ -581,10 +601,15 @@ class WerktagsResidentsCard extends WerktagsCard {
       ${personal ? `<button class="icon" data-action="form_weekly_reset" data-on="click" data-id="${id}" title="${esc(t.weekly_reset)}">↺</button>` : ""}</span></div>`;
     const sources = this._overview.school_holiday_sources || [];
     const sourceSelect = sources.length && (form.role === "pupil" || form.source) ? `<label class="field">${esc(t.school_holidays_as)}<select data-action="form_source" data-on="change" data-id="${id}">${sources.map((s) => `<option value="${esc(s.value)}" ${form.source === s.value ? "selected" : ""}>${esc(s.label)}</option>`).join("")}</select></label>` : "";
+    const calendars = this._overview.calendars || [];
+    const calSelect = (action, value, label) => `<label class="field">${esc(label)}<select data-action="${action}" data-on="change" data-id="${id}"><option value="">${esc(t.no_calendar)}</option>${calendars.map((c) => `<option value="${esc(c.entity_id)}" ${value === c.entity_id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>`;
+    const calendarFields = calendars.length && (isResident || form.dirty) ? `${calSelect("form_cal_off", form.cal_off, t.days_off_calendar)}${calSelect("form_cal_work", form.cal_work, t.workdays_calendar)}
+      ${form.cal_off || form.cal_work ? `<label class="field">${esc(t.calendar_keyword)}<input size="10" value="${esc(form.keyword)}" data-action="form_keyword" data-on="input" data-id="${id}"></label>` : ""}` : "";
     const editor = `<label class="field">${esc(t.short_name)}<input size="2" maxlength="2" value="${esc(form.short_name)}" data-action="form_short" data-on="input" data-id="${id}"></label>
       <label class="field">${esc(t.new_role)}<select data-action="form_role" data-on="change" data-id="${id}">${roleOptions}</select></label>
       ${isResident || form.dirty ? weekly : ""}
       ${sourceSelect}
+      ${calendarFields}
       ${roleChanged || weeklyChanged ? `<label class="field">${esc(t.valid_from)}<input type="date" value="${form.valid_from}" data-action="form_date" data-on="change" data-id="${id}"></label>` : ""}
       ${form.dirty ? `<button class="primary" data-action="set_role" data-on="click" data-id="${id}">${esc(t.apply)}</button>
       <button data-action="form_cancel" data-on="click" data-id="${id}">${esc(t.cancel)}</button>` : ""}`;

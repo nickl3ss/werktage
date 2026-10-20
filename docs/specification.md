@@ -1,7 +1,7 @@
 # Werktage — Specification
 
 **Status:** implemented (released as 0.2.x, quality scale Platinum) ·
-**Version:** 4 (2026-10-20) — all open questions decided (P21–P35)
+**Version:** 4 (2026-10-21) — all open questions decided (P21–P36)
 
 Werktage tells Home Assistant, **per person**, whether a day is a workday or a
 day off. From that it derives a **morning mode** (*workday* / *day off*) and an
@@ -67,6 +67,7 @@ type.
 | P32 | Binary sensors and blueprints | `binary_sensor.<x>_workday` next to the enum sensors; two blueprints for the common morning/evening automations |
 | P33 | Public holidays fail at midnight | The error is logged and the day still changes with the holidays already known; sensors never keep yesterday's date (see P5: missing data is never silently a day off) |
 | P34 | Library version | `lib/openholidays` carries its own version, which only changes with the library; the integration's `manifest.json` version is what the User-Agent reports |
+| P36 | Personal calendars | A resident may name a days-off calendar and a workdays calendar (all-day events, optional keyword). Calendar days replace the default but yield to a manual exception: `effective = exception ?? calendar ?? default` (reasons `calendar_day_off`, `calendar_workday`). An unreadable calendar keeps its last days, never makes them unknown. Nothing is written into personal calendars (#2, 0.3.0) |
 | P35 | Display name | The integration is called **Werktage** wherever users see it (HACS, the integrations list, titles, texts, blueprints), the same word as the domain. Technical identifiers keep `werktags`: the card element names `custom:werktags-*`, the bundle `werktags-cards.js`, class names — changing them would break every dashboard (#6, 0.3.0) |
 
 ## 3. Rules
@@ -209,6 +210,7 @@ installation language.
 | `werktage.remove_room_assignment` | `area`, `valid_from` | removes an assignment step |
 | `werktage.set_weekly` | `person`, `weekdays` (0 = Monday), `valid_from`, `household` | personal days off every week; `household` returns to the household weekend |
 | `werktage.set_house` | `person` (several), `valid_from`, `by_role` | residents that count for the house; `by_role` or no persons returns to the roles |
+| `werktage.set_calendars` | `person`, `days_off_calendar`, `workdays_calendar`, `keyword` | the person's personal calendars (P36); without calendars removes both |
 | `werktage.set_order` | `person` (in the wanted order) | order of the residents in the calendar card |
 | `werktage.get_days` | `start`, `weeks` | **returns** per day and resident: effective, default, exception, reason, holiday names, role |
 | `werktage.preview_days` | as `set_days` | **returns** the days that would change |

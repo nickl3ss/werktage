@@ -246,3 +246,26 @@ async def test_options_menu_names_the_short_name_problem(hass: HomeAssistant, se
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], {"person": persons["p_anna"], "role": "adult", "short_name": "ABC"})
     assert result["type"] is FlowResultType.FORM and result["errors"] == {"short_name": "short_name_length"}
+
+
+async def test_options_menu_sets_the_personal_calendars(hass: HomeAssistant, setup_integration: MockConfigEntry, persons,
+                                                        call_service):
+    """#2: the resident form takes the two calendars and the keyword; an empty form clears them."""
+    async def fake_get_events(call):
+        return {call.data["entity_id"]: {"events": []}}
+
+    hass.services.async_register("calendar", "get_events", fake_get_events, supports_response="only")
+    hass.states.async_set("calendar.anna", "off", {"friendly_name": "Anna privat"})
+    result = await _options(hass, setup_integration, "resident")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"person": persons["p_anna"], "role": "adult", "days_off_calendar": "calendar.anna",
+                            "calendar_keyword": " Urlaub "})
+    assert result["reason"] == "resident_saved"
+    await hass.async_block_till_done()
+    anna = setup_integration.runtime_data.data.residents["p_anna"]
+    assert (anna.days_off_calendar, anna.workdays_calendar, anna.calendar_keyword) == ("calendar.anna", None, "Urlaub")
+    result = await _options(hass, setup_integration, "resident")
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"person": persons["p_anna"], "role": "adult"})
+    await hass.async_block_till_done()
+    assert setup_integration.runtime_data.data.residents["p_anna"].has_calendars is False

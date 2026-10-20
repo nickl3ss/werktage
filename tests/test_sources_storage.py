@@ -155,3 +155,16 @@ def test_supported_countries_are_two_letter_codes_only():
     countries = sources.supported_countries()
     assert "DE" in countries and "LU" in countries and all(len(code) == 2 for code in countries)
 
+
+def test_personal_calendars_and_their_days_round_trip():
+    """#2: calendar settings per resident and what the calendars said survive the store."""
+    from custom_components.werktage.rules import History, Resident, Role, Step
+    anna = Resident("p", "P", History((Step(d("2010-01-01"), Role.ADULT),)), days_off_calendar="calendar.anna",
+                    workdays_calendar="calendar.shifts", calendar_keyword="Urlaub")
+    cache = storage.CalendarDaysCache((d("2026-10-07"), d("2026-10-08")), (d("2026-10-10"),), d("2025-10-01"),
+                                      d("2027-11-05"), dt.datetime(2026, 10, 1, 3, 30, tzinfo=dt.UTC))
+    data = storage.StoredData({"p": anna}, calendar_days={"p": cache})
+    raw = storage.to_dict(data)
+    assert raw["residents"]["p"]["days_off_calendar"] == "calendar.anna" and raw["calendar_days"]["p"]["workdays"] == ["2026-10-10"]
+    assert storage.from_dict(raw) == data
+    assert storage.from_dict({"version": 3, "residents": {"p": {"roles": []}}}).calendar_days == {}

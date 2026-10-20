@@ -154,7 +154,10 @@
           "short_name": "Short name",
           "off_weekdays": "Personal days off every week",
           "valid_from": "Valid from",
-          "school_holiday_source": "School holidays as"
+          "school_holiday_source": "School holidays as",
+          "days_off_calendar": "Days off from calendar",
+          "workdays_calendar": "Workdays from calendar",
+          "calendar_keyword": "Keyword (only events with this word)"
         },
         "data_description": {
           "person": "Any person of this Home Assistant.",
@@ -275,7 +278,9 @@
               "school_holiday": "School holiday",
               "exception_day_off": "Exception: day off",
               "exception_workday": "Exception: workday",
-              "unknown": "Unknown (counts as workday)"
+              "unknown": "Unknown (counts as workday)",
+              "calendar_day_off": "Calendar: day off",
+              "calendar_workday": "Calendar: workday"
             }
           }
         }
@@ -296,7 +301,9 @@
               "school_holiday": "School holiday",
               "exception_day_off": "Exception: day off",
               "exception_workday": "Exception: workday",
-              "unknown": "Unknown (counts as workday)"
+              "unknown": "Unknown (counts as workday)",
+              "calendar_day_off": "Calendar: day off",
+              "calendar_workday": "Calendar: workday"
             }
           }
         }
@@ -512,6 +519,28 @@
           "description": "From the date on, everyone with a house role counts again; earlier days keep their assignment."
         }
       }
+    },
+    "set_calendars": {
+      "name": "Set a person's calendars",
+      "description": "Personal calendars as a source of days off: all-day events in the days-off calendar are days off, in the workdays calendar workdays. A manual exception still wins. Without calendars, both are removed.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "The person."
+        },
+        "days_off_calendar": {
+          "name": "Days-off calendar",
+          "description": "Calendar whose all-day events are days off (vacation, business trips)."
+        },
+        "workdays_calendar": {
+          "name": "Workdays calendar",
+          "description": "Calendar whose all-day events are extra workdays (Saturday shifts)."
+        },
+        "keyword": {
+          "name": "Keyword",
+          "description": "Only events of the days-off calendar whose title contains this word (e.g. “vacation”)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -577,6 +606,9 @@
     },
     "source_unknown": {
       "message": "The school holiday source “{source}” is unknown. Use “openholidays:COUNTRY-REGION” or “calendar:<entity>”."
+    },
+    "calendar_unknown": {
+      "message": "The calendar {entity_id} does not exist."
     }
   },
   "issues": {

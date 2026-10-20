@@ -10,7 +10,8 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
 
 from custom_components.werktage.const import DOMAIN
 
@@ -127,7 +128,7 @@ async def test_set_days_range_default_and_workday_on_weekend(hass: HomeAssistant
     days = await call_service("get_days", start="2026-10-03", weeks=1)
     saturday = next(day for day in days["days"] if day["date"] == "2026-10-03")
     assert saturday["persons"]["p_anna"] == {
-        "effective": "workday", "default": "day_off", "exception": "workday",
+        "effective": "workday", "default": "day_off", "exception": "workday", "calendar": None,
         "reason": "exception_workday", "holiday_name": saturday["public_holiday"], "role": "adult"}
     await call_service("set_days", person=[persons["p_anna"]], start="2026-10-03", end="2026-10-04", status="default")
     days = await call_service("get_days", start="2026-10-03", weeks=1)
@@ -431,3 +432,71 @@ async def test_a_resident_may_have_another_school_holiday_source(hass: HomeAssis
     with pytest.raises(ServiceValidationError):
         await call_service("set_role", person=persons["p_clara"], role="pupil", valid_from="2010-01-01",
                            school_holiday_source="moon:far")
+
+
+async def test_personal_calendars_give_days_off_and_extra_workdays(hass: HomeAssistant, household, call_service, persons):
+    """#2: all-day events of the resident's calendars become days off / workdays below a manual exception."""
+    events = {
+        "calendar.anna": [{"start": "2026-10-07", "end": "2026-10-10", "summary": "Urlaub Nordsee"},      # Wed–Fri
+                          {"start": "2026-10-20", "end": "2026-10-21", "summary": "Zahnarzt"},            # no keyword
+                          {"start": "2026-10-21T08:00:00+02:00", "end": "2026-10-21T09:00:00+02:00", "summary": "Urlaub?"}],
+        "calendar.shifts": [{"start": "2026-10-10", "end": "2026-10-11", "summary": "Samstagsdienst"}],   # Saturday
+    }
+    calls = []
+
+    async def fake_get_events(call):
+        calls.append(call.data["entity_id"])
+        if events.get("broken"):
+            raise RuntimeError("calendar offline")
+        return {call.data["entity_id"]: {"events": events.get(call.data["entity_id"], [])}}
+
+    hass.services.async_register("calendar", "get_events", fake_get_events, supports_response="only")
+    hass.states.async_set("calendar.anna", "off", {"friendly_name": "Anna privat"})
+    hass.states.async_set("calendar.shifts", "off", {"friendly_name": "Schichten"})
+    with pytest.raises(ServiceValidationError):
+        await call_service("set_calendars", person=persons["p_anna"], days_off_calendar="calendar.nowhere")
+    await call_service("set_calendars", person=persons["p_anna"], days_off_calendar="calendar.anna",
+                       workdays_calendar="calendar.shifts", keyword="Urlaub")
+    await hass.async_block_till_done()
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-05", weeks=3))["days"]}
+    assert days["2026-10-07"]["reason"] == "calendar_day_off" and days["2026-10-07"]["calendar"] == "day_off"
+    assert days["2026-10-09"]["reason"] == "calendar_day_off"                              # end exclusive: 7, 8, 9
+    assert days["2026-10-10"]["reason"] == "calendar_workday"                              # the shift (no keyword there)
+    assert days["2026-10-20"]["reason"] == "workday" and days["2026-10-20"]["calendar"] is None   # no keyword, timed ignored
+    assert hass.states.get("sensor.ben_morning").attributes["reason"] == "workday"          # others unchanged
+    overview = await call_service("get_overview")
+    anna = next(p for p in overview["persons"] if p["name"] == "Anna")
+    assert (anna["days_off_calendar"], anna["workdays_calendar"], anna["calendar_keyword"]) == ("calendar.anna", "calendar.shifts", "Urlaub")
+    assert [c["entity_id"] for c in overview["calendars"]] == ["calendar.anna", "calendar.shifts"]   # not our own calendars
+
+    await call_service("set_days", person=persons["p_anna"], start="2026-10-08", status="workday")    # a manual exception wins
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-05", weeks=1))["days"]}
+    assert days["2026-10-08"]["reason"] == "exception_workday" and days["2026-10-08"]["calendar"] == "day_off"
+    await call_service("set_days", person=persons["p_anna"], start="2026-10-08", status="day_off")    # equals the calendar
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-05", weeks=1))["days"]}
+    assert days["2026-10-08"]["reason"] == "calendar_day_off" and days["2026-10-08"]["exception"] is None
+
+    # the calendar changes: re-read after the pause
+    events["calendar.anna"] = [{"start": "2026-10-14", "end": "2026-10-15", "summary": "Urlaub"}]
+    before = len(calls)
+    hass.states.async_set("calendar.anna", "on", {"friendly_name": "Anna privat"})
+    await hass.async_block_till_done()
+    assert len(calls) == before                                                           # debounced: nothing yet
+    async_fire_time_changed(hass, dt_util.utcnow() + dt.timedelta(seconds=31))
+    await hass.async_block_till_done()
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-05", weeks=2))["days"]}
+    assert days["2026-10-14"]["reason"] == "calendar_day_off" and days["2026-10-07"]["reason"] == "workday"
+
+    # an unreadable calendar keeps the last days and never makes them unknown
+    events["broken"] = True
+    async_fire_time_changed(hass, (dt_util.now() + dt.timedelta(days=1)).replace(hour=3, minute=30, second=5))
+    await hass.async_block_till_done()
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-12", weeks=1))["days"]}
+    assert days["2026-10-14"]["reason"] == "calendar_day_off"
+    events["broken"] = False
+
+    await call_service("set_calendars", person=persons["p_anna"])                          # removes both
+    await hass.async_block_till_done()
+    days = {day["date"]: day["persons"]["p_anna"] for day in (await call_service("get_days", start="2026-10-12", weeks=1))["days"]}
+    assert days["2026-10-14"]["reason"] == "workday"
+    assert household.runtime_data.data.calendar_days == {}

@@ -22,6 +22,7 @@ from .const import (
     SERVICE_REFRESH_SCHOOL_HOLIDAYS,
     SERVICE_REMOVE_ROLE,
     SERVICE_REMOVE_ROOM_ASSIGNMENT,
+    SERVICE_SET_CALENDARS,
     SERVICE_SET_DAYS,
     SERVICE_SET_HOUSE,
     SERVICE_SET_ORDER,
@@ -63,6 +64,12 @@ WEEKDAY = vol.All(vol.Coerce(int), vol.Range(0, 6))
 SET_WEEKLY_SCHEMA = vol.Schema({
     vol.Required("person"): cv.entity_domain("person"), vol.Optional("weekdays"): vol.All(cv.ensure_list, [WEEKDAY]),
     vol.Optional("valid_from"): cv.date, vol.Optional("household", default=False): cv.boolean,
+})
+SET_CALENDARS_SCHEMA = vol.Schema({
+    vol.Required("person"): cv.entity_domain("person"),
+    vol.Optional("days_off_calendar"): vol.Any(cv.entity_domain("calendar"), ""),
+    vol.Optional("workdays_calendar"): vol.Any(cv.entity_domain("calendar"), ""),
+    vol.Optional("keyword"): cv.string,
 })
 SET_HOUSE_SCHEMA = vol.Schema({
     vol.Optional("person"): PERSONS, vol.Optional("valid_from"): cv.date,
@@ -175,6 +182,13 @@ async def _set_weekly(hass: HomeAssistant, c: WerktagsCoordinator, call: Service
     return None
 
 
+async def _set_calendars(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
+    person_id = _person_ids(c, [call.data["person"]])[0]
+    await c.async_set_calendars(person_id, call.data.get("days_off_calendar") or None,
+                                call.data.get("workdays_calendar") or None, call.data.get("keyword"))
+    return None
+
+
 async def _set_house(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCall) -> dict[str, Any] | None:
     if call.data.get("by_role") or "person" not in call.data:
         await c.async_set_house(None, call.data.get("valid_from", c.today()))
@@ -218,9 +232,11 @@ async def _get_days(hass: HomeAssistant, c: WerktagsCoordinator, call: ServiceCa
                 continue
             default = household.default_of(r.id, day)
             exception = household.exception_for(r.id, day)
+            calendar_day = household.calendar_day_of(r.id, day)
             per_person[r.id] = {
                 "effective": info.day_type.value, "default": default.day_type.value if default else None,
                 "exception": exception.value if exception else None, "reason": info.reason.value,
+                "calendar": calendar_day.value if calendar_day else None,
                 "holiday_name": info.holiday_name, "role": info.role.value if info.role else None,
             }
         public = household.calendar.public_holiday_on(day)
@@ -258,6 +274,9 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
             if resident else [],
             "off_weekdays": sorted(weekend) if weekend is not None else None,
             "school_holiday_source": resident.school_holiday_source if resident else None,
+            "days_off_calendar": resident.days_off_calendar if resident else None,
+            "workdays_calendar": resident.workdays_calendar if resident else None,
+            "calendar_keyword": resident.calendar_keyword if resident else None,
             "off_weekdays_history": [{"valid_from": s.valid_from.isoformat(),
                                       "weekdays": None if s.value is None else sorted(s.value)}   # None: household
                                      for s in resident.off_weekdays.steps] if resident else [],
@@ -274,7 +293,7 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
                             for s in room.residents.steps] if room else [],
         })
     return {"today": today.isoformat(), "weekend": sorted(c.weekend), "persons": persons, "rooms": rooms,
-            "school_holiday_sources": c.school_holiday_source_options(),
+            "school_holiday_sources": c.school_holiday_source_options(), "calendars": c.calendar_entities(),
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
                       "by_role": c.house.assigned_on(today) is None,
@@ -293,6 +312,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         (SERVICE_REMOVE_ROOM_ASSIGNMENT, _remove_room, REMOVE_ROOM_SCHEMA),
         (SERVICE_SET_ORDER, _set_order, SET_ORDER_SCHEMA),
         (SERVICE_SET_WEEKLY, _set_weekly, SET_WEEKLY_SCHEMA), (SERVICE_SET_HOUSE, _set_house, SET_HOUSE_SCHEMA),
+        (SERVICE_SET_CALENDARS, _set_calendars, SET_CALENDARS_SCHEMA),
         (SERVICE_REFRESH_SCHOOL_HOLIDAYS, _refresh, EMPTY_SCHEMA),
     ]
     for name, func, schema in writes:

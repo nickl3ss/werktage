@@ -154,7 +154,10 @@
           "short_name": "Kürzel",
           "off_weekdays": "Persönliche freie Wochentage",
           "valid_from": "Gültig ab",
-          "school_holiday_source": "Schulferien wie"
+          "school_holiday_source": "Schulferien wie",
+          "days_off_calendar": "Freie Tage aus Kalender",
+          "workdays_calendar": "Werktage aus Kalender",
+          "calendar_keyword": "Stichwort (nur Termine mit diesem Wort)"
         },
         "data_description": {
           "person": "Jede Person dieses Home Assistant.",
@@ -275,7 +278,9 @@
               "school_holiday": "Schulferien",
               "exception_day_off": "Ausnahme: frei",
               "exception_workday": "Ausnahme: Werktag",
-              "unknown": "Unbekannt (gilt als Werktag)"
+              "unknown": "Unbekannt (gilt als Werktag)",
+              "calendar_day_off": "Kalender: frei",
+              "calendar_workday": "Kalender: Werktag"
             }
           }
         }
@@ -296,7 +301,9 @@
               "school_holiday": "Schulferien",
               "exception_day_off": "Ausnahme: frei",
               "exception_workday": "Ausnahme: Werktag",
-              "unknown": "Unbekannt (gilt als Werktag)"
+              "unknown": "Unbekannt (gilt als Werktag)",
+              "calendar_day_off": "Kalender: frei",
+              "calendar_workday": "Kalender: Werktag"
             }
           }
         }
@@ -512,6 +519,28 @@
           "description": "Ab dem Datum zählen wieder alle mit einer Haus-Rolle; frühere Tage behalten ihre Zuordnung."
         }
       }
+    },
+    "set_calendars": {
+      "name": "Kalender einer Person setzen",
+      "description": "Persönliche Kalender als Quelle freier Tage: ganztägige Termine im Abwesenheitskalender sind frei, im Werktage-Kalender Werktage. Eine manuelle Ausnahme gewinnt weiterhin. Ohne Kalender werden beide entfernt.",
+      "fields": {
+        "person": {
+          "name": "Person",
+          "description": "Die Person."
+        },
+        "days_off_calendar": {
+          "name": "Abwesenheitskalender",
+          "description": "Kalender, dessen ganztägige Termine freie Tage sind (Urlaub, Dienstreise)."
+        },
+        "workdays_calendar": {
+          "name": "Werktage-Kalender",
+          "description": "Kalender, dessen ganztägige Termine zusätzliche Werktage sind (Samstagsdienst)."
+        },
+        "keyword": {
+          "name": "Stichwort",
+          "description": "Nur Termine des Abwesenheitskalenders, deren Titel dieses Wort enthält (z. B. „Urlaub“)."
+        }
+      }
     }
   },
   "exceptions": {
@@ -577,6 +606,9 @@
     },
     "source_unknown": {
       "message": "Die Schulferienquelle „{source}“ ist unbekannt. Erlaubt sind „openholidays:LAND-REGION“ und „calendar:<Kalender>“."
+    },
+    "calendar_unknown": {
+      "message": "Den Kalender {entity_id} gibt es nicht."
     }
   },
   "issues": {

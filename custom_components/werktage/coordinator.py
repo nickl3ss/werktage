@@ -14,19 +14,23 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.event import async_track_time_change
+from homeassistant.helpers.debounce import Debouncer
+from homeassistant.helpers.event import async_track_state_change_event, async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import sources, storage
 from .const import (
     ATTRIBUTION_OPENHOLIDAYS,
+    CALENDAR_DEBOUNCE_SECONDS,
+    CALENDAR_LOOKAHEAD_DAYS,
+    CALENDAR_LOOKBACK_DAYS,
     CONF_ADD_HOLIDAYS,
     CONF_ADMIN_ONLY,
     CONF_CALENDAR_ENTITY,
@@ -57,6 +61,7 @@ from .rules import (
     DEFAULT_HOUSE_ROLES,
     DEFAULT_MORNING_RULE,
     Calendar,
+    CalendarDays,
     CombineRule,
     DayType,
     History,
@@ -68,7 +73,7 @@ from .rules import (
     SchoolHolidays,
 )
 from .sources import SchoolHolidayPeriod
-from .storage import SchoolHolidayCache, StoredData
+from .storage import CalendarDaysCache, SchoolHolidayCache, StoredData
 
 _LOGGER = logging.getLogger(__name__)
 type WerktagsConfigEntry = ConfigEntry[WerktagsCoordinator]
@@ -127,6 +132,10 @@ class WerktagsCoordinator:
         self._unsub_started: CALLBACK_TYPE | None = None     # the one-time start listener, until it fired
         self._fetching = False
         self._source_down: set[str] = set()   # log-when-unavailable per source: one line down, one up
+        self._calendars_down: set[str] = set()                 # residents whose calendars could not be read
+        self._unsub_calendars: CALLBACK_TYPE | None = None     # state changes of the personal calendars (#2)
+        self._calendar_debouncer = Debouncer(hass, _LOGGER, cooldown=CALENDAR_DEBOUNCE_SECONDS, immediate=False,
+                                             function=self.async_refresh_calendars)
 
     # -- configuration (options win over data) ---------------------------------
     def _conf(self, key: str, default: Any = None) -> Any:
@@ -211,12 +220,17 @@ class WerktagsCoordinator:
         names = sources.subdivision_names(self.country)
         options += [{"value": f"{SOURCE_OPENHOLIDAYS}:{self.country}-{code}", "label": name}
                     for code, name in sorted(names.items(), key=lambda item: item[1])]
-        registry = er.async_get(self.hass)
-        calendars = [state for state in self.hass.states.async_all("calendar")
-                     if (entry := registry.async_get(state.entity_id)) is None or entry.platform != DOMAIN]
-        options += [{"value": f"{SOURCE_CALENDAR}:{state.entity_id}", "label": state.name}
-                    for state in sorted(calendars, key=lambda state: state.name.lower())]
+        options += [{"value": f"{SOURCE_CALENDAR}:{c['entity_id']}", "label": c["name"]}
+                    for c in self.calendar_entities()]
         return options
+
+    def calendar_entities(self) -> list[dict[str, str]]:
+        """Every calendar entity of the installation except our own, sorted by name."""
+        registry = er.async_get(self.hass)
+        states = [state for state in self.hass.states.async_all("calendar")
+                  if (entry := registry.async_get(state.entity_id)) is None or entry.platform != DOMAIN]
+        return [{"entity_id": state.entity_id, "name": state.name}
+                for state in sorted(states, key=lambda state: state.name.lower())]
 
     def _check_source_key(self, key: str) -> None:
         source, parameter = sources.parse_source_key(key)
@@ -252,6 +266,7 @@ class WerktagsCoordinator:
         await self._async_public_holidays()
         self._rebuild()
         self._check_completeness()                # a fresh cache skips the fetch, the hint must not wait for it
+        self._track_calendars()
         self._unsub.append(async_track_time_change(self.hass, self._at_midnight, hour=0, minute=0, second=10))
         self._unsub.append(async_track_time_change(self.hass, self._daily_check, hour=3, minute=30, second=0))
         if self.hass.is_running:
@@ -265,6 +280,10 @@ class WerktagsCoordinator:
         for unsub in self._unsub:
             unsub()
         self._unsub.clear()
+        if self._unsub_calendars is not None:
+            self._unsub_calendars()
+            self._unsub_calendars = None
+        self._calendar_debouncer.async_cancel()
         if self._unsub_started is not None:
             self._unsub_started()
             self._unsub_started = None
@@ -280,6 +299,7 @@ class WerktagsCoordinator:
 
     async def _daily_check(self, _now: dt.datetime) -> None:
         await self.async_refresh_school_holidays()
+        await self.async_refresh_calendars()
 
     async def _on_started(self, _event: Any) -> None:
         self._unsub_started = None          # a one-time listener removes itself; unsubscribing it again logs an error
@@ -287,6 +307,7 @@ class WerktagsCoordinator:
 
     async def _startup_fetch(self, _event: Any = None) -> None:
         await self.async_refresh_school_holidays()
+        await self.async_refresh_calendars()
 
     # -- listeners ---------------------------------------------------------------------
     @callback
@@ -337,7 +358,10 @@ class WerktagsCoordinator:
         extra, removed = self.holiday_corrections()
         calendar = Calendar(self._public_holidays, self._school_holidays(self.source_key), self.weekend, extra, removed,
                             school_holidays_by_source={key: self._school_holidays(key) for key in self.source_keys()})
-        self.household = Household(calendar, self.data.residents, self.data.rooms, self.house, self.data.exceptions)
+        calendar_days = {rid: CalendarDays(frozenset(c.days_off), frozenset(c.workdays))
+                         for rid, c in self.data.calendar_days.items()}
+        self.household = Household(calendar, self.data.residents, self.data.rooms, self.house, self.data.exceptions,
+                                   calendar_days)
         self._check_registry_issues()
         self._notify()
 
@@ -471,6 +495,67 @@ class WerktagsCoordinator:
         history = _with_default_step(resident.off_weekdays, valid_from, value)
         residents = {**self.data.residents, person_id: replace(resident, off_weekdays=history)}
         await self._async_commit(replace(self.data, residents=residents))
+
+    async def async_set_calendars(self, person_id: str, days_off_calendar: str | None, workdays_calendar: str | None,
+                                  keyword: str | None) -> None:
+        """The resident's personal calendars (#2); ``None`` or ``""`` clears a calendar. Reads them right away."""
+        resident = self.data.residents.get(person_id)
+        if resident is None:
+            raise WerktagsError("not_resident")
+        for entity_id in (days_off_calendar, workdays_calendar):
+            if entity_id and self.hass.states.get(entity_id) is None:
+                raise WerktagsError("calendar_unknown", entity_id=entity_id)
+        updated = replace(resident, days_off_calendar=days_off_calendar or None,
+                          workdays_calendar=workdays_calendar or None, calendar_keyword=(keyword or "").strip() or None)
+        await self._async_commit(replace(self.data, residents={**self.data.residents, person_id: updated}))
+        self._track_calendars()
+        self.entry.async_create_background_task(self.hass, self.async_refresh_calendars(), "werktage calendars")
+
+    async def async_refresh_calendars(self) -> None:
+        """Read every resident's personal calendars (#2). An unreadable calendar keeps its last days, never
+        turns the days unknown: a missing calendar must not make every day a workday."""
+        today = self.today()
+        first = today - dt.timedelta(days=CALENDAR_LOOKBACK_DAYS)
+        last = today + dt.timedelta(days=CALENDAR_LOOKAHEAD_DAYS)
+        caches = dict(self.data.calendar_days)
+        for person_id, resident in self.data.residents.items():
+            if not resident.has_calendars:
+                caches.pop(person_id, None)
+                continue
+            try:
+                keyword = resident.calendar_keyword                      # filters the days-off calendar only
+                days_off = (await self._calendar_days(resident.days_off_calendar, first, last, keyword)
+                            if resident.days_off_calendar else frozenset())
+                workdays = (await self._calendar_days(resident.workdays_calendar, first, last, None)   # dedicated
+                            if resident.workdays_calendar else frozenset())
+            except Exception as err:  # noqa: BLE001 — a calendar integration may raise anything
+                if person_id not in self._calendars_down:
+                    _LOGGER.warning("Personal calendars %s could not be read, keeping the last days: %s",
+                                    [c for c in (resident.days_off_calendar, resident.workdays_calendar) if c], err)
+                    self._calendars_down.add(person_id)
+                continue
+            self._calendars_down.discard(person_id)
+            caches[person_id] = CalendarDaysCache(tuple(sorted(days_off)), tuple(sorted(workdays)), first, last,
+                                                  dt_util.utcnow())
+        for person_id in [pid for pid in caches if pid not in self.data.residents]:
+            caches.pop(person_id)
+        if caches != self.data.calendar_days:
+            await self._async_commit(replace(self.data, calendar_days=caches))
+
+    @callback
+    def _track_calendars(self) -> None:
+        """Re-read the personal calendars (debounced) whenever one of them changes state."""
+        if self._unsub_calendars is not None:
+            self._unsub_calendars()
+            self._unsub_calendars = None
+        entity_ids = sorted({entity_id for r in self.data.residents.values()
+                             for entity_id in (r.days_off_calendar, r.workdays_calendar) if entity_id})
+        if entity_ids:
+            self._unsub_calendars = async_track_state_change_event(self.hass, entity_ids, self._calendar_changed)
+
+    @callback
+    def _calendar_changed(self, _event: Event[EventStateChangedData]) -> None:
+        self.entry.async_create_background_task(self.hass, self._calendar_debouncer.async_call(), "werktage calendars")
 
     async def async_set_house(self, person_ids: Iterable[str] | None, valid_from: dt.date) -> None:
         """Residents that count for the house from a date on; ``None`` returns to the role-based
@@ -639,6 +724,26 @@ class WerktagsCoordinator:
         raise FetchFailed(f"no school holiday source configured ({key})")
 
     async def _fetch_from_calendar(self, entity_id: str, first: dt.date, last: dt.date) -> list[SchoolHolidayPeriod]:
+        periods = [SchoolHolidayPeriod(start, end, summary) for start, end, summary in
+                   await self._all_day_events(entity_id, first, last)]
+        return sorted(periods, key=lambda p: p.start)
+
+    async def _calendar_days(self, entity_id: str, first: dt.date, last: dt.date,
+                             keyword: str | None) -> frozenset[dt.date]:
+        """The days covered by all-day events (whose title contains ``keyword``, if given) in ``first``..``last``."""
+        days: set[dt.date] = set()
+        for start, end, summary in await self._all_day_events(entity_id, first, last):
+            if keyword and keyword.lower() not in summary.lower():
+                continue
+            day = max(start, first)
+            while day <= min(end, last):
+                days.add(day)
+                day += dt.timedelta(days=1)
+        return frozenset(days)
+
+    async def _all_day_events(self, entity_id: str, first: dt.date,
+                              last: dt.date) -> list[tuple[dt.date, dt.date, str]]:
+        """``(first day, last day, title)`` of every all-day event; timed events ignored, calendar ends exclusive."""
         tz = dt_util.get_default_time_zone()
         response: Any = await self.hass.services.async_call(
             "calendar", "get_events",
@@ -647,14 +752,14 @@ class WerktagsCoordinator:
             blocking=True, return_response=True,
         )
         events = (response or {}).get(entity_id, {}).get("events", []) if isinstance(response, dict) else []
-        periods = []
+        result = []
         for event in events:
             start, end = str(event.get("start", "")), str(event.get("end", ""))
             if len(start) != 10 or len(end) != 10:
-                continue                       # only all-day events count as school holidays
-            end_date = dt.date.fromisoformat(end) - dt.timedelta(days=1)    # calendar ends are exclusive
-            periods.append(SchoolHolidayPeriod(dt.date.fromisoformat(start), end_date, str(event.get("summary", ""))))
-        return sorted(periods, key=lambda p: p.start)
+                continue
+            end_date = dt.date.fromisoformat(end) - dt.timedelta(days=1)
+            result.append((dt.date.fromisoformat(start), end_date, str(event.get("summary", ""))))
+        return result
 
     # -- read-outs for services and cards ----------------------------------------------
     def status(self) -> dict[str, Any]:

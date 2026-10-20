@@ -55,3 +55,10 @@ SERVICE_REFRESH_SCHOOL_HOLIDAYS = "refresh_school_holidays"
 STATUS_DEFAULT = "default"                  # service field value: clear exceptions
 
 HOUSE_ID = "house"
+
+
+# Personal calendars as a source of days off (#2): the span read, and the pause after a calendar changed
+CALENDAR_LOOKBACK_DAYS = 366
+CALENDAR_LOOKAHEAD_DAYS = 400
+CALENDAR_DEBOUNCE_SECONDS = 30
+SERVICE_SET_CALENDARS = "set_calendars"

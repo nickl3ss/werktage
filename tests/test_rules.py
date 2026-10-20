@@ -384,3 +384,20 @@ def test_a_resident_with_another_source_uses_its_holidays(household):
     unfetched = replace(h, residents={**h.residents, "clara": replace(clara, school_holiday_source="calendar:calendar.x")})
     assert unfetched.day_of("clara", d("2026-10-12")).reason is Reason.UNKNOWN
     assert calendar.school_holidays_for(None) is household.calendar.school_holidays
+
+
+def test_calendar_days_sit_between_default_and_exception(household):
+    """#2 (P36): effective = exception ?? calendar ?? default; the reason names the calendar."""
+    from custom_components.werktage.rules import CalendarDays
+    days = CalendarDays(days_off=frozenset({d("2026-10-07"), d("2026-10-03")}), workdays=frozenset({d("2026-10-10")}))
+    h = replace(household, calendar_days={"anna": days})
+    assert h.day_of("anna", d("2026-10-07")).reason is Reason.CALENDAR_DAY_OFF         # Wednesday off
+    assert h.day_of("anna", d("2026-10-10")).reason is Reason.CALENDAR_WORKDAY         # Saturday shift
+    assert h.day_of("anna", d("2026-10-03")).reason is Reason.PUBLIC_HOLIDAY           # already off: default reason stays
+    assert h.day_of("ben", d("2026-10-07")).reason is Reason.WORKDAY                   # no calendars
+    corrected = h.with_exceptions(["anna"], d("2026-10-07"), d("2026-10-07"), DayType.WORKDAY)
+    assert corrected.day_of("anna", d("2026-10-07")).reason is Reason.EXCEPTION_WORKDAY   # a manual exception wins
+    assert corrected.exception_for("anna", d("2026-10-07")) is DayType.WORKDAY
+    back = corrected.with_exceptions(["anna"], d("2026-10-07"), d("2026-10-07"), DayType.DAY_OFF)
+    assert back.exception_for("anna", d("2026-10-07")) is None                        # equals the calendar: not stored
+    assert back.day_of("anna", d("2026-10-07")).reason is Reason.CALENDAR_DAY_OFF

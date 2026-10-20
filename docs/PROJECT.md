@@ -44,6 +44,8 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 | `residents[<person_id>].roles` | `History[Role]` (`adult` · `pupil` · `none`), Schritte mit `valid_from` | Rolle ab Datum; `none` beendet die Mitgliedschaft | Personen-ID aus `person.*` (stabil über Umbenennungen) |
 | `residents[].short_name`, `order` | 1–2 Zeichen, Reihenfolge | Anzeige in den Karten | Kürzel ist vom Nutzer gewählt |
 | `residents[].school_holiday_source` | Quellenschlüssel oder `null` | eigene Schulferienquelle (`openholidays:DE-HE`, `calendar:<entity>`), sonst die der Installation (#1) | Schulort |
+| `residents[].days_off_calendar`, `workdays_calendar`, `calendar_keyword` | Entitäts-IDs, Stichwort | persönliche Kalender als Quelle freier Tage bzw. zusätzlicher Werktage (#2, P36) | Abwesenheitsmuster |
+| `calendar_days[<person_id>]` | `days_off[]`, `workdays[]`, `known_from`, `known_to`, `fetched_at` | was die Kalender zuletzt sagten; täglich und 30 s nach einer Kalenderänderung neu gelesen | Abwesenheitsmuster |
 | `residents[].off_weekdays` | `History[frozenset[int] \| None]` | persönliche freie Wochentage ab Datum; `None`-Schritt = Haushaltswochenende (P29, #11) | Arbeitsmuster |
 | `rooms[<area_id>].residents` | `History[frozenset[str]]` | Bewohner eines Raums ab Datum | Bereichs-ID |
 | `rooms[].morning_rule`, `evening_rule` | `day_off_wins` · `workday_wins` | Kombinationsregel | — |
@@ -99,6 +101,7 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | 9 | Release als ZIP-Asset (`hacs.json` `zip_release`, #7) | GitHub zählt Asset-Downloads; Bundle und Bibliothek im Asset sind geprüft | Quell-Archiv des Tags (nicht zählbar) | 2026-10-20 | gültig; ältere Releases ohne Asset sind über HACS nicht mehr wählbar |
 | 10 | Standard `nickl3ss/standards` Stufe **Gold** | öffentliches Repo mit Fremdnutzern | Silber mit Ziel Gold | 2026-10-20 | gültig |
 | 11 | Sprache: Produkt und Code Englisch, Prozessdoku und Reviews Deutsch | internationale HACS-Nutzer; Standard-Vorlage ist deutsch | alles Deutsch; alles Englisch | 2026-10-20 | gültig |
+| 13 | Kalendertage liegen zwischen Standard und Ausnahme (`exception ?? calendar ?? default`, P36); nichts wird in Kalender zurückgeschrieben | Korrektur bleibt in der Karte möglich; Zwei-Wege-Abgleich ist der Punkt, an dem solche Funktionen unzuverlässig werden | Kalender als Ausnahmen importieren (verliert die Korrektur); Kalender über dem Standard **und** der Ausnahme | 2026-10-21 | gültig |
 | 12 | Windows-Entwicklung über Stubs (`tools/windows_dev.py`, `conftest.py`) statt WSL | Tests laufen in 18 s lokal; kein Neustart, keine Admin-Rechte | WSL; nur CI | 2026-10-20 | gültig |
 
 ## 8 · Invarianten (nie verletzen) — jede mit Test (ARC-22)

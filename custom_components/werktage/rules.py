@@ -39,6 +39,8 @@ class Reason(StrEnum):
     SCHOOL_HOLIDAY = "school_holiday"
     EXCEPTION_DAY_OFF = "exception_day_off"
     EXCEPTION_WORKDAY = "exception_workday"
+    CALENDAR_DAY_OFF = "calendar_day_off"       # an all-day event in the resident's absence calendar (#2)
+    CALENDAR_WORKDAY = "calendar_workday"       # an all-day event in the resident's workdays calendar (#2)
     UNKNOWN = "unknown"
 
 
@@ -208,18 +210,26 @@ def default_day(role: Role, day: dt.date, calendar: Calendar, weekend: frozenset
 
 def effective_day(role: Role, day: dt.date, calendar: Calendar,
                   exception: DayType | None = None, weekend: frozenset[int] | None = None,
-                  school_holidays: SchoolHolidays | None = None) -> DayInfo:
-    """Section 3.2: an exception replaces the default; unknown days count as workdays."""
+                  school_holidays: SchoolHolidays | None = None, calendar_day: DayType | None = None) -> DayInfo:
+    """Section 3.2: ``exception ?? calendar ?? default``; unknown days count as workdays.
+
+    ``calendar_day`` is what the resident's personal calendars say for the day
+    (#2, P36): it replaces the default but yields to a manual exception.
+    """
     default = default_day(role, day, calendar, weekend, school_holidays)
-    if exception is None:
-        return default
-    reason = Reason.EXCEPTION_DAY_OFF if exception is DayType.DAY_OFF else Reason.EXCEPTION_WORKDAY
-    return DayInfo(exception, reason, default.holiday_name, role)
+    if exception is not None:
+        reason = Reason.EXCEPTION_DAY_OFF if exception is DayType.DAY_OFF else Reason.EXCEPTION_WORKDAY
+        return DayInfo(exception, reason, default.holiday_name, role)
+    if calendar_day is not None and calendar_day is not default.day_type:
+        reason = Reason.CALENDAR_DAY_OFF if calendar_day is DayType.DAY_OFF else Reason.CALENDAR_WORKDAY
+        return DayInfo(calendar_day, reason, default.holiday_name, role)
+    return default
 
 
 def normalize_exception(role: Role, day: dt.date, calendar: Calendar,
                         wanted: DayType | None, weekend: frozenset[int] | None = None,
-                        school_holidays: SchoolHolidays | None = None) -> DayType | None:
+                        school_holidays: SchoolHolidays | None = None,
+                        calendar_day: DayType | None = None) -> DayType | None:
     """The exception to *store* for a wanted day type: ``None`` if it equals the default.
 
     Section 3.2: an exception equal to the default is deleted instead of stored.
@@ -228,7 +238,7 @@ def normalize_exception(role: Role, day: dt.date, calendar: Calendar,
     """
     if wanted is None:
         return None
-    default = default_day(role, day, calendar, weekend, school_holidays)
+    default = effective_day(role, day, calendar, None, weekend, school_holidays, calendar_day)   # incl. the calendar
     return None if default.day_type is wanted else wanted
 
 
@@ -273,6 +283,15 @@ class Resident:
     # Another school holiday source than the installation's (a source key, see sources.make_source_key); None: the
     # installation's. A pupil at a school in another region (#1).
     school_holiday_source: str | None = None
+    # Personal calendars (#2): all-day events in ``days_off_calendar`` are days off, in ``workdays_calendar`` extra
+    # workdays; ``calendar_keyword`` keeps only days-off events whose title contains it. A manual exception wins.
+    days_off_calendar: str | None = None
+    workdays_calendar: str | None = None
+    calendar_keyword: str | None = None
+
+    @property
+    def has_calendars(self) -> bool:
+        return bool(self.days_off_calendar or self.workdays_calendar)
 
     def role_on(self, day: dt.date) -> Role | None:
         role = self.roles.value_on(day)
@@ -317,6 +336,21 @@ Exceptions = Mapping[dt.date, Mapping[str, DayType]]
 
 
 @dataclass(frozen=True, slots=True)
+class CalendarDays:
+    """What a resident's calendars said (#2): days off and extra workdays, already filtered by the keyword."""
+
+    days_off: frozenset[dt.date] = frozenset()
+    workdays: frozenset[dt.date] = frozenset()
+
+    def day_type_on(self, day: dt.date) -> DayType | None:
+        if day in self.days_off:
+            return DayType.DAY_OFF
+        if day in self.workdays:
+            return DayType.WORKDAY
+        return None
+
+
+@dataclass(frozen=True, slots=True)
 class Household:
     """All data the rules need, plus the lookups the integration asks for."""
 
@@ -325,6 +359,7 @@ class Household:
     rooms: Mapping[str, Room] = field(default_factory=dict)
     house: House = field(default_factory=House)
     exceptions: Exceptions = field(default_factory=dict)
+    calendar_days: Mapping[str, CalendarDays] = field(default_factory=dict)   # per resident id (#2)
     # next_day results; a household is rebuilt whenever its data changes, so the cache lives as long as the data
     _next_day_cache: dict[tuple[str, dt.date, bool], dt.date | None] = field(default_factory=dict, init=False,
                                                                               repr=False, compare=False)
@@ -333,13 +368,19 @@ class Household:
     def exception_for(self, resident_id: str, day: dt.date) -> DayType | None:
         return self.exceptions.get(day, {}).get(resident_id)
 
+    def calendar_day_of(self, resident_id: str, day: dt.date) -> DayType | None:
+        """What the resident's personal calendars say for the day; ``None`` without calendars or events."""
+        days = self.calendar_days.get(resident_id)
+        return days.day_type_on(day) if days else None
+
     def day_of(self, resident_id: str, day: dt.date) -> DayInfo | None:
         """The effective day of a resident, or ``None`` without a role on that day."""
         resident = self.residents.get(resident_id)
         if resident is None or (role := resident.role_on(day)) is None:
             return None
         return effective_day(role, day, self.calendar, self.exception_for(resident_id, day), resident.weekend_on(day),
-                             self.calendar.school_holidays_for(resident.school_holiday_source))
+                             self.calendar.school_holidays_for(resident.school_holiday_source),
+                             self.calendar_day_of(resident_id, day))
 
     def default_of(self, resident_id: str, day: dt.date) -> DayInfo | None:
         resident = self.residents.get(resident_id)
@@ -423,7 +464,8 @@ class Household:
                 if resident is None or role is None:
                     continue
                 stored = normalize_exception(role, day, self.calendar, wanted, resident.weekend_on(day),
-                                             self.calendar.school_holidays_for(resident.school_holiday_source))
+                                             self.calendar.school_holidays_for(resident.school_holiday_source),
+                                             self.calendar_day_of(rid, day))
                 per_day = exceptions.setdefault(day, {})
                 if stored is None:
                     per_day.pop(rid, None)

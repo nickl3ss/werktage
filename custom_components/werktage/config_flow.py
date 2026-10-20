@@ -254,6 +254,9 @@ def resident_schema(source_options: list[SelectOptionDict]) -> vol.Schema:
         vol.Optional("short_name"): TextSelector(),
         vol.Optional("off_weekdays"): _select(WEEKDAYS, multiple=True, translation_key="weekday"),
         vol.Optional("school_holiday_source", default=""): _select(source_options),
+        vol.Optional("days_off_calendar"): EntitySelector(EntitySelectorConfig(domain="calendar")),
+        vol.Optional("workdays_calendar"): EntitySelector(EntitySelectorConfig(domain="calendar")),
+        vol.Optional("calendar_keyword"): TextSelector(),
         vol.Optional("valid_from"): DateSelector(),
     })
 
@@ -344,6 +347,10 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                     await c.async_set_weekly(person_id, frozenset(int(d) for d in weekdays), valid_from)
                 elif c.data.residents[person_id].off_weekdays.steps:
                     await c.async_set_weekly(person_id, None, valid_from)
+                calendars = (user_input.get("days_off_calendar") or None, user_input.get("workdays_calendar") or None)
+                if any(calendars) or c.data.residents[person_id].has_calendars:    # the form shows the whole state
+                    await c.async_set_calendars(person_id, calendars[0], calendars[1],
+                                                user_input.get("calendar_keyword"))
                 return self.async_abort(reason="resident_saved")
         options = [SelectOptionDict(value=o["value"], label=o["label"]) for o in c.school_holiday_source_options()]
         return self.async_show_form(step_id=STEP_RESIDENT, data_schema=resident_schema(options), errors=errors)

@@ -200,6 +200,7 @@ Everything the cards do is an action of the `werktage` domain; the
 | `set_room` | `area`, `person` (several), `valid_from`, `morning_rule`, `evening_rule` | residents of a room from a date on and/or its rules |
 | `remove_room_assignment` | `area`, `valid_from` | removes one assignment entry |
 | `set_house` | `person` (several), `valid_from`, `by_role` | residents whose days count for the house; `by_role: true` or no persons returns to the roles from `valid_from` on (earlier days keep the assignment) |
+| `set_calendars` | `person`, `days_off_calendar`, `workdays_calendar`, `keyword` | the person's personal calendars (all-day events = days off / extra workdays, optional keyword filter); without calendars removes both |
 | `set_order` | `person` (in the wanted order) | order of residents in the calendar card |
 | `refresh_school_holidays` | — | fetches the school holidays now |
 | `get_days` | `start` (any day of the first week), `weeks` (1–26) | **returns** every day with weekend, holidays and, per resident, the effective and default day, exception, reason, role |
@@ -241,6 +242,26 @@ holidays. Public holidays always follow the installation (the place of
 residence). Each source is fetched once a month on its own; the status in
 `get_overview` lists every source in use, and the calendar card marks a
 pupil's holidays from the pupil's own source.
+
+## Calendars
+
+Vacations, days off and business trips usually live in a personal calendar
+already. Give a resident a **days-off calendar** (and, more rarely, a
+**workdays calendar** for Saturday shifts) in the residents card or under
+*Werktage → Configure → Add or change a resident*: every all-day event
+becomes a day off (or an extra workday), timed events are ignored, and an
+optional keyword keeps only days-off events whose title contains it
+(`Urlaub`, `off`); the workdays calendar is taken as a whole.
+Calendar days sit between the default and a manual exception
+(`exception ?? calendar ?? default`), so a day can still be corrected in the
+calendar card without touching the calendar; such days show a dotted
+outline. The calendars are read once a day and half a minute after one of
+them changes; an unreadable calendar keeps the days it gave last time.
+
+Common setups: a shared family calendar in Google Calendar (the Google
+Calendar integration), a Nextcloud or iCloud calendar (the CalDAV
+integration), or an ICS feed (the Remote Calendar integration) — anything
+that appears as a `calendar.*` entity works. Nothing is written back.
 
 ## Data updates
 

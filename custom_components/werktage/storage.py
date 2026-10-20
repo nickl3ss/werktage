@@ -30,12 +30,24 @@ class SchoolHolidayCache:
 
 
 @dataclass(frozen=True, slots=True)
+class CalendarDaysCache:
+    """What a resident's personal calendars said when they were last read (#2)."""
+
+    days_off: tuple[dt.date, ...] = ()
+    workdays: tuple[dt.date, ...] = ()
+    known_from: dt.date | None = None
+    known_to: dt.date | None = None
+    fetched_at: dt.datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class StoredData:
     residents: dict[str, Resident] = field(default_factory=dict)
     rooms: dict[str, Room] = field(default_factory=dict)
     exceptions: dict[dt.date, dict[str, DayType]] = field(default_factory=dict)
     school_holidays: dict[str, SchoolHolidayCache] = field(default_factory=dict)   # per source key (version 3, #1)
     house_residents: History[frozenset[str] | None] = field(default_factory=History)   # version 2; None steps: 3
+    calendar_days: dict[str, CalendarDaysCache] = field(default_factory=dict)             # per resident id (3, #2)
 
 
 # --- to JSON ------------------------------------------------------------------
@@ -75,6 +87,8 @@ def to_dict(data: StoredData) -> dict[str, Any]:
         "version": DATA_VERSION,
         "residents": {
             rid: {"short_name": r.short_name, "order": r.order, "school_holiday_source": r.school_holiday_source,
+                  "days_off_calendar": r.days_off_calendar, "workdays_calendar": r.workdays_calendar,
+                  "calendar_keyword": r.calendar_keyword,
                   "roles": _history_to_list(r.roles, lambda role: role.value),
                   "off_weekdays": _history_to_list(r.off_weekdays, lambda days: None if days is None else sorted(days))}
             for rid, r in sorted(data.residents.items())
@@ -91,6 +105,14 @@ def to_dict(data: StoredData) -> dict[str, Any]:
             for day, per_day in sorted(data.exceptions.items()) if per_day
         },
         "school_holidays": {key: _cache_to_dict(cache) for key, cache in sorted(data.school_holidays.items())},
+        "calendar_days": {
+            rid: {"days_off": [day.isoformat() for day in cache.days_off],
+                  "workdays": [day.isoformat() for day in cache.workdays],
+                  "known_from": cache.known_from.isoformat() if cache.known_from else None,
+                  "known_to": cache.known_to.isoformat() if cache.known_to else None,
+                  "fetched_at": cache.fetched_at.isoformat() if cache.fetched_at else None}
+            for rid, cache in sorted(data.calendar_days.items())
+        },
     }
 
 
@@ -110,7 +132,10 @@ def from_dict(raw: Mapping[str, Any] | None) -> StoredData:
                       int(r.get("order", 0)),
                       _history_from_list(r.get("off_weekdays", []),
                                          lambda days: None if days is None else frozenset(int(d) for d in days)),
-                      school_holiday_source=r.get("school_holiday_source") or None)
+                      school_holiday_source=r.get("school_holiday_source") or None,
+                      days_off_calendar=r.get("days_off_calendar") or None,
+                      workdays_calendar=r.get("workdays_calendar") or None,
+                      calendar_keyword=r.get("calendar_keyword") or None)
         for rid, r in raw.get("residents", {}).items()
     }
     rooms = {
@@ -124,9 +149,17 @@ def from_dict(raw: Mapping[str, Any] | None) -> StoredData:
         for day, per_day in raw.get("exceptions", {}).items() if per_day
     }
     caches = {str(key): _cache_from_dict(cache_raw) for key, cache_raw in (raw.get("school_holidays") or {}).items()}
+    calendar_days = {
+        str(rid): CalendarDaysCache(
+            tuple(dt.date.fromisoformat(day) for day in c.get("days_off", [])),
+            tuple(dt.date.fromisoformat(day) for day in c.get("workdays", [])),
+            _date_or_none(c.get("known_from")), _date_or_none(c.get("known_to")),
+            dt.datetime.fromisoformat(c["fetched_at"]) if c.get("fetched_at") else None)
+        for rid, c in (raw.get("calendar_days") or {}).items()
+    }
     house_residents = _history_from_list(raw.get("house", {}).get("residents", []),
                                          lambda ids: None if ids is None else frozenset(ids))
-    return StoredData(residents, rooms, exceptions, caches, house_residents)
+    return StoredData(residents, rooms, exceptions, caches, house_residents, calendar_days)
 
 
 def migrate(raw: dict[str, Any]) -> dict[str, Any]:
@@ -140,7 +173,8 @@ def migrate(raw: dict[str, Any]) -> dict[str, Any]:
     contains ``null``. ``school_holidays`` becomes a map source key → cache
     (#1); the single cache of older data moves under the key ``_installation``,
     which the coordinator renames to the installation's source once it knows
-    the configuration. Residents may carry ``school_holiday_source``.
+    the configuration. Residents may carry ``school_holiday_source``, their
+    personal calendars (#2) and ``calendar_days`` holds what those said.
     """
     version = int(raw.get("version", DATA_VERSION))
     if version > DATA_VERSION:
