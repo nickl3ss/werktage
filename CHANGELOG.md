@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 — 2026-10-20
 
 - Werktags is in the HACS default list (hacs/default#11521): install it from
   the HACS search; the custom repository step is gone from the README.
