@@ -55,6 +55,12 @@ export function shortDate(iso, language) {
     .format(parseDate(iso));
 }
 
+/** Date and time of an ISO timestamp in the user's language and local time zone, e.g. "01.10.26, 03:30". */
+export function shortDateTime(iso, language) {
+  return new Intl.DateTimeFormat(language || "en", { day: "2-digit", month: "2-digit", year: "2-digit",
+                                                      hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+}
+
 export function longDate(iso, language) {
   return new Intl.DateTimeFormat(language || "en", { weekday: "short", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
     .format(parseDate(iso));
@@ -186,6 +192,7 @@ const TEXTS = {
     reset_day: "Everyone to default", confirm_all_work: "Set everyone to workday on a day off?",
     no_residents_yet: "No residents yet. Add them on the “Residents” page.",
     known_until: (d) => `School holidays known until ${d}`, not_fetched: "School holidays not fetched yet",
+    fetched_on: (d) => `fetched ${d}`,
     title: "Title", weeks: "Weeks", date_changed_hint: "Role from",
     what: "What?", who: "Who?", when: "When?", from: "From", to: "To", apply: "Apply", cancel: "Cancel",
     preview: "Preview", changes: (n) => `${n} day${n === 1 ? "" : "s"} change`, nothing_changes: "nothing changes",
@@ -216,6 +223,7 @@ const TEXTS = {
     reset_day: "Alle auf Standard", confirm_all_work: "Alle an einem freien Tag auf Werktag setzen?",
     no_residents_yet: "Noch keine Bewohner. Lege sie auf der Seite „Bewohner“ an.",
     known_until: (d) => `Schulferien bekannt bis ${d}`, not_fetched: "Schulferien noch nicht abgerufen",
+    fetched_on: (d) => `abgerufen ${d}`,
     title: "Titel", weeks: "Wochen", date_changed_hint: "Rolle ab",
     what: "Was?", who: "Wer?", when: "Wann?", from: "Von", to: "Bis", apply: "Übernehmen", cancel: "Abbrechen",
     preview: "Vorschau", changes: (n) => `${n} Tag${n === 1 ? "" : "e"} ändern sich`, nothing_changes: "nichts ändert sich",

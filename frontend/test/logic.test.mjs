@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import {
   DAY_OFF, WORKDAY, activeResidents, addDays, allState, allToggleStatus, dayClasses, daysBetween, isoWeek,
-  mondayOf, moveInList, proposeShortName, retroactiveDays, shortDate, startsMonth, texts, toggleStatus,
+  mondayOf, moveInList, proposeShortName, retroactiveDays, shortDate, shortDateTime, startsMonth, texts, toggleStatus,
   validRange, weekRows, esc,
 } from "../src/logic.js";
 
@@ -81,4 +81,11 @@ test("texts and escaping", () => {
   assert.equal(texts(undefined).changes(1), "1 day change");
   assert.equal(texts("de").changes(3), "3 Tage ändern sich");
   assert.equal(esc(`<b>"x" & 'y'</b>`), "&lt;b&gt;&quot;x&quot; &amp; &#39;y&#39;&lt;/b&gt;");
+});
+
+test("shortDateTime shows day, month, year and the time in the user's language", () => {
+  assert.match(shortDateTime("2026-10-01T03:30:00+00:00", "de"), /^\d{2}\.\d{2}\.26, \d{2}:\d{2}$/);
+  assert.match(shortDateTime("2026-10-01T03:30:00+00:00", "en"), /26.*\d{1,2}:\d{2}/);
+  assert.equal(texts("de").fetched_on("x"), "abgerufen x");
+  assert.equal(texts("en").fetched_on("x"), "fetched x");
 });

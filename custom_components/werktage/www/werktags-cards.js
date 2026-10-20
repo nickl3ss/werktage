@@ -58,6 +58,12 @@ function shortDate(iso, language) {
     .format(parseDate(iso));
 }
 
+/** Date and time of an ISO timestamp in the user's language and local time zone, e.g. "01.10.26, 03:30". */
+function shortDateTime(iso, language) {
+  return new Intl.DateTimeFormat(language || "en", { day: "2-digit", month: "2-digit", year: "2-digit",
+                                                      hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+}
+
 function longDate(iso, language) {
   return new Intl.DateTimeFormat(language || "en", { weekday: "short", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
     .format(parseDate(iso));
@@ -189,6 +195,7 @@ const TEXTS = {
     reset_day: "Everyone to default", confirm_all_work: "Set everyone to workday on a day off?",
     no_residents_yet: "No residents yet. Add them on the “Residents” page.",
     known_until: (d) => `School holidays known until ${d}`, not_fetched: "School holidays not fetched yet",
+    fetched_on: (d) => `fetched ${d}`,
     title: "Title", weeks: "Weeks", date_changed_hint: "Role from",
     what: "What?", who: "Who?", when: "When?", from: "From", to: "To", apply: "Apply", cancel: "Cancel",
     preview: "Preview", changes: (n) => `${n} day${n === 1 ? "" : "s"} change`, nothing_changes: "nothing changes",
@@ -219,6 +226,7 @@ const TEXTS = {
     reset_day: "Alle auf Standard", confirm_all_work: "Alle an einem freien Tag auf Werktag setzen?",
     no_residents_yet: "Noch keine Bewohner. Lege sie auf der Seite „Bewohner“ an.",
     known_until: (d) => `Schulferien bekannt bis ${d}`, not_fetched: "Schulferien noch nicht abgerufen",
+    fetched_on: (d) => `abgerufen ${d}`,
     title: "Titel", weeks: "Wochen", date_changed_hint: "Rolle ab",
     what: "Was?", who: "Wer?", when: "Wann?", from: "Von", to: "Bis", apply: "Übernehmen", cancel: "Abbrechen",
     preview: "Vorschau", changes: (n) => `${n} Tag${n === 1 ? "" : "e"} ändern sich`, nothing_changes: "nichts ändert sich",
@@ -281,7 +289,7 @@ const STYLE = `
   .chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 14px; padding: 2px 8px; margin: 2px;
           border: 1px solid var(--divider-color, #ddd); font-size: 0.9em; }
   .chip.on { background: var(--primary-color); color: var(--text-primary-color, #fff); border-color: var(--primary-color); }
-  .chip button { border: none; background: none; padding: 0 2px; color: inherit; }
+  .chip button { border: none; background: none; padding: 0 2px; color: inherit; min-width: 24px; min-height: 24px; }
   .confirm { border: 1px solid var(--warning-color, #ffa000); border-radius: 6px; padding: 6px 8px; margin: 6px 0; }
   .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.8em; color: var(--secondary-text-color); margin: 0 0 8px; align-items: center; }
   .legend .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--divider-color, #ddd); vertical-align: middle; margin-right: 3px; }
@@ -297,11 +305,11 @@ const STYLE = `
   .cell.school-holiday { border-color: var(--info-color, #1e88e5); border-width: 2px; }
   .cell.today { box-shadow: 0 0 0 2px var(--primary-color); }
   .cell .date { display: flex; justify-content: space-between; align-items: baseline; gap: 2px; }
-  .cell .date button { border: none; background: none; padding: 0; font-weight: 600; font-size: 1em; }
+  .cell .date button { border: none; background: none; padding: 0; font-weight: 600; font-size: 1em; min-width: 24px; min-height: 24px; }
   .cell .month { font-size: 0.9em; color: var(--primary-color); font-weight: 600; }
   .cell .holiday { color: var(--secondary-text-color); font-size: 0.85em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .toggles { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
-  .tg { min-width: 28px; height: 26px; padding: 0 6px; border-radius: 6px; font-size: 0.85em; font-weight: 600; }
+  .tg { min-width: 28px; height: 32px; padding: 0 6px; border-radius: 6px; font-size: 0.85em; font-weight: 600; }
   .tg.off { background: var(--primary-color); color: var(--text-primary-color, #fff); border-color: var(--primary-color); }
   .tg.exc { outline: 2px solid var(--warning-color, #ffa000); outline-offset: -2px; }
   .tg.unk { border-style: dashed; }
@@ -311,7 +319,7 @@ const STYLE = `
   .tg.sh.off { background: var(--primary-color); }
   .list .day { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--divider-color, #eee); }
   .list .day .date { min-width: 96px; }
-  .list .day .date button { border: none; background: none; padding: 0; font-weight: 600; }
+  .list .day .date button { border: none; background: none; padding: 0; font-weight: 600; min-width: 24px; min-height: 24px; }
   .list .week { font-weight: 500; color: var(--secondary-text-color); margin: 8px 0 2px; font-size: 0.85em; }
   .list .day.weekend, .list .day.public-holiday { background: rgba(127, 127, 127, 0.12); }
   .list .day.school-holiday .date { border-left: 3px solid var(--info-color, #1e88e5); padding-left: 4px; }
@@ -437,7 +445,8 @@ class WerktagsCard extends HTMLElement {
 
   fail(err) {
     const text = String(err?.message || err);
-    const notSetUp = text.includes("not set up") || text.includes("nicht eingerichtet");
+    // the websocket error carries the translation key; the text match covers older frontends
+    const notSetUp = err?.translation_key === "not_loaded" || text.includes("not set up") || text.includes("nicht eingerichtet");
     this._message = { kind: "error", text: notSetUp ? this.t.not_set_up : `${this.t.error}: ${text}` };
     this.render();
   }
@@ -579,8 +588,9 @@ class WerktagsCalendarCard extends WerktagsCard {
     if (status.school_holiday_source === "none") return "";
     const sh = status.school_holidays;
     const text = sh && sh.known_to ? t.known_until(shortDate(sh.known_to, this.lang)) : t.not_fetched;
+    const fetched = sh && sh.fetched_at ? ` · ${t.fetched_on(shortDateTime(sh.fetched_at, this.lang))}` : "";
     const attribution = status.attribution ? ` · ${esc(status.attribution)}` : "";
-    return `<div class="status">${esc(text)}${attribution}</div>`;
+    return `<div class="status">${esc(text + fetched)}${attribution}</div>`;
   }
 
   render() {
