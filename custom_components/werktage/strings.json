@@ -622,7 +622,7 @@
       "message": "A room needs residents. Assign at least one; the rules apply to them."
     },
     "source_unknown": {
-      "message": "The school holiday source “{source}” is unknown. Use “openholidays:COUNTRY-REGION” or “calendar:<entity>”."
+      "message": "The school holiday source “{source}” is unknown. Use “openholidays:COUNTRY-REGION” (e.g. openholidays:DE-HE) or “calendar:” followed by the calendar entity (e.g. calendar:calendar.school)."
     },
     "calendar_unknown": {
       "message": "The calendar {entity_id} does not exist."

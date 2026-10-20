@@ -622,7 +622,7 @@
       "message": "Ein Raum braucht Bewohner. Mindestens einen zuordnen; die Regeln gelten für sie."
     },
     "source_unknown": {
-      "message": "Die Schulferienquelle „{source}“ ist unbekannt. Erlaubt sind „openholidays:LAND-REGION“ und „calendar:<Kalender>“."
+      "message": "Die Schulferienquelle „{source}“ ist unbekannt. Erlaubt sind „openholidays:LAND-REGION“ (z. B. openholidays:DE-HE) und „calendar:“ gefolgt von der Kalender-Entität (z. B. calendar:calendar.schule)."
     },
     "calendar_unknown": {
       "message": "Den Kalender {entity_id} gibt es nicht."
