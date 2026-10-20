@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_NAMES = {"anna", "ben", "clara", "david", "emil"}
 
 # Public addresses that may appear in files and commits.
-ALLOWED_EMAILS = {"noreply@anthropic.com", "noreply@github.com"}
+ALLOWED_EMAILS = {"noreply@anthropic.com", "noreply@github.com", "support@github.com"}   # Dependabot names the last
 
 PATTERNS = {
     "private IPv4 address": re.compile(
