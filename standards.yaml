@@ -1,0 +1,31 @@
+# standards.yaml — Deklaration des Repos gegenüber nickl3ss/standards (Vorlage v1.0)
+# Pflicht ab Stufe Bronze. Der Scanner, /standards:review und die CI lesen diese Datei.
+standard: "1.0"
+profil: home-assistant
+stufe: gold                 # öffentliches Repo in der HACS-Standardliste mit Fremdnutzern (STANDARD.md § 3)
+sichtbarkeit: oeffentlich   # publish-Review vor jedem Release
+nutzerbild: "Hausbewohner ohne Home-Assistant-Kenntnisse, bedient die Kalenderkarte am Handy; ein Administrator richtet Bewohner und Räume einmal ein"
+kernaufgaben:               # die drei häufigsten Aufgaben, je mit Klickbudget (UX-01)
+  - "Einen Tag frei schalten — 1 Tipp auf das Kürzel in der Kalenderkarte"
+  - "Einen Zeitraum setzen — 3 Interaktionen (Person, Bis, Übernehmen)"
+  - "Morgenstatus ablesen — 0 Interaktionen (Sensor, Blueprint, Automation)"
+kernmodule:                 # Änderungen hier sind nie Schnellweg; Abdeckung ≥ 90 % (TST-07)
+  - custom_components/werktage/rules.py
+  - custom_components/werktage/coordinator.py
+  - custom_components/werktage/storage.py
+  - custom_components/werktage/sources.py
+  - lib/openholidays/src/
+tor: bin/check              # das eine Qualitätstor (CLAUDE.md, pre-push und CI rufen nur das)
+docs:                       # abweichende Dateinamen
+  anforderungen: docs/specification.md   # englisch, Entscheidungen P1–P35
+  projekt: docs/PROJECT.md
+  testing: docs/TESTING.md
+fremdsysteme: [openholidays-api, python-holidays, home-assistant-calendar]   # Regeln in docs/PROJECT.md § 5
+ausnahmen:                  # Regel-ID: Begründung (nur so wird eine MUSS-Regel kein Befund)
+  SEC-10: "hassfest@master und hacs/action@main folgen der ausdrücklichen Upstream-Empfehlung; alle übrigen Actions sind auf einen Commit gepinnt und Dependabot hält sie aktuell"
+  PRO-16: "Tags ohne v-Präfix (0.1.0 … 0.3.0): HACS liest beide Formen, ein Wechsel wäre nur Rauschen in der Release-Liste"
+  REC-04: "Keine Betreiberpflichten: die Integration läuft ausschließlich im Home Assistant des Nutzers, der Autor hostet nichts und verarbeitet keine Daten"
+  OPS-05: "Kein Backup durch das Repo: der Store liegt in .storage/ und ist Teil des Home-Assistant-Backups"
+  UX-13: "Keine gedruckten Ausgaben"
+  DAT-18: "Keine Sprachschnittstelle"
+rollen: []

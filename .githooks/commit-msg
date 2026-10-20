@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg — Conventional Commits (PRO-04, Issue #8): <typ>(<kürzel>): <was>
+# Einrichten je Klon: git config core.hooksPath .githooks
+set -euo pipefail
+subject="$(sed -n '1p' "$1")"
+case "$subject" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;;
+esac
+if ! printf '%s\n' "$subject" | grep -Eq '^(feat|fix|docs|test|chore|refactor|perf|build|ci)\([a-z]+\)(!)?: [^ ].{2,}$'; then
+  echo "✗ Betreff folgt nicht '<typ>(<kürzel>): <was>' — Typen: feat fix docs test chore refactor perf build ci; Kürzel: int lib cards docs ci proc" >&2
+  echo "  Beispiel: fix(int): keep the known holidays when midnight recomputation fails (#11)" >&2
+  exit 1
+fi

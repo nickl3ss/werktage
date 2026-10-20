@@ -10,3 +10,6 @@ node_modules/
 dist/
 .DS_Store
 .publication-terms
+
+# Lokale VS-Code-Tasks (Claude-Autostart)
+.vscode/tasks.json

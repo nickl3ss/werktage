@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# bin/check — das eine Qualitätstor des Repos (Vorlage nickl3ss/standards v1.0).
+# CLAUDE.md (Schritt D3), .githooks/pre-push und die CI rufen nur diesen Befehl.
+# Ablauf: Tests · Lint · Typen · Build-Sync (Bibliothek, Karten-Bundle) · Veröffentlichungs-Check.
+# Aufruf: bin/check            alle Stufen
+#         bin/check --fast     nur Tests und Lint (Schnellweg)
+# Exit 0 = grün. Jede Stufe meldet sich mit Namen; die erste rote Stufe bricht ab.
+# Windows: Python aus .venv/Scripts; Home Assistant braucht dort die Stubs aus tools/windows_dev.py.
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+FAST=0
+[ "${1:-}" = "--fast" ] && FAST=1
+
+if [ -x .venv/bin/python ]; then PY=.venv/bin/python
+elif [ -x .venv/Scripts/python.exe ]; then PY=.venv/Scripts/python
+else PY="$(command -v python3 || command -v python)"; fi
+
+stage() {           # stage <Name> <Kommando…>
+  local name="$1"; shift
+  printf '\n▶ %s\n' "$name"
+  if ! "$@"; then
+    printf '\n✗ %s rot — Tor geschlossen.\n' "$name"
+    exit 1
+  fi
+}
+
+# ── 1 · Tests ───────────────────────────────────────────────────────────────
+stage "Tests (Python: Regeln, Integration, Bibliothek)" "$PY" -m pytest -q \
+  --cov=custom_components/werktage --cov-report=term-missing:skip-covered --cov-fail-under=95
+stage "Tests (Karten, browserlos)" node --test frontend/test/cards.test.mjs frontend/test/logic.test.mjs
+
+# ── 2 · Lint ────────────────────────────────────────────────────────────────
+stage "Lint" "$PY" -m ruff check .
+
+[ "$FAST" = "1" ] && { printf '\n✓ Schnellweg grün (Tests, Lint).\n'; exit 0; }
+
+# ── 3 · Typen ───────────────────────────────────────────────────────────────
+stage "Typen (mypy strict)" "$PY" -m mypy
+
+# ── 4 · Build / generierte Dateien in Sync ──────────────────────────────────
+stage "Bibliothek einkopiert" "$PY" tools/sync_vendor.py --check
+stage "Karten-Bundle" bash -c "'$PY' tools/build_cards.py >/dev/null && git diff --exit-code --stat custom_components/werktage/www"
+
+# ── 5 · Veröffentlichungs-Check (Dateien, Historie, No-Reply) ──────────────
+stage "Veröffentlichung" "$PY" tools/check_publication.py --areas
+
+printf '\n✓ Tor grün.\n'

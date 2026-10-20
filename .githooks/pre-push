@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# .githooks/pre-push — Push-Tor. Ruft nur bin/check und prüft die Pflichtliste aus CLAUDE.md (Vorlage aus nickl3ss/standards).
+# Einrichten je Klon: git config core.hooksPath .githooks && chmod +x .githooks/pre-push bin/check
+# Vorlage v1 · 2026-10-15 (repo-unabhängig; die Stufen stehen in bin/check).
+
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+echo ""
+echo "══════════════ PUSH-TOR (D3 · D4 · E2) ══════════════"
+
+# ── D3 · Qualitätstor ────────────────────────────────────────────────────────
+if [ -x bin/check ]; then
+  bin/check || { echo "✗ bin/check rot — Push blockiert."; exit 1; }
+else
+  echo "✗ bin/check fehlt oder ist nicht ausführbar — Push blockiert (Tor muss existieren)."
+  exit 1
+fi
+
+# ── D4 · TESTING.md beschreibt diesen Stand ─────────────────────────────────
+# Kernpfade: alles außer Doku, Konfiguration der Werkzeuge und dem Hook selbst.
+UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)"
+RANGE="${UPSTREAM:+$UPSTREAM..HEAD}"
+if [ -n "$RANGE" ] && [ -f docs/TESTING.md ]; then
+  CHANGED="$(git diff --name-only "$RANGE")"
+  CORE="$(printf '%s\n' "$CHANGED" | grep -vE '^(docs/|\.github/|\.githooks/|README|CHANGELOG|CLAUDE\.md|\.claude/)' || true)"
+  if [ -n "$CORE" ] && ! printf '%s\n' "$CHANGED" | grep -q '^docs/TESTING.md$'; then
+    echo "✗ Code geändert, aber docs/TESTING.md nicht (Schritt D4) — Push blockiert."
+    echo "  Betroffen:"; printf '%s\n' "$CORE" | sed 's/^/    /'
+    echo "  Ausnahme bewusst? → git push --no-verify ist in CLAUDE.md untersagt; TESTING.md ergänzen."
+    exit 1
+  fi
+fi
+
+# ── G2 · keine privaten Daten im Diff (grobe Vorprüfung; bin/check hat das Werkzeug) ──
+if [ -n "$RANGE" ]; then
+  if git diff "$RANGE" | grep -nE '^\+.*(BEGIN (RSA|OPENSSH) PRIVATE KEY|AKIA[0-9A-Z]{16}|sk-ant-|api[_-]?key\s*[:=]\s*["'"'"'][A-Za-z0-9]{16,})' >/dev/null; then
+    echo "✗ Verdacht auf Geheimnis im Diff — Push blockiert. Fund prüfen, Historie bereinigen."
+    exit 1
+  fi
+fi
+
+# ── E2 · Review ─────────────────────────────────────────────────────────────
+echo ""
+echo "✓ Automatische Stufen grün. Pflicht vor dem Push (CLAUDE.md § Niemals pushen ohne):"
+echo "  □ E2  /standards:review gelaufen · Quick Wins committet · Befunde als Issues (Label review) · nichts „Kritisch“ offen"
+echo "  □ D5  erledigte Issues geschlossen (AC ✓)"
+echo "  □ E3  nach dem Push: Testbitte mit docs/TESTING.md § Neu seit dem letzten Push"
+echo "═════════════════════════════════════════════════════"
+echo ""
