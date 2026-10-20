@@ -1,4 +1,4 @@
-"""One read-only calendar per resident: days off as all-day events."""
+"""Read-only calendars: the days off of every resident, and the school holidays of the house."""
 from __future__ import annotations
 
 import datetime as dt
@@ -7,8 +7,9 @@ from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import SOURCE_NONE
 from .coordinator import WerktagsConfigEntry, WerktagsCoordinator
-from .entity import WerktagsEntity, resident_device
+from .entity import WerktagsEntity, house_device, resident_device
 from .rules import ONE_DAY, DayInfo, Reason, Role
 
 PARALLEL_UPDATES = 0
@@ -27,6 +28,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: WerktagsConfigEntry,
         if new:
             async_add_entities(new)
 
+    if coordinator.source != SOURCE_NONE:          # a changed source reloads the entry, so this is decided once
+        async_add_entities([SchoolHolidaysCalendar(coordinator)])
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))
 
@@ -70,6 +73,30 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
         if info.role is Role.PUPIL and (name := self.coordinator.household.calendar.school_holidays.name_on(day)):
             return name
         return info.holiday_name or _summary(info.reason, self.coordinator.hass.config.language)
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        today = self.coordinator.today()
+        events = self._events(today, today + dt.timedelta(days=LOOKAHEAD_DAYS))
+        return events[0] if events else None
+
+    async def async_get_events(self, hass: HomeAssistant, start_date: dt.datetime,
+                               end_date: dt.datetime) -> list[CalendarEvent]:
+        return self._events(start_date.date(), end_date.date())
+
+
+class SchoolHolidaysCalendar(WerktagsEntity, CalendarEntity):
+    """The school holidays of the configured source, one all-day event per period, with its name (#14)."""
+
+    _attr_translation_key = "school_holidays"
+
+    def __init__(self, coordinator: WerktagsCoordinator) -> None:
+        super().__init__(coordinator, "house_school_holidays")
+        self._attr_device_info = house_device(coordinator)
+
+    def _events(self, start: dt.date, end: dt.date) -> list[CalendarEvent]:
+        periods = self.coordinator.household.calendar.school_holidays.periods
+        return [_event(first, last, name) for first, last, name in sorted(periods) if last >= start and first <= end]
 
     @property
     def event(self) -> CalendarEvent | None:

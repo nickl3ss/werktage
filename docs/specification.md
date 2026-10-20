@@ -189,6 +189,7 @@ installation language.
 | `binary_sensor.anna_workday` | `on` on a workday | `reason`, `holiday_name`; also per room and for the house |
 | `sensor.<room>_morning`, `sensor.<room>_evening` | as above | `residents`, `rule` |
 | `sensor.house_morning`, `sensor.house_evening` | as above | `residents`, `rule` |
+| `calendar.house_school_holidays` | on during school holidays | read-only, the source's periods with their names; only with a school holiday source (#14) |
 
 - `device_class: enum`, translated states. Every entity carries the
   `attribution` of the school holiday source.

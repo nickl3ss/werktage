@@ -218,6 +218,7 @@ may not edit (see *Access*); the fetch raises when the source is down.
 | Evening mode | `sensor.<name>_evening` | `before_workday`, `before_day_off` — tomorrow |
 | Workday | `binary_sensor.<name>_workday` | `on` on a workday |
 | Days off (residents only) | `calendar.<name>_days_off` | all-day events, read-only |
+| School holidays (house only) | `calendar.<house>_school_holidays` | the periods of the school holiday source with their names, all-day, read-only; absent with source *none* |
 
 Sensor attributes: `reason` (`workday`, `weekend`, `public_holiday`,
 `school_holiday`, `exception_day_off`, `exception_workday`, `unknown`),

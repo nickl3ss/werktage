@@ -304,6 +304,9 @@
     "calendar": {
       "days_off": {
         "name": "Freie Tage"
+      },
+      "school_holidays": {
+        "name": "Schulferien"
       }
     },
     "binary_sensor": {

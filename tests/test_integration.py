@@ -378,3 +378,16 @@ async def test_returning_to_the_house_roles_keeps_the_past(hass: HomeAssistant, 
     overview = await call_service("get_overview")
     assert overview["house"]["assignments"] == [{"valid_from": "2026-10-05", "residents": ["p_clara"]},
                                                 {"valid_from": "2026-10-12", "residents": None}]
+
+
+async def test_the_house_has_a_school_holidays_calendar(hass: HomeAssistant, household):
+    """#14: the source's periods with their names, as all-day events on the house device."""
+    state = hass.states.get("calendar.house_school_holidays")
+    assert state is not None and state.attributes["attribution"]
+    response = await hass.services.async_call(
+        "calendar", "get_events",
+        {"entity_id": "calendar.house_school_holidays", "start_date_time": "2026-10-01T00:00:00+02:00",
+         "end_date_time": "2027-01-31T00:00:00+01:00"},
+        blocking=True, return_response=True)
+    events = [(e["start"], e["end"], e["summary"]) for e in response["calendar.house_school_holidays"]["events"]]
+    assert events == [("2026-10-05", "2026-10-17", "Autumn Holidays"), ("2026-12-23", "2027-01-09", "Christmas Holidays")]

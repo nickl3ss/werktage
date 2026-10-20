@@ -52,7 +52,7 @@ Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln
 
 **Config-Eintrag** (`const.py`): Land, Region, Wochenende, Schulferienquelle (`openholidays` · `calendar` · `none`) und Kalender-Entität, zusätzliche und entfernte Feiertage, Hausrollen, Haus-Morgen-/Abendregel, `admin_only`. Daten sind lokale Kalendertage; nur `fetched_at` ist ein UTC-Zeitpunkt. Namen kommen zur Laufzeit aus dem HA-Personenregister und werden nie gespeichert.
 
-**Entitäten** je Bewohner, Raum, Haus: `sensor.<x>_morning` (`workday` · `day_off`), `sensor.<x>_evening` (`before_workday` · `before_day_off`), `binary_sensor.<x>_workday`, je Bewohner `calendar.<x>_days_off`; Attribute `reason`, `holiday_name`, `next_workday`, `next_day_off`, bei Raum und Haus `residents`, `rule`. `unique_id` = `<entry_id>_<resident|room|house>_<key>`. Raum-Geräte tragen den Bereichsnamen, liegen aber nicht im Bereich (sonst doppelte IDs).
+**Entitäten** je Bewohner, Raum, Haus: `sensor.<x>_morning` (`workday` · `day_off`), `sensor.<x>_evening` (`before_workday` · `before_day_off`), `binary_sensor.<x>_workday`, je Bewohner `calendar.<x>_days_off`, am Haus `calendar.<haus>_school_holidays` (nur mit Schulferienquelle, #14); Attribute `reason`, `holiday_name`, `next_workday`, `next_day_off`, bei Raum und Haus `residents`, `rule`. `unique_id` = `<entry_id>_<resident|room|house>_<key>`. Raum-Geräte tragen den Bereichsnamen, liegen aber nicht im Bereich (sonst doppelte IDs).
 
 ## 4 · Zustände
 

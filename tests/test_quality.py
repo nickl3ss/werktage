@@ -387,3 +387,12 @@ async def test_a_version_2_store_is_migrated_when_loading(hass: HomeAssistant, c
     assert coordinator.data.residents["p_anna"].weekend_on(d("2026-10-01")) == frozenset({4})
     await coordinator.async_set_order(["p_anna"])                                  # any write
     assert hass_storage[f"{DOMAIN}.data"]["version"] == storage.DATA_VERSION == 3
+
+
+async def test_no_school_holidays_calendar_without_a_source(hass: HomeAssistant, config_entry: MockConfigEntry, persons,
+                                                            areas):
+    hass.config_entries.async_update_entry(config_entry, data={**config_entry.data, "school_holiday_source": "none"})
+    assert await async_setup_component(hass, DOMAIN, {})
+    await hass.async_block_till_done()
+    assert hass.states.get("calendar.house_school_holidays") is None
+    assert hass.states.get("sensor.house_morning") is not None
