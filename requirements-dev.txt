@@ -2,7 +2,7 @@
 # Install: pip install -r requirements-dev.txt   (Windows afterwards: python tools/windows_dev.py)
 -e lib/openholidays
 holidays==0.106
-pytest-homeassistant-custom-component==0.13.367
+pytest-homeassistant-custom-component==0.13.375
 pytest-cov==7.1.0
 mypy==2.4.0
 ruff==0.17.1
