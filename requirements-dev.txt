@@ -4,5 +4,5 @@
 holidays==0.106
 pytest-homeassistant-custom-component==0.13.367
 pytest-cov==7.1.0
-mypy==2.4.0
+mypy==2.4.1
 ruff==0.17.1
