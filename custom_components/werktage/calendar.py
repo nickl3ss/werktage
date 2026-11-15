@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Mapping
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .calendars import async_event_titles, cached_event_titles
 from .const import SOURCE_NONE
 from .coordinator import WerktagsConfigEntry, WerktagsCoordinator
 from .entity import WerktagsEntity, house_device, resident_device
-from .export import reason_label
+from .export import title
 from .rules import ONE_DAY, DayInfo, Reason, Role
 
 PARALLEL_UPDATES = 0
@@ -47,7 +49,7 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
     def available(self) -> bool:
         return self.coordinator.household.day_of(self.person_id, self.coordinator.today()) is not None
 
-    def _events(self, start: dt.date, end: dt.date) -> list[CalendarEvent]:
+    def _events(self, start: dt.date, end: dt.date, titles: Mapping[Reason, str]) -> list[CalendarEvent]:
         """Consecutive days off with the same reason become one all-day event."""
         events: list[CalendarEvent] = []
         current: tuple[dt.date, dt.date, str] | None = None
@@ -55,7 +57,7 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
         while day <= end:
             info = self.coordinator.household.day_of(self.person_id, day)
             if info is not None and not info.is_workday:
-                summary = self._summary(info, day)
+                summary = self._summary(info, day, titles)
                 if current and current[1] == day - ONE_DAY and current[2] == summary:
                     current = (current[0], day, summary)
                 else:
@@ -67,23 +69,23 @@ class DaysOffCalendar(WerktagsEntity, CalendarEntity):
             events.append(_event(*current))
         return events
 
-    def _summary(self, info: DayInfo, day: dt.date) -> str:
+    def _summary(self, info: DayInfo, day: dt.date, titles: Mapping[Reason, str]) -> str:
         """Public holidays by name; a pupil's school holidays as one block, weekends inside included."""
         if info.reason is Reason.PUBLIC_HOLIDAY and info.holiday_name:
             return info.holiday_name
         if info.role is Role.PUPIL and (name := self.coordinator.household.calendar.school_holidays.name_on(day)):
             return name
-        return info.holiday_name or reason_label(info.reason, self.coordinator.hass.config.language)
+        return info.holiday_name or title(info.reason, titles)
 
     @property
     def event(self) -> CalendarEvent | None:
         today = self.coordinator.today()
-        events = self._events(today, today + dt.timedelta(days=LOOKAHEAD_DAYS))
+        events = self._events(today, today + dt.timedelta(days=LOOKAHEAD_DAYS), cached_event_titles(self.hass))
         return events[0] if events else None
 
     async def async_get_events(self, hass: HomeAssistant, start_date: dt.datetime,
                                end_date: dt.datetime) -> list[CalendarEvent]:
-        return self._events(start_date.date(), end_date.date())
+        return self._events(start_date.date(), end_date.date(), await async_event_titles(hass))
 
 
 class SchoolHolidaysCalendar(WerktagsEntity, CalendarEntity):

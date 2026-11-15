@@ -32,7 +32,7 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
 )
 
-from . import sources
+from . import calendars, sources
 from .const import (
     CONF_ADD_HOLIDAYS,
     CONF_ADMIN_ONLY,
@@ -59,9 +59,10 @@ from .const import (
     SOURCE_OPENHOLIDAYS,
     SOURCES,
 )
-from .coordinator import WerktagsCoordinator, WerktagsError, async_probe_openholidays
+from .coordinator import WerktagsCoordinator, WerktagsError
 from .openholidays import OpenHolidaysError
 from .rules import DEFAULT_EVENING_RULE, DEFAULT_MORNING_RULE, CombineRule, Role
+from .school_holidays import async_probe_openholidays, async_source_options
 
 if TYPE_CHECKING:
     # Home Assistant 2026.10+ validates with probatio and aliases ``voluptuous``
@@ -383,7 +384,7 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
                                                 user_input.get("calendar_keyword"))
                 return self.async_abort(reason="resident_saved")
         options = [SelectOptionDict(value=o["value"], label=o["label"])
-                   for o in await c.school_holiday_source_options()]
+                   for o in await async_source_options(self.hass, c.country)]
         return self.async_show_form(step_id=STEP_RESIDENT, data_schema=resident_schema(options), errors=errors)
 
     async def async_step_room(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -410,7 +411,7 @@ class WerktagsOptionsFlow(_Steps, OptionsFlowWithReload):
         options = {**self.config_entry.options}
         if user_input is not None:
             calendar = user_input.get(CONF_EXPORT_CALENDAR) or ""
-            if calendar and not c.export_supported(calendar):
+            if calendar and not calendars.export_supported(self.hass, calendar):
                 errors[CONF_EXPORT_CALENDAR] = "export_unsupported"
             else:
                 try:

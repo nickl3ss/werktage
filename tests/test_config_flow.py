@@ -45,6 +45,36 @@ async def test_user_flow_five_steps(hass: HomeAssistant, fake_api):
     await hass.async_block_till_done()
 
 
+
+async def test_setup_without_a_restart_like_the_marketplace(hass: HomeAssistant, fake_api, persons):
+    """#28: the Marketplace (Home Assistant 2026.11) installs into a running instance and opens the setup at once.
+    The entry loads without a restart: services, entities, the cards' script, and the school holidays fetched right
+    away instead of after a start event that already happened."""
+    from unittest.mock import MagicMock
+
+    from homeassistant.config_entries import ConfigEntryState
+    from homeassistant.core import CoreState
+
+    from custom_components.werktage import frontend
+    assert hass.state is CoreState.running and DOMAIN not in hass.config.components
+    hass.config.components.update({"frontend", "http"})
+    hass.http = MagicMock(async_register_static_paths=AsyncMock())
+    with patch.object(frontend, "add_extra_js_url") as add_url:
+        result = await _to_school_holidays(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"],
+                                                                {"school_holiday_source": "openholidays"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], HOUSE)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"admin_only": False})
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        await hass.async_block_till_done()
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.services.has_service(DOMAIN, "set_role") and hass.services.has_service(DOMAIN, "get_overview")
+    assert fake_api.school_holidays.await_count == 2                    # the setup probe and the first fetch
+    assert entry.runtime_data.data.school_holidays                       # cached without a restart
+    add_url.assert_called_once()                                         # the cards are announced to the frontend
+    assert any(state.entity_id.endswith("_morning") for state in hass.states.async_all("sensor"))
+
 async def test_region_form_lists_subdivision_names(hass: HomeAssistant):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"country": "DE"})
@@ -273,9 +303,14 @@ async def test_options_menu_sets_the_personal_calendars(hass: HomeAssistant, set
 
 async def test_options_menu_configures_the_export(hass: HomeAssistant, household: MockConfigEntry, persons):
     """#3: target calendar (must create and delete events), horizon, residents and weekends land in the options."""
-    from custom_components.werktage.coordinator import WerktagsCoordinator
+    from types import SimpleNamespace
+
+    from homeassistant.components.calendar import CalendarEntityFeature
+
+    from custom_components.werktage import calendars
+    writable = SimpleNamespace(supported_features=CalendarEntityFeature.CREATE_EVENT | CalendarEntityFeature.DELETE_EVENT)
     hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
-    with patch.object(WerktagsCoordinator, "export_supported", lambda self, entity_id: entity_id == "calendar.family"):
+    with patch.object(calendars, "calendar_entity", lambda hass, entity_id: writable if entity_id == "calendar.family" else None):
         result = await _options(hass, household, "export")
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], {"export_calendar": "calendar.readonly", "export_weeks": 8, "export_weekends": False})

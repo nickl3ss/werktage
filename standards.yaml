@@ -12,6 +12,8 @@ kernaufgaben:               # die drei häufigsten Aufgaben, je mit Klickbudget 
 kernmodule:                 # Änderungen hier sind nie Schnellweg; Abdeckung ≥ 90 % (TST-07)
   - custom_components/werktage/rules.py
   - custom_components/werktage/coordinator.py
+  - custom_components/werktage/school_holidays.py    # aus coordinator.py herausgelöst (#16)
+  - custom_components/werktage/calendars.py          # aus coordinator.py herausgelöst (#16)
   - custom_components/werktage/storage.py
   - custom_components/werktage/sources.py
   - lib/openholidays/src/

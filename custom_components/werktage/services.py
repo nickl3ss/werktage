@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, Supp
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 
+from . import calendars
 from .const import (
     DOMAIN,
     SERVICE_GET_DAYS,
@@ -33,6 +34,7 @@ from .const import (
 )
 from .coordinator import UNCHANGED, WerktagsCoordinator, WerktagsError
 from .rules import ONE_DAY, CombineRule, DayType, Role
+from .school_holidays import async_source_options
 
 if TYPE_CHECKING:
     # Home Assistant 2026.10+ validates with probatio and aliases ``voluptuous``
@@ -300,7 +302,8 @@ async def _get_overview(hass: HomeAssistant, c: WerktagsCoordinator, call: Servi
                             for s in room.residents.steps] if room else [],
         })
     return {"today": today.isoformat(), "weekend": sorted(c.weekend), "persons": persons, "rooms": rooms,
-            "school_holiday_sources": await c.school_holiday_source_options(), "calendars": c.calendar_entities(),
+            "school_holiday_sources": await async_source_options(c.hass, c.country),
+            "calendars": calendars.foreign_calendars(c.hass),
             "house": {"roles": sorted(r.value for r in c.house.roles),
                       "residents_today": c.household.house_residents_on(today),
                       "by_role": c.house.assigned_on(today) is None,

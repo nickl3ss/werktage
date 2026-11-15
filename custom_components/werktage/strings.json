@@ -248,7 +248,8 @@
       "options": {
         "openholidays": "OpenHolidays API (Europe, no account needed)",
         "calendar": "A calendar entity",
-        "none": "None — pupils have no school holidays"
+        "none": "None — pupils have no school holidays",
+        "installation": "As the installation"
       }
     },
     "role": {

@@ -73,6 +73,40 @@ Testumgebung: ein Home Assistant ≥ 2026.1 mit der installierten Version aus de
 |---|---|---|
 | N9-1 | `werktage.set_role` mit `school_holiday_source: moon:far` aufrufen | Fehltext nennt die erlaubten Formen mit ausgeschriebenen Beispielen (openholidays:DE-HE, calendar:calendar.schule), ohne spitze Klammern |
 
+### N10 · Termintitel aus den Übersetzungen (#15, 0.3.1)
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N10-1 | Systemsprache Deutsch, Export aktiv (N8-1); einen Tag als Ausnahme frei schalten, 10 s warten | Termin „‹Name›: Frei“; mit Wochenenden „‹Name›: Wochenende“; Feiertage und Ferien mit ihrem Namen — wie in 0.3.0 |
+| N10-2 | Kalender *Freie Tage* eines Bewohners in der Kalender-Ansicht von Home Assistant | dieselben Titel („Frei“, „Wochenende“, Feiertagsnamen) |
+| N10-3 | *Werktage → Konfigurieren → Einstellungen → Region und Wochenende*: zusätzlichen Feiertag ohne Namen eintragen (z. B. `2026-12-24`) | der Tag heißt „Feiertag“ (bis 0.3.0: „Holiday“) |
+| N10-4 | *Werktage → Konfigurieren → Bewohner anlegen oder ändern*, Feld *Schulferien wie*; dann die Bewohnerkarte | erste Option heißt „Wie die Installation“ (Systemsprache Englisch: „As the installation“) |
+| N10-5 | Nur Testinstanz: Systemsprache Französisch, Seite neu laden | Termintitel auf Englisch („Day off“, „Weekend“), keine Fehler im Protokoll |
+
+### N11 · Coordinator aufgeteilt, Typen für Home Assistant 2026.10+ (#16, #26, 0.3.1)
+
+Kein neues Verhalten; Gegenprobe, dass beim Umbau nichts verloren ging.
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N11-1 | Nach dem Update auf 0.3.1 und Neustart: Eintrag *Werktage* | *geladen*, keine neuen Reparaturhinweise, kein `ERROR` von `custom_components.werktage` im Protokoll (Logger heißen jetzt auch `…werktage.calendars` und `…werktage.school_holidays`) |
+| N11-2 | N7-1 bis N7-3 (persönliche Kalender) und N8-2 (Export) im Schnelldurchlauf | wie beschrieben |
+| N11-3 | *Werktage → Schulferien aktualisieren*, dann Kalenderkarte | Statuszeile zeigt den neuen Abrufzeitpunkt |
+| N11-4 | Auf einem Home Assistant ≥ 2026.10: Optionen-Dialog *Bewohner anlegen oder ändern* öffnen und speichern; `werktage.get_days` aufrufen | Formular erscheint, Speichern und Dienst funktionieren (Schemas laufen dort über `probatio`) |
+
+### N12 · Einrichtung aus dem Marketplace ohne Neustart (#28, Home Assistant ≥ 2026.11)
+
+Nur auf einer **Testinstanz**, nie auf dem Produktiv-Host. Automatisch abgedeckt: `tests/test_config_flow.py::test_setup_without_a_restart_like_the_marketplace`.
+
+| # | Schritt | Erwartet |
+|---|---|---|
+| N12-1 | Testinstanz 2026.11 ohne Werktage: *Einstellungen → Marketplace → Werktage → Install*, Hinweis bestätigen | Einrichtungsdialog öffnet sich ohne Neustart; alle fünf Schritte gehen durch; die Anforderung `holidays` wird installiert |
+| N12-2 | Ohne Neustart: Entitäten, Dienste, *Schulferien aktualisieren* | Sensoren und Kalender vorhanden, Dienste laufen, Schulferien abgerufen |
+| N12-3 | Browser einmal neu laden, Karte *Werktage: Kalender* hinzufügen | Karten erscheinen (das Skript wird beim Laden der Seite angemeldet) |
+| N12-4 | Testinstanz 2026.10 mit Werktage aus HACS, Update auf 2026.11 | Werktage bleibt installiert; Update-Entität behält ihre Entitäts-ID; Karten laden weiter |
+| N12-5 | Download-Zähler von `werktage.zip` am Release vor und nach N12-1 (`gh release view <tag> --json assets`) | Zähler steigt: der Marketplace installiert aus dem Asset (ADR 9) |
+| N12-6 | Nur zur Information: Pfad des Downloads im Protokoll des Marketplace | enthält kein abgeschnittenes `tags/` (HACS-Fehler aus ADR 4); Ergebnis in ADR 4 eintragen |
+
 ## Regressionssuite
 
 Vor jedem Release vollständig, nach jedem Push die betroffenen Abschnitte.

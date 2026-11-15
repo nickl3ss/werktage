@@ -1,6 +1,6 @@
 # PROJECT — Werktage
 
-> Das **Ist**: Architektur, Datenmodell, Zustände, Entscheidungen, Invarianten, Löschkonzept, Bedrohungsmodell. Das **Soll** steht in `specification.md` (englisch, Entscheidungen P1–P37). Vorlage aus `nickl3ss/standards` (ARC-21, PRO-12). Stand: 0.3.0.
+> Das **Ist**: Architektur, Datenmodell, Zustände, Entscheidungen, Invarianten, Löschkonzept, Bedrohungsmodell. Das **Soll** steht in `specification.md` (englisch, Entscheidungen P1–P37). Vorlage aus `nickl3ss/standards` (ARC-21, PRO-12). Stand: 0.3.1.
 
 ---
 
@@ -24,7 +24,10 @@ Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 lä
 | `custom_components/werktage/rules.py` | Tagestyp, Gründe, Historie (`History[T]`), Kombination Raum/Haus, `next_day` | I/O, Home Assistant, Uhr lesen | `INT` |
 | `sources.py` | Feiertage (python-holidays), Jahresspannen, Schulferien aus Perioden | Home Assistant | `INT` |
 | `storage.py` | JSON ↔ Datentypen, `DATA_VERSION`, additive Migration | Home Assistant, Regeln | `INT` |
-| `coordinator.py` | Store, Zeitplan (00:00:10 Rebuild, 03:30 Prüfung, Abruf alle 30 Tage), Schreibdienste, Reparaturhinweise | Entitätszustände direkt setzen (nur `_notify`) | `INT` |
+| `export.py` | Plan des Exports: gewünschte Termine je Bewohner und Tag, Abgleich mit den eigenen (Marker `werktage:`), Titel aus übergebenen Übersetzungen | Home Assistant, I/O | `INT` |
+| `coordinator.py` | Store und `async_commit`, Rebuild, Zeitplan (00:00:10 Rebuild, 03:30 Prüfung), Schreibdienste, Hinweise zu Personen und Bereichen; ruft die Teile `school_holidays.py` und `calendars.py` (#16) | Entitätszustände direkt setzen (nur `_notify`); Kalender oder die API selbst ansprechen | `INT` |
+| `school_holidays.py` | Schulferien je Quelle: Abruf (Bibliothek; Kalender über `calendars.py`), höchstens einer in 30 Tagen, Cache je Quelle, Aufräumen, Hinweise *nicht erreichbar* und *unvollständig*; Prüfabruf der Einrichtung; Quellenauswahl für Bewohner | Store direkt schreiben (nur über `async_commit`); HTTP ohne Bibliothek | `INT` |
+| `calendars.py` | **Adapter zu den Kalender-Entitäten** (ARC-12): ganztägige Termine lesen, Kalenderauswahl, Export ausführen (eigene Termine mit UID lesen, anlegen, löschen); darauf die Teile *persönliche Kalender* (#2) und *Export* (#3); Termintitel aus den Übersetzungen (#15) | fremde Termine anfassen (nur Marker); Store direkt schreiben | `INT` |
 | `sensor.py` `binary_sensor.py` `calendar.py` `entity.py` | Entitäten und Geräte je Bewohner, Raum, Haus | Regeln rechnen, Store schreiben | `INT` |
 | `services.py` `services.yaml` | Schemas, Admin-Prüfung, Antwortdienste | Regeln rechnen | `INT` |
 | `config_flow.py` | Fünf Einrichtungsschritte, Optionen-Menü, Prüfabruf | Store direkt schreiben (nur über den Coordinator) | `INT` |
@@ -33,7 +36,7 @@ Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 lä
 | `frontend/src/logic.js` `cards.js` | Vier Karten und Editor; lesen Entitäten (`platform === "werktage"`) und Dienste mit Antwort | Direktzugriff auf Store oder HTTP | `CARDS` |
 | `tools/` | Bundle bauen, Bibliothek kopieren, Veröffentlichung prüfen, Windows-Stubs | Laufzeitcode | `CI` |
 
-Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Regeln/Quellen/Store → Bibliothek. Keine Zyklen (ARC-01, ARC-05); `rules.py`, `sources.py`, `storage.py` und die Bibliothek importieren nichts aus Home Assistant (Invariante 3, Test `tests/test_quality.py::test_pure_modules_and_library_import_nothing_from_home_assistant`).
+Abhängigkeitsrichtung: Karten → Entitäten/Dienste → Coordinator → Teile (`school_holidays.py`, `calendars.py`) → Regeln/Quellen/Store/Exportplan → Bibliothek; die Teile kennen den Coordinator nur als Typ und schreiben über `async_commit`. Keine Import-Zyklen (ARC-01, ARC-05); `rules.py`, `sources.py`, `storage.py`, `export.py` und die Bibliothek importieren nichts aus Home Assistant (Invariante 3, Test `tests/test_quality.py::test_pure_modules_and_library_import_nothing_from_home_assistant`).
 
 ## 3 · Datenmodell
 
@@ -106,6 +109,9 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | 14 | Export in einen geteilten Kalender über die HA-Kalender-Entität (Entitätsmethoden `async_get_events`, `async_create_event`, `async_delete_event`), nur eigene Termine mit Marker (P37) | kein eigener CalDAV-Client (Zugangsdaten, Server-Eigenheiten doppelt wäre ein Schritt weg vom Core); Zwei-Wege-Abgleich bewusst ausgeschlossen | eigener CalDAV-Client; Dienst `calendar.create_event` (keine UIDs, kein Löschen) | 2026-10-21 | gültig |
 | 13 | Kalendertage liegen zwischen Standard und Ausnahme (`exception ?? calendar ?? default`, P36); nichts wird in Kalender zurückgeschrieben | Korrektur bleibt in der Karte möglich; Zwei-Wege-Abgleich ist der Punkt, an dem solche Funktionen unzuverlässig werden | Kalender als Ausnahmen importieren (verliert die Korrektur); Kalender über dem Standard **und** der Ausnahme | 2026-10-21 | gültig |
 | 12 | Windows-Entwicklung über Stubs (`tools/windows_dev.py`, `conftest.py`) statt WSL | Tests laufen in 18 s lokal; kein Neustart, keine Admin-Rechte | WSL; nur CI | 2026-10-20 | gültig |
+| 15 | Coordinator als Kern mit zwei Teilen (#16): `school_holidays.py` (Schulferien je Quelle) und `calendars.py` (Adapter zu den Kalender-Entitäten, darauf persönliche Kalender und Export); die Teile halten einen Verweis auf den Coordinator und schreiben über `async_commit` | vier Verantwortungen auf 890 Zeilen (ARC-07); Kalender in den Tests an einer Stelle gemockt (`calendars.calendar_entity`) | Mixins (dieselbe Klasse, nur verteilt); reine Funktionen mit langen Parameterlisten | 2026-11-15 | gültig |
+| 16 | Termintitel aus den Übersetzungen der Integration: Gründe des Morgen-Sensors, für Ausnahmen und Kalendertage sein Zustand *frei* (#15) | eine Quelle für dieselben Begriffe; fehlende Sprachen fallen über Home Assistant auf Englisch zurück | eigene Texttabelle in `export.py` (bis 0.3.0) | 2026-11-15 | gültig |
+| 17 | Schemas zur Laufzeit aus `voluptuous`, für mypy aus `probatio` (`TYPE_CHECKING`, #26) | Home Assistant ≥ 2026.10 bildet `voluptuous` auf `probatio` ab und typisiert dagegen; 2026.1 kennt `probatio` nicht | `cast` oder `type: ignore` an jeder Stelle; Mindestversion 2026.10 | 2026-11-15 | gültig |
 
 ## 8 · Invarianten (nie verletzen) — jede mit Test (ARC-22)
 

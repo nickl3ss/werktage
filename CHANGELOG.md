@@ -10,6 +10,22 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
   0.13.375). Since 2026.10 Home Assistant validates with probatio and maps
   `voluptuous` onto it; the schemas are now type-checked against probatio.
   Nothing changes at runtime, 2026.1 stays the minimum (#26).
+- Event titles come from the translations: the exported events and the
+  days-off calendars use the reasons of the morning sensor, and its *Day off*
+  (*Frei*) for exceptions and calendar days, so the titles stay as they were
+  in English and German. An added holiday without a name is now called
+  *Public holiday* (*Feiertag*) instead of *Holiday*; the option *As the
+  installation* is translated the same way. Other languages fall back to
+  English, as before (#15).
+- Inside: the coordinator keeps the store, the rebuild and the changes; two
+  parts do the rest, `school_holidays.py` (school holidays per source) and
+  `calendars.py` (the adapter to calendar entities, with the personal
+  calendars and the export). No change in behaviour; their log lines come
+  from `custom_components.werktage.school_holidays` and
+  `custom_components.werktage.calendars` (#16).
+- Decision: the coordinator's parts hold a reference to it and commit
+  through `async_commit`; calendars are mocked in one place
+  (`calendars.calendar_entity`) (`docs/PROJECT.md` ADR 15).
 ### Fixed
 ### Removed
 ### Security

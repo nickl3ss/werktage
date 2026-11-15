@@ -200,7 +200,7 @@ async def test_holiday_corrections_from_the_options(hass: HomeAssistant, config_
     days = {x["date"]: x for x in (await call_service("get_days", start="2026-09-28", weeks=5))["days"]}
     assert days["2026-10-02"]["public_holiday"] == "Bridge day"
     assert days["2026-10-02"]["persons"]["p_anna"]["reason"] == "public_holiday"
-    assert days["2026-10-30"]["public_holiday"] == "Holiday"                          # unnamed
+    assert days["2026-10-30"]["public_holiday"] == "Public holiday"                   # unnamed: translated (#15)
     assert days["2026-10-03"]["public_holiday"] is None                              # German Unity Day removed
     assert hass.states.get("sensor.anna_evening").state == "before_day_off"          # Friday is the bridge day
 
@@ -537,16 +537,16 @@ class FakeCalendar:
 
 async def test_days_off_are_exported_into_a_shared_calendar(hass: HomeAssistant, household, call_service, persons):
     """#3: wanted events are created, stale ones deleted, foreign ones untouched; failures raise a repair issue."""
-    from custom_components.werktage.coordinator import WerktagsCoordinator
+    from custom_components.werktage import calendars
     fake = FakeCalendar()
     hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
     coordinator = household.runtime_data
     from custom_components.werktage.export import person_key
     anna, clara = person_key("p_anna"), person_key("p_clara")
-    with patch.object(WerktagsCoordinator, "_calendar_entity", lambda self, entity_id: fake if entity_id == "calendar.family" else None):
+    with patch.object(calendars, "calendar_entity", lambda hass, entity_id: fake if entity_id == "calendar.family" else None):
         hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": "calendar.family",
                                                                    "export_weeks": 2, "export_weekends": False})
-        await coordinator.async_export_days_off()
+        await coordinator.exporter.async_run()
         own = fake.own()
         assert (f"werktage:{anna}/2026-10-03", "Anna: Tag der Deutschen Einheit") in own    # Saturday, but a holiday
         assert (f"werktage:{clara}/2026-10-05", "Clara: Autumn Holidays") in own
@@ -567,18 +567,64 @@ async def test_days_off_are_exported_into_a_shared_calendar(hass: HomeAssistant,
 
         hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": ["p_clara"],
                                                                    "export_weekends": True})
-        await coordinator.async_export_days_off()
+        await coordinator.exporter.async_run()
         assert all(key.startswith(f"werktage:{clara}/") for key, _ in fake.own())            # only Clara, with weekends
         assert (f"werktage:{clara}/2026-10-04", "Clara: Weekend") in fake.own()
 
         fake.fail = True
         hass.config_entries.async_update_entry(household, options={**household.options, "export_persons": []})
-        await coordinator.async_export_days_off()
+        await coordinator.exporter.async_run()
         assert ir.async_get(hass).async_get_issue(DOMAIN, "export_failed") is not None
         fake.fail = False
-        await coordinator.async_export_days_off()
+        await coordinator.exporter.async_run()
         assert ir.async_get(hass).async_get_issue(DOMAIN, "export_failed") is None
 
         hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": ""})
-        await coordinator.async_export_days_off()                                            # off: nothing happens
+        await coordinator.exporter.async_run()                                            # off: nothing happens
         assert coordinator.export_calendar is None
+
+
+
+async def test_the_calendar_adapter_without_mocks(hass: HomeAssistant, household):
+    """#16: the adapter finds calendar entities itself; a read-only or missing calendar takes no export."""
+    from custom_components.werktage import calendars
+    assert calendars.calendar_entity(hass, "calendar.anna_days_off") is not None
+    assert calendars.export_supported(hass, "calendar.anna_days_off") is False            # ours: read-only
+    assert calendars.calendar_entity(hass, "calendar.nowhere") is None
+    with pytest.raises(calendars.ExportUnavailable):
+        await calendars.async_write_export(hass, "calendar.anna_days_off", {}, d("2026-10-01"), d("2026-10-07"))
+
+async def test_titles_come_from_the_translations(hass: HomeAssistant, household, call_service, persons):
+    """#15: day-off titles, the unnamed holiday and the source option in the installation's language (EN, DE)."""
+    from custom_components.werktage import calendars
+    from custom_components.werktage.export import person_key
+    from custom_components.werktage.rules import Reason
+    from custom_components.werktage.school_holidays import async_source_options
+    english = {Reason.WEEKEND: "Weekend", Reason.PUBLIC_HOLIDAY: "Public holiday", Reason.SCHOOL_HOLIDAY: "School holiday",
+               Reason.EXCEPTION_DAY_OFF: "Day off", Reason.CALENDAR_DAY_OFF: "Day off"}
+    assert await calendars.async_event_titles(hass) == english
+    assert (await async_source_options(hass, "DE"))[0] == {"value": "", "label": "As the installation"}
+    await call_service("set_days", person=persons["p_anna"], start="2026-10-07", status="day_off")
+
+    async def anna_titles() -> dict[str, str]:
+        response = await hass.services.async_call("calendar", "get_events", {
+            "entity_id": "calendar.anna_days_off", "start_date_time": "2026-10-03T00:00:00+02:00",
+            "end_date_time": "2026-10-08T00:00:00+02:00"}, blocking=True, return_response=True)
+        return {e["start"]: e["summary"] for e in response["calendar.anna_days_off"]["events"]}
+
+    assert (await anna_titles())["2026-10-07"] == "Day off" and (await anna_titles())["2026-10-04"] == "Weekend"
+    hass.config.language = "de"
+    assert await calendars.async_event_titles(hass) == {
+        Reason.WEEKEND: "Wochenende", Reason.PUBLIC_HOLIDAY: "Feiertag", Reason.SCHOOL_HOLIDAY: "Schulferien",
+        Reason.EXCEPTION_DAY_OFF: "Frei", Reason.CALENDAR_DAY_OFF: "Frei"}
+    assert calendars.cached_event_titles(hass)[Reason.WEEKEND] == "Wochenende"        # the entity's event property
+    titles = await anna_titles()
+    assert titles["2026-10-07"] == "Frei" and titles["2026-10-04"] == "Wochenende"
+    assert (await async_source_options(hass, "DE"))[0] == {"value": "", "label": "Wie die Installation"}
+    fake = FakeCalendar()
+    hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
+    with patch.object(calendars, "calendar_entity", lambda hass, entity_id: fake if entity_id == "calendar.family" else None):
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": "calendar.family",
+                                                                   "export_weeks": 1, "export_persons": ["p_anna"]})
+        await household.runtime_data.exporter.async_run()
+    assert (f"werktage:{person_key('p_anna')}/2026-10-07", "Anna: Frei") in fake.own()          # the export, too

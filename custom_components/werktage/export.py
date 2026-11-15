@@ -21,18 +21,11 @@ def person_key(person_id: str) -> str:
     """A stable stand-in for the person id in the shared calendar: the id itself never leaves Home Assistant."""
     return hashlib.sha256(person_id.encode()).hexdigest()[:12]
 
-_LABELS = {
-    "en": {Reason.WEEKEND: "Weekend", Reason.EXCEPTION_DAY_OFF: "Day off", Reason.CALENDAR_DAY_OFF: "Day off",
-           Reason.SCHOOL_HOLIDAY: "School holidays", Reason.PUBLIC_HOLIDAY: "Public holiday"},
-    "de": {Reason.WEEKEND: "Wochenende", Reason.EXCEPTION_DAY_OFF: "Frei", Reason.CALENDAR_DAY_OFF: "Frei",
-           Reason.SCHOOL_HOLIDAY: "Schulferien", Reason.PUBLIC_HOLIDAY: "Feiertag"},
-}
 
 
-def reason_label(reason: Reason, language: str | None) -> str:
-    """Title for a day off without a holiday name, in the installation's language."""
-    table = _LABELS.get((language or "en").split("-")[0].lower(), _LABELS["en"])
-    return table.get(reason, reason.value.replace("_", " "))
+def title(reason: Reason, titles: Mapping[Reason, str]) -> str:
+    """Title of a day off without a holiday name: the translated reason (#15), else the reason key."""
+    return titles.get(reason) or reason.value.replace("_", " ")
 
 
 @dataclass(frozen=True, slots=True)
@@ -63,12 +56,13 @@ def key_of(description: str | None) -> str | None:
 
 
 def wanted_events(household: Household, resident_ids: Iterable[str], names: Mapping[str, str], first: dt.date,
-                  last: dt.date, include_weekends: bool, language: str | None) -> dict[str, WantedEvent]:
+                  last: dt.date, include_weekends: bool, titles: Mapping[Reason, str]) -> dict[str, WantedEvent]:
     """One event per resident and day off in ``first``..``last``; unknown days never (P5).
 
     Without ``include_weekends`` the days of the household weekend are left out
     (they would flood the calendar); a personal weekly pattern (P29) is a day
-    off worth telling and is always exported.
+    off worth telling and is always exported. ``titles`` come from the
+    translations (``calendars.async_event_titles``).
     """
     wanted: dict[str, WantedEvent] = {}
     household_weekend = household.calendar.weekend
@@ -79,7 +73,7 @@ def wanted_events(household: Household, resident_ids: Iterable[str], names: Mapp
             weekend = info is not None and info.reason is Reason.WEEKEND and day.weekday() in household_weekend
             if info is not None and not info.is_workday and info.is_known and (include_weekends or not weekend):
                 key = f"{person_key(resident_id)}/{day.isoformat()}"
-                label = info.holiday_name or reason_label(info.reason, language)
+                label = info.holiday_name or title(info.reason, titles)
                 wanted[key] = WantedEvent(key, day, f"{names.get(resident_id, resident_id)}: {label}")
             day += ONE_DAY
     return wanted

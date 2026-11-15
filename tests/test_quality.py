@@ -18,9 +18,10 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.werktage import async_remove_config_entry_device, frontend, rules, sources, storage
 from custom_components.werktage.const import DOMAIN
-from custom_components.werktage.coordinator import WerktagsError, async_probe_openholidays
+from custom_components.werktage.coordinator import WerktagsError
 from custom_components.werktage.diagnostics import async_get_config_entry_diagnostics
 from custom_components.werktage.openholidays import Holiday
+from custom_components.werktage.school_holidays import async_probe_openholidays
 from custom_components.werktage.storage import SchoolHolidayCache, SchoolHolidayPeriod
 
 from .conftest import TODAY, d
@@ -173,7 +174,8 @@ async def test_rejected_changes_name_their_reason(hass: HomeAssistant, household
 async def test_every_error_key_is_translated():
     import json
     base = Path(frontend.__file__).parent
-    source = (base / "coordinator.py").read_text(encoding="utf-8") + (base / "services.py").read_text(encoding="utf-8")
+    source = "".join((base / name).read_text(encoding="utf-8")
+                     for name in ("coordinator.py", "services.py", "school_holidays.py", "calendars.py"))
     keys = set(re.findall(r'WerktagsError\("(\w+)"', source)) | set(re.findall(r'translation_key="(\w+)"', source))
     issue_keys = set(re.findall(r'^ISSUE_\w+ = "(\w+)"', (base / "const.py").read_text(encoding="utf-8"), re.MULTILINE))
     flow = (base / "config_flow.py").read_text(encoding="utf-8")
@@ -187,6 +189,28 @@ async def test_every_error_key_is_translated():
         assert option_keys <= set(translated["options"]["error"]), (name, option_keys - set(translated["options"]["error"]))
         assert issue_keys <= set(translated["issues"]), (name, issue_keys - set(translated["issues"]))
 
+
+
+def test_day_off_titles_and_the_source_option_come_from_the_translations():
+    """#15 (review UX-1, COD-17): every key the event titles and the source option use exists in every language,
+    and no title text is left in the code."""
+    import json
+
+    from custom_components.werktage import calendars
+    base = Path(frontend.__file__).parent
+    keys = [f"entity.{key}" for key in calendars._TITLE_KEYS.values()]
+    keys.append("selector.school_holiday_source.options.installation")
+    for name in ("strings.json", "translations/en.json", "translations/de.json"):
+        translated = json.loads((base / name).read_text(encoding="utf-8"))
+        for key in keys:
+            node = translated
+            for part in key.split("."):
+                node = node[part]
+            assert isinstance(node, str) and node, (name, key)
+    for path in base.glob("*.py"):
+        text = path.read_text(encoding="utf-8").lower()
+        for word in ("wochenende", "schulferien", "feiertag", "as the installation", "wie die installation"):
+            assert word not in text, (path.name, word)
 
 # --- services: the remaining branches ----------------------------------------------------------
 
@@ -350,10 +374,10 @@ async def test_incomplete_school_holidays_are_reported_without_a_fetch(hass: Hom
 
 
 def test_pure_modules_and_library_import_nothing_from_home_assistant():
-    """Invariant 3 (docs/PROJECT.md): rules, sources, storage and the library stay free of Home Assistant,
+    """Invariant 3 (docs/PROJECT.md): rules, sources, storage, export and the library stay free of Home Assistant,
     and the integration reaches the API only through the library."""
     base = Path(frontend.__file__).parent
-    pure = [base / name for name in ("rules.py", "sources.py", "storage.py")]
+    pure = [base / name for name in ("rules.py", "sources.py", "storage.py", "export.py")]
     pure += sorted((base.parent.parent / "lib" / "openholidays" / "src").rglob("*.py"))
     for path in pure:
         assert "homeassistant" not in path.read_text(encoding="utf-8"), path

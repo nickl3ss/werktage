@@ -43,8 +43,10 @@ Vor jedem Commit grün. Kein `--no-verify`, kein `--force`. Bei zwei erfolglosen
 ```
 lib/openholidays/                  [LIB]   asynchroner API-Client; kein HA-Import; eigene Version
 custom_components/werktage/        [INT]   die Integration
-  rules.py sources.py storage.py           reine Logik, kein HA-Import — Kernmodule
-  coordinator.py                           Store, Mitternachts-Rebuild 00:00:10, Prüfung 03:30, Abruf alle 30 Tage
+  rules.py sources.py storage.py export.py reine Logik, kein HA-Import — Kernmodule (außer export.py)
+  coordinator.py                           Store, Rebuild 00:00:10, Prüfung 03:30, Änderungen; ruft die zwei Teile:
+  school_holidays.py                       Schulferien je Quelle: Abruf alle 30 Tage, Caches, Hinweise
+  calendars.py                             Adapter zu Kalender-Entitäten: persönliche Kalender, Export, Titel
   sensor.py binary_sensor.py calendar.py   Entitäten je Bewohner, Raum, Haus
   services.py services.yaml                Aktionen und Antwortdienste (SupportsResponse.ONLY)
   config_flow.py                           Einrichtung (fünf Schritte) und Optionen-Menü

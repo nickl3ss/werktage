@@ -99,7 +99,7 @@ def school_holidays() -> list[Holiday]:
 @pytest.fixture(autouse=True)
 def fake_api(school_holidays: list[Holiday]) -> AsyncGenerator[Any]:
     """The OpenHolidays client answers with fictitious data; no network."""
-    with patch("custom_components.werktage.coordinator.OpenHolidaysClient") as client_cls:
+    with patch("custom_components.werktage.school_holidays.OpenHolidaysClient") as client_cls:
         client_cls.return_value.school_holidays = AsyncMock(return_value=school_holidays)
         yield client_cls.return_value
 
