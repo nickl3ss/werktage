@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Callable, Coroutine
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
@@ -34,6 +33,14 @@ from .const import (
 )
 from .coordinator import UNCHANGED, WerktagsCoordinator, WerktagsError
 from .rules import ONE_DAY, CombineRule, DayType, Role
+
+if TYPE_CHECKING:
+    # Home Assistant 2026.10+ validates with probatio and aliases ``voluptuous``
+    # to it at startup; its signatures expect probatio schemas. Importing
+    # voluptuous keeps 2026.1 running, mypy checks against the newer types.
+    import probatio as vol
+else:
+    import voluptuous as vol
 
 MAX_RANGE_DAYS = 366
 MAX_WEEKS = 26

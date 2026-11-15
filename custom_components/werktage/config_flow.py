@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
@@ -63,6 +62,14 @@ from .const import (
 from .coordinator import WerktagsCoordinator, WerktagsError, async_probe_openholidays
 from .openholidays import OpenHolidaysError
 from .rules import DEFAULT_EVENING_RULE, DEFAULT_MORNING_RULE, CombineRule, Role
+
+if TYPE_CHECKING:
+    # Home Assistant 2026.10+ validates with probatio and aliases ``voluptuous``
+    # to it at startup; its signatures expect probatio schemas. Importing
+    # voluptuous keeps 2026.1 running, mypy checks against the newer types.
+    import probatio as vol
+else:
+    import voluptuous as vol
 
 WEEKDAYS = ["0", "1", "2", "3", "4", "5", "6"]
 OPENHOLIDAYS_COUNTRIES = {   # countries the OpenHolidays API covered on 2026-09-29

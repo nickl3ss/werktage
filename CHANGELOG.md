@@ -6,6 +6,10 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
 
 ### Added
 ### Changed
+- Tested against Home Assistant 2026.10 (`pytest-homeassistant-custom-component`
+  0.13.375). Since 2026.10 Home Assistant validates with probatio and maps
+  `voluptuous` onto it; the schemas are now type-checked against probatio.
+  Nothing changes at runtime, 2026.1 stays the minimum (#26).
 ### Fixed
 ### Removed
 ### Security
