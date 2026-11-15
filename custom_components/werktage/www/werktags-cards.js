@@ -1,4 +1,4 @@
-/* Werktage cards v0.3.0 — built from frontend/src by tools/build_cards.py. Do not edit. */
+/* Werktage cards v0.3.1 — built from frontend/src by tools/build_cards.py. Do not edit. */
 (() => {
 "use strict";
 /**

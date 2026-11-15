@@ -29,6 +29,7 @@ listed in [NOTICE](NOTICE).
 | `ruff` | lint (120 characters) |
 | `holidays` | same package as at run time, for the tests |
 | `-e lib/openholidays` | the library itself, editable |
+| `probatio` (comes with Home Assistant ≥ 2026.10 in the test harness) | mypy checks the schemas against it; at run time the integration imports `voluptuous`, which Home Assistant 2026.10 and newer map onto probatio (`docs/PROJECT.md` ADR 17) |
 
 Node: the card tests use only `node --test` from Node 22 or newer; there is no
 `package.json` and no `node_modules`.

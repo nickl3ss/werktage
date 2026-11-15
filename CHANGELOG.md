@@ -6,6 +6,19 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
 
 ### Added
 ### Changed
+### Fixed
+### Removed
+### Security
+
+## 0.3.1 — 2026-11-15
+
+Maintenance for Home Assistant 2026.10 and 2026.11: type checks against
+probatio, the Marketplace in the documentation, display texts from the
+translations and the coordinator split into parts. The store stays at
+version 3, so going back to 0.3.0 keeps the data (HACS: download 0.3.0
+again; Marketplace: restore the backup, see `docs/BETRIEB.md § 3`).
+
+### Changed
 - Tested against Home Assistant 2026.10 (`pytest-homeassistant-custom-component`
   0.13.375). Since 2026.10 Home Assistant validates with probatio and maps
   `voluptuous` onto it; the schemas are now type-checked against probatio.
@@ -34,9 +47,6 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
 - Decision: the coordinator's parts hold a reference to it and commit
   through `async_commit`; calendars are mocked in one place
   (`calendars.calendar_entity`) (`docs/PROJECT.md` ADR 15).
-### Fixed
-### Removed
-### Security
 
 ## 0.3.0 — 2026-10-21
 
