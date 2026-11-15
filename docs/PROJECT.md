@@ -14,7 +14,7 @@ Automationen       ──► Sensoren, Binärsensoren, Kalender     ┘         
                                                         .storage/werktage.data · Config-Eintrag
 ```
 
-Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 läuft (HACS-Standardliste). Sie entscheidet je Person, ob ein Tag ein Werktag oder frei ist, und leitet daraus Morgen- und Abendmodus für Person, Raum und Haus ab. Es gibt keinen Server des Autors, keine Konten, keine Telemetrie; der einzige eigene Netzzugriff ist der monatliche Abruf der Schulferien. Kalender werden ausschließlich über Home-Assistant-Entitäten gelesen (Schulferienquelle, persönliche Kalender) und beschrieben (Export).
+Werktage ist eine Custom Integration, die in jedem Home Assistant ≥ 2026.1 läuft (Katalog `hacs/default`: ab 2026.11 über den eingebauten Marketplace, davor über HACS). Sie entscheidet je Person, ob ein Tag ein Werktag oder frei ist, und leitet daraus Morgen- und Abendmodus für Person, Raum und Haus ab. Es gibt keinen Server des Autors, keine Konten, keine Telemetrie; der einzige eigene Netzzugriff ist der monatliche Abruf der Schulferien. Kalender werden ausschließlich über Home-Assistant-Entitäten gelesen (Schulferienquelle, persönliche Kalender) und beschrieben (Export).
 
 ## 2 · Module und Verträge
 
@@ -98,14 +98,14 @@ Gemessene Werte stehen als Kommentar in `tests/test_perf.py` (Windows, Python 3.
 | 1 | Drei Teile: Bibliothek · Integration · Karten (P15, P34) | kernfähig; Bibliothek ohne HA ist Voraussetzung für Core | Monolith; eigene WebSocket-API für die Karten; Panel | 2026-09-29 | gültig |
 | 2 | Fehlende Daten = Werktag mit `reason: unknown` (P5) | lieber pünktlich geweckt als verschlafen | „unbekannt = frei“; Entität `unavailable` | 2026-09-29 | gültig |
 | 3 | Historie mit `valid_from` statt Überschreiben (3.4, P26) | Vergangenheit bleibt prüfbar; Ausnahmen bleiben gültig | nur aktueller Zustand | 2026-09-30 | gültig |
-| 4 | Domain `werktage` statt `werktags` | HACS entfernt `tags/` aus jeder Download-URL | auf HACS-Fix warten | 2026-10-02 (0.2.0) | gültig |
+| 4 | Domain `werktage` statt `werktags` | HACS entfernt `tags/` aus jeder Download-URL | auf HACS-Fix warten | 2026-10-02 (0.2.0) | gültig; ob der Marketplace (2026.11) denselben Fehler hat, prüft N12-6 (#28) |
 | 5 | Karten-URL stabil + `?v=<hash>` | gecachte Seite darf nie einen gelöschten Pfad laden | Hash im Pfad | 2026-10-06 | gültig |
 | 6 | Lokale Markenbilder (`brand/icon*.png`), nur Icon | brands-Repo nimmt keine Custom-Integrationen mehr; HA leitet Logo aus Icon ab | PR an `home-assistant/brands`; doppelte Logo-Dateien (#13) | 2026-10-20 | gültig |
 | 7 | Anzeigename **Werktage** (P35, #6); technische Namen bleiben (`custom:werktags-*`, `werktags-cards.js`) | ein Name für Domain und Produkt; Kartennamen zu ändern bräche Dashboards | „Werktags“ behalten und den Unterschied erklären | 2026-10-20 | gültig |
 | 8 | Rückkehr zum Haushalts-Standard ist ein Schritt ab `valid_from` (`None`), keine Löschung (#11) | Spezifikation 3.4; Rückfrage in den Karten muss wahr sein | Historie leeren (0.1.0–0.2.3) | 2026-10-20 | gültig, ersetzt Verhalten bis 0.2.3 |
-| 9 | Release als ZIP-Asset (`hacs.json` `zip_release`, #7) | GitHub zählt Asset-Downloads; Bundle und Bibliothek im Asset sind geprüft | Quell-Archiv des Tags (nicht zählbar) | 2026-10-20 | gültig; ältere Releases ohne Asset sind über HACS nicht mehr wählbar |
+| 9 | Release als ZIP-Asset (`hacs.json` `zip_release`, #7) | GitHub zählt Asset-Downloads; Bundle und Bibliothek im Asset sind geprüft | Quell-Archiv des Tags (nicht zählbar) | 2026-10-20 | gültig; ältere Releases ohne Asset sind über HACS nicht mehr wählbar; der Marketplace (2026.11) liest dieselbe `hacs.json`, Zähler prüft N12-5 (#28) |
 | 10 | Standard `nickl3ss/standards` Stufe **Gold** | öffentliches Repo mit Fremdnutzern | Silber mit Ziel Gold | 2026-10-20 | gültig |
-| 11 | Sprache: Produkt und Code Englisch, Prozessdoku und Reviews Deutsch | internationale HACS-Nutzer; Standard-Vorlage ist deutsch | alles Deutsch; alles Englisch | 2026-10-20 | gültig |
+| 11 | Sprache: Produkt und Code Englisch, Prozessdoku und Reviews Deutsch | internationale Nutzer (Marketplace, HACS); Standard-Vorlage ist deutsch | alles Deutsch; alles Englisch | 2026-10-20 | gültig |
 | 14 | Export in einen geteilten Kalender über die HA-Kalender-Entität (Entitätsmethoden `async_get_events`, `async_create_event`, `async_delete_event`), nur eigene Termine mit Marker (P37) | kein eigener CalDAV-Client (Zugangsdaten, Server-Eigenheiten doppelt wäre ein Schritt weg vom Core); Zwei-Wege-Abgleich bewusst ausgeschlossen | eigener CalDAV-Client; Dienst `calendar.create_event` (keine UIDs, kein Löschen) | 2026-10-21 | gültig |
 | 13 | Kalendertage liegen zwischen Standard und Ausnahme (`exception ?? calendar ?? default`, P36); nichts wird in Kalender zurückgeschrieben | Korrektur bleibt in der Karte möglich; Zwei-Wege-Abgleich ist der Punkt, an dem solche Funktionen unzuverlässig werden | Kalender als Ausnahmen importieren (verliert die Korrektur); Kalender über dem Standard **und** der Ausnahme | 2026-10-21 | gültig |
 | 12 | Windows-Entwicklung über Stubs (`tools/windows_dev.py`, `conftest.py`) statt WSL | Tests laufen in 18 s lokal; kein Neustart, keine Admin-Rechte | WSL; nur CI | 2026-10-20 | gültig |

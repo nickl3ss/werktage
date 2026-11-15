@@ -23,6 +23,14 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
   calendars and the export). No change in behaviour; their log lines come
   from `custom_components.werktage.school_holidays` and
   `custom_components.werktage.calendars` (#16).
+- Installation and updates are described for the Home Assistant
+  **Marketplace** (2026.11 and newer: installed without a restart, updates
+  under *Settings → Updates*) next to HACS (2026.1 to 2026.10). A test now
+  sets the integration up in a running Home Assistant the way the
+  Marketplace does (#27, #28).
+- Decision: with the Marketplace, a rollback restores the backup made
+  before the update, as the Marketplace documentation advises; *Install
+  another version* is not documented as a way back (`docs/BETRIEB.md § 3`).
 - Decision: the coordinator's parts hold a reference to it and commit
   through `async_commit`; calendars are mocked in one place
   (`calendars.calendar_entity`) (`docs/PROJECT.md` ADR 15).

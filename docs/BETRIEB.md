@@ -6,9 +6,12 @@
 
 | Weg | Befehl / Klick | Wann |
 |---|---|---|
-| HACS (Standardliste) | HACS → Suche *Werktage* → Herunterladen → Home Assistant neu starten | normale Installation und jedes Update |
-| Von Hand | `custom_components/werktage/` aus dem Release-Archiv in `<config>/custom_components/` kopieren, Neustart | ohne HACS |
+| Marketplace (Home Assistant ≥ 2026.11) | *Einstellungen → Marketplace* → Suche *Werktage* → *Install* (beim ersten Mal Hinweis bestätigen); die Einrichtung öffnet sich **ohne Neustart** | normale Installation ab 2026.11 |
+| HACS (Standardliste, Home Assistant 2026.1–2026.10) | HACS → Suche *Werktage* → Herunterladen → Home Assistant neu starten | normale Installation bis 2026.10 |
+| Von Hand | `custom_components/werktage/` aus dem Release-Archiv in `<config>/custom_components/` kopieren, Neustart | ohne Marketplace und HACS |
 | Entwicklerhost des Autors | `git archive <tag> \| tar -x -C <tmp>` → `<tmp>/deploy.sh /homeassistant` → `ha core check` → `ha core restart` | **nur Tags**, nie die Arbeitskopie (CLAUDE.md § Git) |
+
+Marketplace und HACS nutzen denselben Katalog (`hacs/default`) und dieselbe `hacs.json`. HACS installiert das Release-Asset `werktage.zip` (ADR 9); dass der Marketplace es ebenso tut, prüft N12-5. Nach einer Installation aus dem Marketplace ohne Neustart den Browser einmal neu laden, sonst fehlen die Karten (das Skript wird beim Laden der Seite angemeldet).
 
 `deploy.sh <config>` kopiert nur die Integration (samt der einkopierten Bibliothek) und prüft vorher `tools/sync_vendor.py --check`. Der Zielpfad ist ein Argument und steht nicht im Repo. Ein Neuladen des Eintrags lädt keinen neuen Code; nach jeder Codeänderung ist ein Neustart nötig.
 
@@ -17,17 +20,19 @@
 ## 2 · Update
 
 1. CHANGELOG des Releases lesen (Breaking Changes stehen mit Migrationsanleitung oben).
-2. HACS → *Werktage* → neue Version → Neustart.
+2. Marketplace (≥ 2026.11): *Einstellungen → Updates* → *Werktage* → installieren → Neustart (der Marketplace prüft den Katalog alle sechs Stunden; Updates brauchen anders als die Erstinstallation einen Neustart). HACS (2026.1–2026.10): HACS → *Werktage* → neue Version → Neustart.
 3. Der Store `.storage/werktage.data` wird beim ersten Start migriert (`DATA_VERSION` in `storage.py`; Logzeile `Migrated store from version N to M`). Eine Migration ist additiv und läuft genau einmal.
-4. Companion-App: zeigt sie nach einem Update auf jeder Karte *Konfigurationsfehler*, einmal *Einstellungen → Companion-App → Fehlerbehebung → Frontend-Cache zurücksetzen* (Seite aus der Zeit vor 0.2.0 lädt noch `/werktags_static/`).
+4. Update von Home Assistant auf 2026.11: der Marketplace übernimmt die HACS-Installation beim ersten Start von selbst; die Update-Entität behält ihre Entitäts-ID, Daten und Karten bleiben (Prüfschritt N12-4). HACS lässt sich ab 2026.11 nicht mehr installieren.
+5. Companion-App: zeigt sie nach einem Update auf jeder Karte *Konfigurationsfehler*, einmal *Einstellungen → Companion-App → Fehlerbehebung → Frontend-Cache zurücksetzen* (Seite aus der Zeit vor 0.2.0 lädt noch `/werktags_static/`).
 
 ## 3 · Rollback
 
 | Fall | Schritte |
 |---|---|
-| Store-Version unverändert (siehe CHANGELOG) | HACS → *Werktage* → *Erneut herunterladen* → vorherige Version wählen → Neustart. Daten bleiben. |
-| Store-Version gestiegen | Ältere Versionen lesen den neuen Store nicht (`store_unreadable`, Eintrag geht auf *Fehler*). Vor dem Rollback `.storage/werktage.data` aus dem Home-Assistant-Backup von vor dem Update zurückspielen (Backup → Wiederherstellen → nur `.storage` oder Datei von Hand ersetzen bei gestopptem Core), dann die ältere Version herunterladen und neu starten. |
-| Ohne HACS | Vorheriges Release-Archiv entpacken, Verzeichnis ersetzen, Neustart. |
+| Marketplace (≥ 2026.11) | Backup von vor dem Update wiederherstellen (*Einstellungen → System → Backups*). Die Marketplace-Doku rät ausdrücklich davon ab, *Install another version* als Rückweg nach einem Update zu nutzen; deshalb ist das Backup hier der einzige dokumentierte Weg. |
+| HACS, Store-Version unverändert (siehe CHANGELOG) | HACS → *Werktage* → *Erneut herunterladen* → vorherige Version wählen → Neustart. Daten bleiben. |
+| HACS, Store-Version gestiegen | Ältere Versionen lesen den neuen Store nicht (`store_unreadable`, Eintrag geht auf *Fehler*). Vor dem Rollback `.storage/werktage.data` aus dem Home-Assistant-Backup von vor dem Update zurückspielen (Backup → Wiederherstellen → nur `.storage` oder Datei von Hand ersetzen bei gestopptem Core), dann die ältere Version herunterladen und neu starten. |
+| Von Hand | Vorheriges Release-Archiv entpacken, Verzeichnis ersetzen, Neustart (bei gestiegener Store-Version vorher `.storage/werktage.data` aus dem Backup, wie oben). |
 
 Der Rollback-Pfad ist noch nicht geprobt; beim nächsten Update auf dem Host einmal durchführen und hier das Datum eintragen (`docs/TESTING.md` R6-2).
 
@@ -57,7 +62,7 @@ Logs enthalten Personen-IDs und Bereichs-IDs, nie Namen oder freie Tage (REC-05)
 
 | Symptom | Ursache | Abhilfe |
 |---|---|---|
-| Jede Karte *Konfigurationsfehler* | Seite aus dem Cache lädt das alte Skript oder die Seite war vor der Einrichtung offen | Browser neu laden; Companion-App: Frontend-Cache zurücksetzen |
+| Jede Karte *Konfigurationsfehler* | Seite aus dem Cache lädt das alte Skript oder die Seite war vor der Einrichtung offen (auch nach einer Installation aus dem Marketplace ohne Neustart) | Browser neu laden; Companion-App: Frontend-Cache zurücksetzen |
 | Tage einer Person `reason: unknown` | Schulferien für den Zeitraum nicht bekannt (Quelle noch nicht abgerufen, außerhalb des bekannten Bereichs) | *Schulferien aktualisieren* aufrufen; Reparaturhinweis beachten; Tage gelten bis dahin als Werktag (P5) |
 | Reparaturhinweis *Schulferien nicht erreichbar* | drei Abrufe in Folge fehlgeschlagen | Netz prüfen; `openholidaysapi.org` erreichbar? Hinweis verschwindet beim nächsten Erfolg |
 | Reparaturhinweis *Schulferien unvollständig* | ab Oktober sind die Sommerferien des Folgejahres noch nicht veröffentlicht | wartet auf die Quelle; monatlicher Abruf holt sie nach |
@@ -76,6 +81,6 @@ Logs enthalten Personen-IDs und Bereichs-IDs, nie Namen oder freie Tage (REC-05)
 5. `bin/check` grün; `/standards:review publish` (öffentliches Repo, Stufe Gold).
 6. Commit `chore(int): release x.y.z`, Tag `x.y.z` (ohne `v`, Ausnahme PRO-16), `git push origin main x.y.z`.
 7. CI abwarten (hassfest, HACS, `check`, `minimum-ha`).
-8. GitHub-Release aus dem Tag (`gh release create x.y.z --verify-tag --title "Werktage x.y.z" --notes-file …`). Der Workflow `release.yml` hängt danach `werktage.zip` an (Tag muss der Manifest-Version entsprechen); HACS installiert aus diesem Asset (`hacs.json` `zip_release`) und GitHub zählt die Downloads (#7). Erst wenn das Asset da ist (etwa eine Minute), kann HACS die Version installieren.
+8. GitHub-Release aus dem Tag (`gh release create x.y.z --verify-tag --title "Werktage x.y.z" --notes-file …`). Der Workflow `release.yml` hängt danach `werktage.zip` an (Tag muss der Manifest-Version entsprechen); HACS installiert aus diesem Asset (`hacs.json` `zip_release`), der Marketplace liest dieselbe `hacs.json` (N12-5), und GitHub zählt die Downloads (#7). Erst wenn das Asset da ist (etwa eine Minute), lässt sich die Version installieren; der Marketplace zeigt sie spätestens nach sechs Stunden an.
 9. Installation auf dem eigenen Host nur aus dem Tag (§ 1); `docs/TESTING.md § Regressionssuite` durchgehen.
 10. Installierte Version im privaten Handoff des Hosts notieren.

@@ -4,8 +4,9 @@
 school holidays by default, exceptions per person and day, and morning/evening
 modes for people, rooms and the whole house.
 
-> **Status: 0.3.0.** Integration and cards are tested against Home Assistant
-> 2026.1 (minimum) and 2026.9 and run in a household. Ideas and bugs:
+> **Status: 0.3.1.** Integration and cards are tested against Home Assistant
+> 2026.1 (minimum) and 2026.10 and run in a household. Installation from the
+> Marketplace (2026.11 and newer) or with HACS (2026.1 to 2026.10). Ideas and bugs:
 > [issues](https://github.com/nickl3ss/werktage/issues).
 
 ## What it does
@@ -64,8 +65,19 @@ patterns, and combines people into rooms and the house by a rule you choose.
 
 Requires Home Assistant 2026.1 or newer.
 
-1. **With HACS** (recommended): Werktage is in the HACS default list. In
-   HACS, search for *Werktage*, download it and restart Home Assistant.
+1. **From the Marketplace** (Home Assistant 2026.11 and newer): *Settings →
+   Marketplace*, search for *Werktage*, open it and select *Install* (the
+   first time, accept the notice). The setup of step 2 opens right away,
+   without a restart; reload the browser once before adding the cards.
+   Updates appear under *Settings → Updates* and need a restart.
+
+   **With HACS** (Home Assistant 2026.1 to 2026.10): Werktage is in the HACS
+   default list. In HACS, search for *Werktage*, download it and restart
+   Home Assistant. When Home Assistant is updated to 2026.11, the Marketplace
+   takes over the installation by itself.
+
+   The button opens the repository in HACS or, from 2026.11 on, in the
+   Marketplace:
 
    [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=nickl3ss&repository=werktage&category=integration)
 
@@ -319,8 +331,12 @@ repair issue.
 - The evening sensors refer to **tomorrow**; after midnight they already look
   at the day after.
 - One instance per Home Assistant.
-- After updating the files of the integration Home Assistant must be
-  **restarted**; reloading the entry does not reload the code.
+- After an update (Marketplace, HACS or by hand) Home Assistant must be
+  **restarted**; reloading the entry does not reload the code. Only the
+  first installation from the Marketplace works without a restart.
+- To go back to an earlier version, restore the backup made before the
+  update (the Marketplace documentation advises against *Install another
+  version* for this); details in [docs/BETRIEB.md](docs/BETRIEB.md) § 3.
 
 ## Troubleshooting
 
@@ -371,7 +387,10 @@ kann jeder Schüler eine eigene Schulferienquelle haben, persönliche Kalender
 liefern freie Tage und zusätzliche Werktage, und die freien Tage lassen sich in
 einen geteilten Kalender exportieren (Abschnitte oben, auf Englisch).
 
-> **Stand: 0.3.0.** Integration und Karten sind gegen Home Assistant 2026.1
-> (Mindestversion) und 2026.9 getestet. Installation über HACS wie oben
-> beschrieben; Ideen und Fehler als
+> **Stand: 0.3.1.** Integration und Karten sind gegen Home Assistant 2026.1
+> (Mindestversion) und 2026.10 getestet. Installation ab Home Assistant
+> 2026.11 über den Marketplace in den Einstellungen (*Werktage* suchen,
+> installieren; die Einrichtung öffnet sich ohne Neustart), bei 2026.1 bis
+> 2026.10 über HACS wie oben beschrieben. Updates brauchen in beiden Fällen
+> einen Neustart. Ideen und Fehler als
 > [Issue](https://github.com/nickl3ss/werktage/issues).

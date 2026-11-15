@@ -7,7 +7,7 @@ hosted service and no telemetry.
 
 ## Supported versions
 
-Only the latest release on GitHub (what HACS offers) receives fixes.
+Only the latest release on GitHub (what the Marketplace and HACS offer) receives fixes.
 
 ## Reporting a vulnerability
 

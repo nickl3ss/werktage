@@ -25,7 +25,7 @@ docs:                       # abweichende Dateinamen
 fremdsysteme: [openholidays-api, python-holidays, home-assistant-calendar]   # Regeln in docs/PROJECT.md § 5
 ausnahmen:                  # Regel-ID: Begründung (nur so wird eine MUSS-Regel kein Befund)
   SEC-10: "hassfest@master und hacs/action@main folgen der ausdrücklichen Upstream-Empfehlung; alle übrigen Actions sind auf einen Commit gepinnt und Dependabot hält sie aktuell"
-  PRO-16: "Tags ohne v-Präfix (0.1.0 … 0.3.0): HACS liest beide Formen, ein Wechsel wäre nur Rauschen in der Release-Liste"
+  PRO-16: "Tags ohne v-Präfix (0.1.0 … 0.3.1): HACS liest beide Formen, der Marketplace (ab 2026.11) nutzt denselben Katalog und dieselbe hacs.json; ein Wechsel wäre nur Rauschen in der Release-Liste"
   REC-04: "Keine Betreiberpflichten: die Integration läuft ausschließlich im Home Assistant des Nutzers, der Autor hostet nichts und verarbeitet keine Daten"
   OPS-05: "Kein Backup durch das Repo: der Store liegt in .storage/ und ist Teil des Home-Assistant-Backups"
   UX-13: "Keine gedruckten Ausgaben"
