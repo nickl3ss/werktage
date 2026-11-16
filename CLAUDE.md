@@ -36,7 +36,7 @@ Alle Invarianten mit Nummern stehen in `docs/PROJECT.md § 8`; jede ist durch ei
 | Veröffentlichungs-Check | `tools/check_publication.py --areas` (Dateien **und** Historie, No-Reply-Autor; in der CI ohne `.storage`, daher nur generische Muster) |
 | **Alles** | `bin/check` — ruft die Zeilen oben in dieser Reihenfolge; `.githooks/pre-push` und die CI rufen **nur** diesen Befehl (`--fast`: nur Tests und Lint) |
 
-Vor jedem Commit grün. Kein `--no-verify`, kein `--force`. Bei zwei erfolglosen Runden anhalten, Fehler melden, Entscheidung einholen. Zusätzlich in der CI: hassfest, HACS-Validierung, Job `minimum-ha`. hassfest lokal: sparse checkout von `home-assistant/core` (`script/hassfest`, `script/translations`, `script/util`) im Scratchpad, dort `PATH=.venv/bin:$PATH python -m script.hassfest --action validate --integration-path <Repo>/custom_components/werktage`.
+Vor jedem Commit grün. Kein `--no-verify`, kein `--force`. Bei zwei erfolglosen Runden anhalten, Fehler melden, Entscheidung einholen. Zusätzlich in der CI: hassfest, HACS-Validierung, Job `minimum-ha`. hassfest lokal: sparse checkout von `home-assistant/core` (`script/hassfest`, `script/translations`, `script/util`; Tag passend zur installierten HA-Version) im Scratchpad, dort `PATH=.venv/bin:$PATH python -m script.hassfest --action validate --integration-path <Repo>/custom_components/werktage`. Windows: `PATH=<Repo>/.venv/Scripts:$PATH`, zusätzlich `PYTHONUTF8=1` (sonst cp1252-Lesefehler) und einmalig `pip install infrared-protocols` (hassfest importiert die Infrarot-Komponente).
 
 ## Projektstruktur
 

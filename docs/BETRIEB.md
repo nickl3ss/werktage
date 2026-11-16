@@ -29,7 +29,7 @@ Marketplace und HACS nutzen denselben Katalog (`hacs/default`) und dieselbe `hac
 
 | Fall | Schritte |
 |---|---|
-| Marketplace (≥ 2026.11) | Backup von vor dem Update wiederherstellen (*Einstellungen → System → Backups*). Die Marketplace-Doku rät ausdrücklich davon ab, *Install another version* als Rückweg nach einem Update zu nutzen; deshalb ist das Backup hier der einzige dokumentierte Weg. |
+| Marketplace (≥ 2026.11) | Backup von vor dem Update wiederherstellen (*Einstellungen → System → Backups*). Die Marketplace-Doku rät ausdrücklich davon ab, *Install another version* als Rückweg nach einem Update zu nutzen; deshalb ist das Backup hier der einzige dokumentierte Weg. **Folge:** Das Backup setzt ganz Home Assistant auf seinen Stand zurück; alles, was danach geändert wurde (auch Ausnahmen, Rollen und Räume in Werktage), geht verloren. Deshalb das Backup direkt vor dem Update anlegen und nach dem Update erst die Regressionssuite R0 (`docs/TESTING.md`) durchgehen, bevor Daten geändert werden. |
 | HACS, Store-Version unverändert (siehe CHANGELOG) | HACS → *Werktage* → *Erneut herunterladen* → vorherige Version wählen → Neustart. Daten bleiben. |
 | HACS, Store-Version gestiegen | Ältere Versionen lesen den neuen Store nicht (`store_unreadable`, Eintrag geht auf *Fehler*). Vor dem Rollback `.storage/werktage.data` aus dem Home-Assistant-Backup von vor dem Update zurückspielen (Backup → Wiederherstellen → nur `.storage` oder Datei von Hand ersetzen bei gestopptem Core), dann die ältere Version herunterladen und neu starten. |
 | Von Hand | Vorheriges Release-Archiv entpacken, Verzeichnis ersetzen, Neustart (bei gestiegener Store-Version vorher `.storage/werktage.data` aus dem Backup, wie oben). |

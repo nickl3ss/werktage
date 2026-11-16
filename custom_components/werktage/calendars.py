@@ -76,8 +76,13 @@ async def async_event_titles(hass: HomeAssistant) -> dict[Reason, str]:
 
 @callback
 def cached_event_titles(hass: HomeAssistant) -> dict[Reason, str]:
-    """The same from the cache that the entity platforms fill, for a calendar's ``event`` property."""
-    return _titles(translation.async_get_cached_translations(hass, hass.config.language, "entity", DOMAIN))
+    """The same from the cache that the entity platforms fill, for a calendar's ``event`` property.
+
+    Right after a change of language the new one may not be loaded yet; English stands in until it is.
+    """
+    cached = translation.async_get_cached_translations
+    return (_titles(cached(hass, hass.config.language, "entity", DOMAIN))
+            or _titles(cached(hass, "en", "entity", DOMAIN)))
 
 
 # -- reading ---------------------------------------------------------------------------

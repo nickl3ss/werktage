@@ -191,6 +191,34 @@ async def test_every_error_key_is_translated():
 
 
 
+def test_no_import_cycles_and_calendar_io_only_in_the_adapter():
+    """Review ME-2 (ARC-05, #16): the run-time import graph of the integration has no cycles (imports under
+    ``TYPE_CHECKING`` do not count), and only calendars.py reads or writes calendar entities."""
+    import ast
+    base = Path(frontend.__file__).parent
+    graph: dict[str, set[str]] = {}
+    for path in base.glob("*.py"):
+        deps: set[str] = set()
+        for node in ast.parse(path.read_text(encoding="utf-8")).body:     # module level: `if TYPE_CHECKING` skipped
+            if isinstance(node, ast.ImportFrom) and node.level == 1:
+                deps.update([node.module.split(".")[0]] if node.module else [alias.name for alias in node.names])
+        graph[path.stem] = {dep for dep in deps if (base / f"{dep}.py").exists()}
+
+    def visit(module: str, chain: tuple[str, ...]) -> None:
+        assert module not in chain, " -> ".join((*chain, module))
+        for dep in graph[module]:
+            visit(dep, (*chain, module))
+
+    for module in graph:
+        visit(module, ())
+    assert {"calendars", "school_holidays"} <= graph["coordinator"]                   # the parts are imported
+    calendar_io = re.compile(r'\.async_(?:get_events|create_event|delete_event)\(|"get_events"|data\.get\(CALENDAR_DOMAIN\)')
+    for path in base.glob("*.py"):
+        if path.name != "calendars.py":
+            assert not calendar_io.search(path.read_text(encoding="utf-8")), path.name
+    assert calendar_io.search((base / "calendars.py").read_text(encoding="utf-8"))
+
+
 def test_day_off_titles_and_the_source_option_come_from_the_translations():
     """#15 (review UX-1, COD-17): every key the event titles and the source option use exists in every language,
     and no title text is left in the code."""

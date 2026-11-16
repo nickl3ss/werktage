@@ -15,8 +15,10 @@ All changes in plain words, so that it is clear what an update does (Keep a Chan
 Maintenance for Home Assistant 2026.10 and 2026.11: type checks against
 probatio, the Marketplace in the documentation, display texts from the
 translations and the coordinator split into parts. The store stays at
-version 3, so going back to 0.3.0 keeps the data (HACS: download 0.3.0
-again; Marketplace: restore the backup, see `docs/BETRIEB.md § 3`).
+version 3: with HACS, downloading 0.3.0 again keeps the data. With the
+Marketplace, going back means restoring the backup made before the update,
+which also undoes every change made since then, in Werktage and elsewhere
+(`docs/BETRIEB.md § 3`).
 
 ### Changed
 - Tested against Home Assistant 2026.10 (`pytest-homeassistant-custom-component`
@@ -29,7 +31,8 @@ again; Marketplace: restore the backup, see `docs/BETRIEB.md § 3`).
   in English and German. An added holiday without a name is now called
   *Public holiday* (*Feiertag*) instead of *Holiday*; the option *As the
   installation* is translated the same way. Other languages fall back to
-  English, as before (#15).
+  English, as before, and so do the titles while a new language is still
+  loading (#15).
 - Inside: the coordinator keeps the store, the rebuild and the changes; two
   parts do the rest, `school_holidays.py` (school holidays per source) and
   `calendars.py` (the adapter to calendar entities, with the personal
@@ -43,7 +46,8 @@ again; Marketplace: restore the backup, see `docs/BETRIEB.md § 3`).
   Marketplace does (#27, #28).
 - Decision: with the Marketplace, a rollback restores the backup made
   before the update, as the Marketplace documentation advises; *Install
-  another version* is not documented as a way back (`docs/BETRIEB.md § 3`).
+  another version* is not documented as a way back. The backup undoes every
+  change made since it was taken (`docs/BETRIEB.md § 3`).
 - Decision: the coordinator's parts hold a reference to it and commit
   through `async_commit`; calendars are mocked in one place
   (`calendars.calendar_entity`) (`docs/PROJECT.md` ADR 15).

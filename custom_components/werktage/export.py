@@ -1,8 +1,8 @@
 """Export of days off into a shared calendar (#3, P37): what should be there, what is, what to do.
 
-Pure: no Home Assistant imports. The coordinator reads the target calendar's
-events, hands them to :func:`plan` and executes the result through the calendar
-entity. Events the integration wrote carry a marker in their description, so it
+Pure: no Home Assistant imports. ``calendars.async_write_export`` reads the
+target calendar's events, hands them to :func:`plan` and executes the result
+through the calendar entity. Events the integration wrote carry a marker in their description, so it
 never touches anything else; this is an export, not a synchronisation.
 """
 from __future__ import annotations

@@ -117,7 +117,8 @@ entities and devices and deletes the integration's store
 (`.storage/werktage.data`: residents, rooms, exceptions, cached school
 holidays). Persons, areas, automations and dashboards stay; automations that
 use Werktage entities then need a new condition. To remove the files as well,
-delete `custom_components/werktage/` and restart Home Assistant.
+remove Werktage in the Marketplace or in HACS (or delete
+`custom_components/werktage/` by hand) and restart Home Assistant.
 
 See the [specification](docs/specification.md) for rules, entities and
 services.
@@ -320,9 +321,6 @@ repair issue.
 
 ## Known limitations
 
-- One school holiday region for the whole household; children at schools in
-  different regions are not supported yet
-  ([#1](https://github.com/nickl3ss/werktage/issues/1)).
 - A day is either a workday or a day off — no half days, no shift times.
 - Days whose school holidays are not published yet count as **workdays** for
   pupils (reason `unknown`). The API usually publishes about two years ahead.
@@ -334,9 +332,12 @@ repair issue.
 - After an update (Marketplace, HACS or by hand) Home Assistant must be
   **restarted**; reloading the entry does not reload the code. Only the
   first installation from the Marketplace works without a restart.
-- To go back to an earlier version, restore the backup made before the
-  update (the Marketplace documentation advises against *Install another
-  version* for this); details in [docs/BETRIEB.md](docs/BETRIEB.md) § 3.
+- To go back to an earlier version from the Marketplace, restore the
+  backup made before the update (the Marketplace documentation advises
+  against *Install another version* for this). The backup undoes every
+  change made since then, including exceptions entered in Werktage. With
+  HACS, download the earlier version again. Details in
+  [docs/BETRIEB.md](docs/BETRIEB.md) § 3.
 
 ## Troubleshooting
 

@@ -594,6 +594,30 @@ async def test_the_calendar_adapter_without_mocks(hass: HomeAssistant, household
     with pytest.raises(calendars.ExportUnavailable):
         await calendars.async_write_export(hass, "calendar.anna_days_off", {}, d("2026-10-01"), d("2026-10-07"))
 
+async def test_a_second_fetch_or_export_while_one_runs_does_nothing(hass: HomeAssistant, household, fake_api):
+    """Review PhD-1: the re-entry guards keep a second school holiday fetch (monthly limit) and a second
+    export from running while the first one is busy."""
+    from custom_components.werktage import calendars
+    coordinator = household.runtime_data
+    before = fake_api.school_holidays.await_count
+    coordinator.fetcher._fetching = True
+    assert await coordinator.fetcher.async_refresh(force=True) is False
+    assert fake_api.school_holidays.await_count == before                              # no request at all
+    coordinator.fetcher._fetching = False
+    assert await coordinator.fetcher.async_refresh(force=True) is True
+    assert fake_api.school_holidays.await_count == before + 1
+    fake = FakeCalendar()
+    hass.states.async_set("calendar.family", "off", {"friendly_name": "Family"})
+    with patch.object(calendars, "calendar_entity", lambda hass, entity_id: fake if entity_id == "calendar.family" else None):
+        hass.config_entries.async_update_entry(household, options={**household.options, "export_calendar": "calendar.family"})
+        coordinator.exporter._running = True
+        await coordinator.exporter.async_run()
+        assert fake.own() == []                                                        # nothing written
+        coordinator.exporter._running = False
+        await coordinator.exporter.async_run()
+        assert fake.own()
+
+
 async def test_titles_come_from_the_translations(hass: HomeAssistant, household, call_service, persons):
     """#15: day-off titles, the unnamed holiday and the source option in the installation's language (EN, DE)."""
     from custom_components.werktage import calendars
@@ -613,6 +637,8 @@ async def test_titles_come_from_the_translations(hass: HomeAssistant, household,
         return {e["start"]: e["summary"] for e in response["calendar.anna_days_off"]["events"]}
 
     assert (await anna_titles())["2026-10-07"] == "Day off" and (await anna_titles())["2026-10-04"] == "Weekend"
+    hass.config.language = "fr"                                       # nothing loaded for it: English stands in
+    assert calendars.cached_event_titles(hass)[Reason.WEEKEND] == "Weekend"
     hass.config.language = "de"
     assert await calendars.async_event_titles(hass) == {
         Reason.WEEKEND: "Wochenende", Reason.PUBLIC_HOLIDAY: "Feiertag", Reason.SCHOOL_HOLIDAY: "Schulferien",
